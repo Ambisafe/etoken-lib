@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Ambisafe Etoken Lib",
   "main": "index.js",
+  "repository": "https://bitbucket.org/ambisafe/etoken-lib",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",
@@ -13,6 +14,7 @@
   "dependencies": {
     "account-storage": "file:../contract-container-storage-js",
     "ambisafe-client-javascript": "git://github.com/Ambisafe/client-javascript.git#d57d1754a11537073fdc715e0b6b386d23a9fc57",
+    "crypto": "0.0.3",
     "ethereumjs-util": "4.3.0",
     "web3": "0.15.3",
     "web3-provider-engine": "7.1.1"
