@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EToken Lib Demo</title>
+</head>
+<body>
+    <h1>EToken demo</h1>
+    <div>
+        Last block: <pre id="lastBlock"></pre>
+        <h2>Create user</h2>
+        <form id="create-user">
+            <label for="id-password">Password</label>
+            <input name="password" type="password" id="id-password">
+            <button>Create user</button>
+        </form>
+        <h2>Get user</h2>
+        <form id="get-user">
+            <label form="id-address">Address</label>
+            <input name="address" type="text" id="id-address">
+            <label form="id-get-password">Password</label>
+            <input name="password" type="password" id="id-get-password">
+            <button>Get user</button>
+        </form>
+    </div>
+    <script>
+        window.opts = {
+            gethUrl: 'http://104.155.61.18:8545',
+            /// PUT YOUR Private Key here
+            pk: 'c459603474e561b5cb54b8fdf2e65913c621c2473cf650c92c9daa97a830400e'
+        }
+    </script>
+    <script src="../build/ambisafe.min.js"></script>
+    <script src="../build/bundle.js"></script>
+    <script src="//code.jquery.com/jquery-2.2.2.min.js"></script>
+    <script>
+        EToken.web3.eth.getBlock('latest', function (err, result) {
+            if (err) {
+                alert(err);
+            } else {
+                document.getElementById('lastBlock').innerText = JSON.stringify(result, null, 4);
+            }
+        });
+
+
+        var storage = new EToken.AccountStorage('0x152c21d6944f32c6b45605af12bb9b7231a456e7',
+                EToken.web3, window.opts.pk);
+
+        $('#create-user').submit(function () {
+            var $form = $(this),
+                password = $form.find('input[name=password]').val();
+            var container = Ambisafe.generateAccount('ETH', password);
+            var serializedContainer = container.getContainer();
+            var address = EToken.publicToAddress(container.get('public_key'), true);
+            storage.addAccount(address, serializedContainer, function(err, txHash) {
+                if (err) {
+                    alert(err);
+                    return;
+                }
+                alert('Storing account '+ txHash);
+                var filter = EToken.web3.eth.filter('latest').watch(function (err, blockHash) {
+                    EToken.web3.eth.getBlock(blockHash, function (err, block) {
+                        if (!err) {
+                            if (block.transactions.indexOf(txHash) > -1) {
+                                alert('Account ' + address + ' stored! Now you can get it with "Get account"');
+                                filter.stopWatching();
+                            }
+                        }
+                    });
+                });
+            });
+            return false;
+        });
+
+        $('#get-user').submit(function () {
+            var $form = $(this);
+            EToken.storage.password = $form.find('input[name=password]').val();
+            var address = $form.find('input[name=address]').val();
+            EToken.storage.getAccountByAddress(address, function (err, account) {
+                if (err) {
+                    alert(err);
+                    return;
+                }
+                $form.after('PK: ' + account.get('private_key'));
+            });
+            return false;
+        });
+
+    </script>
+</body>
+</html>
