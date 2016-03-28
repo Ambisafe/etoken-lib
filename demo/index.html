@@ -6,8 +6,10 @@
 </head>
 <body>
     <h1>EToken demo</h1>
+    <div id="logs">
+        <h3>Logs</h3>
+    </div>
     <div>
-        Last block: <pre id="lastBlock"></pre>
         <h2>Create user</h2>
         <form id="create-user">
             <label for="id-password">Password</label>
@@ -22,6 +24,19 @@
             <input name="password" type="password" id="id-get-password">
             <button>Get user</button>
         </form>
+        <h2>Send ethers</h2>
+        <form id="send">
+            <label form="id-send-address">Address</label>
+            <input name="address" type="text" id="id-send-address">
+            <label form="id-send-password">Password</label>
+            <input name="password" type="password" id="id-send-password">
+            <label form="destination">Destination</label>
+            <input name="destination" type="text" id="destination">
+            <label form="amount">Amount</label>
+            <input name="amount" type="text" id="amount">
+            <button>Send ethers</button>
+        </form>
+        Last block: <pre id="lastBlock"></pre>
     </div>
     <script>
         window.opts = {
@@ -30,10 +45,10 @@
             pk: 'c459603474e561b5cb54b8fdf2e65913c621c2473cf650c92c9daa97a830400e'
         }
     </script>
-    <script src="../build/ambisafe.min.js"></script>
     <script src="../build/bundle.js"></script>
     <script src="//code.jquery.com/jquery-2.2.2.min.js"></script>
     <script>
+        var $logs = $('#logs');
         EToken.web3.eth.getBlock('latest', function (err, result) {
             if (err) {
                 alert(err);
@@ -42,50 +57,76 @@
             }
         });
 
-
-        var storage = new EToken.AccountStorage('0x152c21d6944f32c6b45605af12bb9b7231a456e7',
-                EToken.web3, window.opts.pk);
-
         $('#create-user').submit(function () {
             var $form = $(this),
                 password = $form.find('input[name=password]').val();
-            var container = Ambisafe.generateAccount('ETH', password);
-            var serializedContainer = container.getContainer();
-            var address = EToken.publicToAddress(container.get('public_key'), true);
-            storage.addAccount(address, serializedContainer, function(err, txHash) {
+            EToken.createAccount(password, function(err, result) {
+                var txHash = result.transactionHash,
+                    address = result.address;
                 if (err) {
-                    alert(err);
+                    $logs.append('<p class="error">' + err + '</p>');
                     return;
                 }
-                alert('Storing account '+ txHash);
-                var filter = EToken.web3.eth.filter('latest').watch(function (err, blockHash) {
-                    EToken.web3.eth.getBlock(blockHash, function (err, block) {
-                        if (!err) {
-                            if (block.transactions.indexOf(txHash) > -1) {
-                                alert('Account ' + address + ' stored! Now you can get it with "Get account"');
-                                filter.stopWatching();
-                            }
-                        }
-                    });
+                EToken.waitForTransaction(txHash, function (err, result) {
+                    if (!err) {
+                        $logs.append('<p>Account ' + address + ' stored! Now you can get it with "Get account"</p>');
+                    }
                 });
+                $logs.append('<p>Storing account. Address: ' + address + ' transaction hash: ' + txHash + '. It takes up to 30 sec</p>');
             });
             return false;
         });
 
         $('#get-user').submit(function () {
             var $form = $(this);
-            EToken.storage.password = $form.find('input[name=password]').val();
+            EToken.setPassword($form.find('input[name=password]').val());
             var address = $form.find('input[name=address]').val();
             EToken.storage.getAccountByAddress(address, function (err, account) {
                 if (err) {
-                    alert(err);
+                    $logs.append('<p class="error">' + err + '</p>');
                     return;
                 }
-                $form.after('PK: ' + account.get('private_key'));
+                $logs.append('<p>Account loaded from storage. PK: ' + account.get('private_key') + '</p>');
+                // Get balance
+                EToken.web3.eth.getBalance(address, function (err, balance) {
+                    $logs.append('<p>Balance of ' + address + ': ' + balance.toString(10) + '</p>');
+                });
+            });
+            return false;
+        });
+
+        $('#send').submit(function () {
+            var $form = $(this),
+                address = $form.find('input[name=address]').val(),
+                destination = $form.find('input[name=destination]').val(),
+                amount = $form.find('input[name=amount]').val();
+            EToken.setPassword($form.find('input[name=password]').val());
+            EToken.web3.eth.sendTransaction({from: address, to: destination, value: amount}, function (err, transactionHash) {
+                if (err) {
+                    $logs.append('<p class="error">' + err + '</p>');
+                } else {
+                    EToken.waitForTransaction(transactionHash, function (err, result) {
+                        if (!err) {
+                            EToken.web3.eth.getBalance(address, function (err, balance) {
+                                $logs.append('<p>New balance of ' + address + ': ' + balance.toString(10) + '</p>');
+                            });
+                            EToken.web3.eth.getBalance(destination, function (err, balance) {
+                                $logs.append('<p>New balance of ' + destination + ': ' + balance.toString(10) + '</p>');
+                            });
+                        }
+                    });
+                    $logs.append('<p>Transaction ' + transactionHash + ' sent</p>');
+                    $logs.append('<p>Waiting for transaction</p>');
+                }
             });
             return false;
         });
 
     </script>
+    <style>
+        p.error {
+            color: red;
+        }
+    </style>
 </body>
 </html>

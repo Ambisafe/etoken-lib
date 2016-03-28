@@ -10,7 +10,9 @@ Python
 PHP
 
     $ php -S localhost:9000
-    
+
+Open [http://localhost:9000/demo/](http://localhost:9000/demo/) in browser.
+
 Put private key to window.opts.
 
 Create account. Then get this account.

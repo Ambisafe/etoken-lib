@@ -28,11 +28,49 @@ function publicToAddress(address) {
     return '0x' + pubToAddress(new Buffer(address, 'hex'), true).toString('hex');
 }
 
+
+function waitForTransaction(txHash, callback) {
+    let filter = web3.eth.filter('latest').watch(function (err, blockHash) {
+        web3.eth.getBlock(blockHash, function (err, block) {
+            if (!err) {
+                if (block.transactions.indexOf(txHash) > -1) {
+                    filter.stopWatching();
+                    callback(null, true);
+                }
+            } else {
+                callback(err);
+            }
+        });
+    });
+}
+
+
+function createAccount(password, callback) {
+    var container = Ambisafe.generateAccount('ETH', password);
+    var serializedContainer = container.getContainer();
+    var address = publicToAddress(container.get('public_key'), true);
+    storage.addAccount(address, serializedContainer, (err, result) => {
+        if (err) {
+            callback(err);
+        } else {
+            callback(null, {address: address, transactionHash: result})
+        }
+    });
+}
+
+
+function setPassword(password) {
+    storage.password = password;
+}
+
+
 module.exports = {
     web3: web3,
     Ambisafe: Ambisafe,
+    AccountStorage: AccountStorage,
     storage: storage,
-    password: storage.password,
     publicToAddress: publicToAddress,
-    AccountStorage: AccountStorage
+    waitForTransaction: waitForTransaction,
+    createAccount: createAccount,
+    setPassword: setPassword
 };
