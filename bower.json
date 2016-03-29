@@ -1,0 +1,21 @@
+{
+  "name": "etoken-lib",
+  "description": "Ambisafe Etoken Lib",
+  "main": "src/index.es6",
+  "authors": [
+    "Anton Simernia <anton.simernya@gmail.com>"
+  ],
+  "license": "ISC",
+  "moduleType": [
+    "node"
+  ],
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
