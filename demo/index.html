@@ -60,7 +60,12 @@
         $('#create-user').submit(function () {
             var $form = $(this),
                 password = $form.find('input[name=password]').val();
+            EToken.setPrivateKey(window.opts.pk);
             EToken.createAccount(password, function(err, result) {
+                if (err) {
+                    $logs.append('<p class="error">' + err + '</p>');
+                    return;
+                }
                 var txHash = result.transactionHash,
                     address = result.address;
                 if (err) {

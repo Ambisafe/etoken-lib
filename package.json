@@ -6,7 +6,8 @@
   "repository": "https://bitbucket.org/ambisafe/etoken-lib",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify --s EToken src/index.es6 > build/bundle.js"
+    "build": "browserify --s EToken -t babelify -d --extension=.es6 src/index.es6 > build/bundle.js",
+    "build-min": "browserify --s EToken -t babelify --extension=.es6 src/index.es6 | uglifyjs > build/bundle.min.js"
   },
   "author": "",
   "license": "ISC",
@@ -25,10 +26,14 @@
     "babelify": "7.2.0",
     "install": "0.6.1",
     "json-loader": "0.5.4",
+    "uglifyify": "3.0.1",
     "webpack": "1.12.14",
     "webpack-dev-server": "1.14.1"
   },
   "browserify": {
+    "extension": [
+      ".es6"
+    ],
     "transform": [
       [
         "babelify",

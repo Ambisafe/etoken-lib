@@ -1,54 +1,44 @@
 'use strict';
 
 import AccountStorage from 'account-storage';
+import Ambisafe from 'ambisafe-client-javascript';
+import Web3Subprovider from 'web3-provider-engine/subproviders/web3'
+import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx'
 
-const Web3 = require('web3'),
-    Web3ProviderEngine = require('web3-provider-engine'),
-    HookedWalletEthTxSubprovider = require('web3-provider-engine/subproviders/hooked-wallet-ethtx'),
-    NonceTrackerSubprovider = require('web3-provider-engine/subproviders/nonce-tracker'),
-    Web3Subprovider = require('web3-provider-engine/subproviders/web3'),
-    Ambisafe = require('ambisafe-client-javascript'),
-    pubToAddress = require('ethereumjs-util').pubToAddress;
+import engine from './engine';
+import web3 from './web3';
+import storage from './storage';
 
+import {waitForTransaction, publicToAddress, privateToAddress} from './helpers';
 
-let engine = new Web3ProviderEngine();
-var web3 = new Web3(engine);
-var storage = new AccountStorage('0x152c21d6944f32c6b45605af12bb9b7231a456e7', web3, window.opts.pk);
-var password = '';
+var signerPrivateKey,
+    signerAddress;
 
 engine.addProvider(new HookedWalletEthTxSubprovider({
-    getPrivateKey: storage.getPrivateKey.bind(storage)
+    getPrivateKey: function (address, callback) {
+        if (address == signerAddress) {
+            callback(null, signerPrivateKey);
+        } else {
+            storage.getPrivateKey(address, callback);
+        }
+    }
 }));
 
-engine.addProvider(new NonceTrackerSubprovider());
 engine.addProvider(new Web3Subprovider(new web3.providers.HttpProvider(window.opts.gethUrl)));
+
+
 engine.start();
 
-function publicToAddress(address) {
-    return '0x' + pubToAddress(new Buffer(address, 'hex'), true).toString('hex');
-}
-
-
-function waitForTransaction(txHash, callback) {
-    let filter = web3.eth.filter('latest').watch(function (err, blockHash) {
-        web3.eth.getBlock(blockHash, function (err, block) {
-            if (!err) {
-                if (block.transactions.indexOf(txHash) > -1) {
-                    filter.stopWatching();
-                    callback(null, true);
-                }
-            } else {
-                callback(err);
-            }
-        });
-    });
-}
-
+storage.web3 = web3;
 
 function createAccount(password, callback) {
     var container = Ambisafe.generateAccount('ETH', password);
     var serializedContainer = container.getContainer();
     var address = publicToAddress(container.get('public_key'), true);
+    if (!signerAddress) {
+        throw Error('You must specify private key first');
+    }
+    storage.accountSaverAddress = signerAddress;
     storage.addAccount(address, serializedContainer, (err, result) => {
         if (err) {
             callback(err);
@@ -64,13 +54,21 @@ function setPassword(password) {
 }
 
 
+function setPrivateKey(privateKey) {
+    signerPrivateKey = new Buffer(privateKey, "hex");
+    signerAddress = privateToAddress(signerPrivateKey);
+}
+
+
 module.exports = {
     web3: web3,
     Ambisafe: Ambisafe,
     AccountStorage: AccountStorage,
     storage: storage,
     publicToAddress: publicToAddress,
+    privateToAddress: privateToAddress,
     waitForTransaction: waitForTransaction,
     createAccount: createAccount,
-    setPassword: setPassword
+    setPassword: setPassword,
+    setPrivateKey: setPrivateKey
 };
