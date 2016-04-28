@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <title>Ambisafe Ethereum Utils</title>
+</head>
+<body>
+    <h1>Ambisafe Ethereum Utils</h1>
+    <div id='logs'>
+        <h4>To begin, do: setPrivateKey('yourPkHere'); in the dev console.</h4>
+        <h3>Logs</h3>
+    </div>
+    <script>
+        window.opts = {
+            gethUrl: 'http://oxogamestudio.com:8544',
+            pk: ''
+        }
+    </script>
+    <script src='../build/bundle.js'></script>
+    <script src='//code.jquery.com/jquery-2.2.2.min.js'></script>
+    <script>
+        var $logs = $('#logs');
+        var web3 = EToken.web3;
+        var address;
+        var setPrivateKey = function(pk) {
+            EToken.setPrivateKey(pk);
+            address = EToken.privateToAddress(pk[1] == 'x' ? pk : '0x' + pk);
+            log('Your address(global variable) to send transactions: ' + address, $logs);
+        };
+
+        var log = function(message, logger) {
+            console.log(message);
+            if (logger) {
+                logger.append('<p>' + message + '</p>');
+            }
+        };
+
+        var logError = function(message, logger) {
+            if (logger) {
+                logger.append('<p class="error">' + message + '</p>');
+            }
+            throw message;
+        };
+
+        var logSuccess = function(gas, result, params, logger) {
+            if (logger) {
+                result = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '">' + result + '</a>' : result; 
+                logger.append('<p class="success">Success! Gas used: ' + gas + ' result: ' + result + ' params: ' + params.toString() + '</p>');
+            }
+            console.log('Success! Gas used: ' + result[1] + ' result: ' + result[0] + ' params: ' + params.toString());
+        };
+
+        var safeTransaction = function(fun, params, sender, argsObject) {
+          safeTransactionFunction(fun, params, sender, argsObject)();
+        };
+
+        var safeTransactionFunction = function(fun, params, sender, argsObject) {
+          var gas = (argsObject && argsObject.gas) ? argsObject.gas : 500000;
+          return function(testRun) {
+            return new Promise(function(resolve, reject) {
+              var _params = params.slice(0);
+              _params.push({from: sender, gas: 3000000});
+              _params.push(function(err, result) {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(result);
+                }
+              });
+              fun.estimateGas.apply(this, _params);
+            }).then(function(estimateGas) {
+              return new Promise(function(resolve, reject) {
+                var _params = params.slice(0);
+                if (estimateGas > gas) {
+                  reject('Estimate gas is too big: ' + estimateGas);
+                } else {
+                  _params.push({from: sender, gas: gas});
+                  _params.push(function(err, result) {
+                    result = typeof result === 'number' ? result > 0 : result;
+                    if (err) {
+                      reject(err);
+                    } else {
+                      if (result || (argsObject && argsObject.ignoreCallResponse)) {
+                        resolve(estimateGas);
+                      } else {
+                        reject('Call with gas: ' + gas + ' returned false.');
+                      }
+                    }
+                  });
+                  fun.call.apply(this, _params);
+                }
+              });
+            }).then(function(estimateGas) {
+              return new Promise(function(resolve, reject) {
+                var _params = params.slice(0);
+                if (argsObject && argsObject.nonce) {
+                  _params.push({from: sender, gas: gas, nonce: argsObject.nonce});  
+                } else {
+                  _params.push({from: sender, gas: gas});
+                }
+                _params.push(function(err, result) {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve([result, estimateGas]);
+                  }
+                });
+                if (testRun || (argsObject && argsObject.testRun)) {
+                  resolve(['OK', estimateGas]);
+                  return;
+                }
+                fun.apply(this, _params);
+              });
+            }).then(function(result) {
+              logSuccess(result[1], result[0], params.toString(), $logs);
+              if (!testRun && argsObject && !argsObject.testRun && argsObject.waitReceipt) {
+                log('Waiting receipt for ' + result[0], $logs);
+                return new Promise(function(resolve, reject) {
+                  var waitReceipt = function(txHash, tryNum) {
+                    web3.eth.getTransactionReceipt(txHash, function(err, receipt) {
+                      if (receipt) {
+                        resolve([tryNum, result[1]]);
+                      } else {
+                        if (tryNum > 120) {
+                          reject('No transaction receipt after >120 seconds.');
+                        } else {
+                          setTimeout(waitReceipt(txHash, tryNum + 1), 1000);
+                        }
+                      }
+                    });
+                  };
+                  waitReceipt(result[0], 1);
+                });
+              } else {
+                return [false, result[1]];
+              }
+            }).then(function(results) {
+              if (results[0]) {
+                log('Mined in ' + results[0] + ' seconds.', $logs);
+              }
+              return results[1];
+            }).catch(function(err) {
+              logError(err, $logs);
+            });
+          };
+        };
+
+        var safeTransactions = function(txFunctions, testRun, cumulativeGasUsed) {
+          cumulativeGasUsed = cumulativeGasUsed || 0;
+          if (txFunctions.length === 0) {
+            log('Done! Cumulative gas used: ' + cumulativeGasUsed, $logs);
+            return true;
+          }
+          txFunctions.shift()(testRun).then(function(gasUsed){
+            safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed);
+          });
+        };
+    </script>
+    <style>
+        p {
+            margin: 2px;
+        }
+        p.success {
+            color: green;
+        }
+        p.error {
+            color: red;
+        }
+    </style>
+</body>
+</html>
