@@ -56,8 +56,8 @@
 
         var logSuccess = function(gas, result, params, logger) {
             if (logger) {
-                result = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '">' + result + '</a>' : result; 
-                logger.append('<p class="success">Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params.toString() : '') + '</p>');
+                var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '">' + result + '</a>' : result;
+                logger.append('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params.toString() : '') + '</p>');
             }
             console.log('Success! Gas used: ' + gas + ' result: ' + result + ' params: ' + (params ? ' params: ' + params.toString() : ''));
         };
@@ -177,6 +177,12 @@
         }
         p.error {
             color: red;
+        }
+        a:visited {
+            color: darkgreen;
+        }
+        a:link {
+            color: darkseagreen;
         }
     </style>
 </body>
