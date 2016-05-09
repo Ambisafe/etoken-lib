@@ -71,15 +71,24 @@
         };
 
         var safeTransactionFunction = function(fun, params, sender, argsObject) {
+          var merge = function(base, args) {
+            var target = ['nonce', 'value', 'gasPrice', 'to', 'data'];
+            if (args) {
+              while(target.length > 0) {
+                var arg = target.pop();
+                if (args[arg]) {
+                  base[arg] = args[arg]
+                }
+              }
+            }
+            return base;
+          }
+
           var gas = (argsObject && argsObject.gas) ? argsObject.gas : 500000;
           return function(testRun) {
             return new Promise(function(resolve, reject) {
               var _params = params.slice(0);
-              var base = {from: sender, gas: 3000000};
-              if (argsObject && argsObject.value) {
-                base.value = argsObject.value;
-              }
-              _params.push(base);
+              _params.push(merge({from: sender, gas: 3000000}, argsObject));
               _params.push(function(err, result) {
                 if (err) {
                   reject(err);
@@ -94,11 +103,7 @@
                 if (estimateGas > gas) {
                   reject('Estimate gas is too big: ' + estimateGas);
                 } else {
-                  var base = {from: sender, gas: gas};
-                  if (argsObject && argsObject.value) {
-                    base.value = argsObject.value;
-                  }
-                  _params.push(base);
+                  _params.push(merge({from: sender, gas: gas}, argsObject));
                   _params.push(function(err, result) {
                     result = typeof result === 'number' ? result > 0 : result;
                     if (err) {
@@ -117,14 +122,7 @@
             }).then(function(estimateGas) {
               return new Promise(function(resolve, reject) {
                 var _params = params.slice(0);
-                var base = {from: sender, gas: gas};
-                if (argsObject && argsObject.nonce) {
-                  base.nonce = argsObject.nonce;
-                }
-                if (argsObject && argsObject.value) {
-                  base.value = argsObject.value;
-                }
-                _params.push(base);
+                _params.push(merge({from: sender, gas: gas}, argsObject));
                 _params.push(function(err, result) {
                   if (err) {
                     reject(err);
