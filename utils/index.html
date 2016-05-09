@@ -75,7 +75,11 @@
           return function(testRun) {
             return new Promise(function(resolve, reject) {
               var _params = params.slice(0);
-              _params.push({from: sender, gas: 3000000});
+              var base = {from: sender, gas: 3000000};
+              if (argsObject && argsObject.value) {
+                base.value = argsObject.value;
+              }
+              _params.push(base);
               _params.push(function(err, result) {
                 if (err) {
                   reject(err);
@@ -90,7 +94,11 @@
                 if (estimateGas > gas) {
                   reject('Estimate gas is too big: ' + estimateGas);
                 } else {
-                  _params.push({from: sender, gas: gas});
+                  var base = {from: sender, gas: gas};
+                  if (argsObject && argsObject.value) {
+                    base.value = argsObject.value;
+                  }
+                  _params.push(base);
                   _params.push(function(err, result) {
                     result = typeof result === 'number' ? result > 0 : result;
                     if (err) {
@@ -109,11 +117,14 @@
             }).then(function(estimateGas) {
               return new Promise(function(resolve, reject) {
                 var _params = params.slice(0);
+                var base = {from: sender, gas: gas};
                 if (argsObject && argsObject.nonce) {
-                  _params.push({from: sender, gas: gas, nonce: argsObject.nonce});  
-                } else {
-                  _params.push({from: sender, gas: gas});
+                  base.nonce = argsObject.nonce;
                 }
+                if (argsObject && argsObject.value) {
+                  base.value = argsObject.value;
+                }
+                _params.push(base);
                 _params.push(function(err, result) {
                   if (err) {
                     reject(err);
