@@ -7,7 +7,7 @@
 <body>
     <h1>Ambisafe Ethereum Utils</h1>
     <div id='logs'>
-        <h4>To begin, do: setPrivateKey('yourPkHere'); in the dev console.</h4>
+        <h4>To begin, do: setPrivateKey('yourPkHere'); in the browser javascript console.</h4>
         <h3>Example usage, test func will return false if there is less than 500000 gas available inside it:</h3>
         <p>var ambiUtils = web3.eth.contract([{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[],"name":"test","outputs":[{"name":"","type":"bool"}],"type":"function"}]).at("0x75c5751b5eca193c5e38e1128f543b0250e24b0a");</p>
         <p>safeTransaction(ambiUtils.test, [], address, {testRun: true});</p>
@@ -23,7 +23,7 @@
     </div>
     <script>
         window.opts = {
-            gethUrl: 'http://oxogamestudio.com:8544',
+            gethUrl: 'http://52.28.142.166:8545',
             pk: ''
         }
     </script>
@@ -34,6 +34,10 @@
         var web3 = EToken.web3;
         var eth = web3.eth;
         var address;
+
+        var cb = function(err,ok){if (err) {console.log(err);} else {console.log(ok);}};
+        var cbval = function(err,ok){if (err) {console.log(err);} else {console.log(ok.valueOf());}};
+
         var setPrivateKey = function(pk) {
             EToken.setPrivateKey(pk);
             address = EToken.privateToAddress(pk[1] == 'x' ? pk : '0x' + pk);
