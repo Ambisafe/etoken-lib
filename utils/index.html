@@ -177,7 +177,7 @@
             return true;
           }
           txFunctions.shift()(testRun).then(function(gasUsed){
-            safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed);
+            safeTransactions(txFunctions, testRun, cumulativeGasUsed + (gasUsed || 0));
           });
         };
     </script>
