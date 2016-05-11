@@ -168,7 +168,7 @@
                       if (receipt) {
                         resolve([tryNum, result[1]]);
                       } else {
-                        if (tryNum > 120) {
+                        if (tryNum > 240) {
                           reject('No transaction receipt after >120 seconds.');
                         } else {
                           setTimeout(waitReceipt(txHash, tryNum + 1), 1000);
