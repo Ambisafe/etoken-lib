@@ -70,8 +70,17 @@
             console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params.toString() : ''));
         };
 
+        var logFinish = function(logger) {
+          if (logger) {
+            _log('<hr/>', logger);
+          }
+          console.log('--------------------------------------------------------------------------------');
+        }
+
         var safeTransaction = function(fun, params, sender, argsObject) {
-          safeTransactionFunction(fun, params, sender, argsObject)();
+          safeTransactionFunction(fun, params, sender, argsObject)().then(function() {
+            logFinish($logs);
+          });
         };
 
         var safeTransactionFunction = function(fun, params, sender, argsObject) {
@@ -179,6 +188,7 @@
               return results[1];
             }).catch(function(err) {
               logError(err, $logs);
+              log('<hr/>', $logs);
             });
           };
         };
@@ -187,6 +197,7 @@
           cumulativeGasUsed = cumulativeGasUsed || 0;
           if (txFunctions.length === 0) {
             log('Done! Cumulative gas used: ' + cumulativeGasUsed, $logs);
+            logFinish($logs);
             return true;
           }
           txFunctions.shift()(testRun).then(function(gasUsed){
@@ -195,7 +206,9 @@
         };
 
         var call = function(contract, properties, target) {
-          callFunction(contract, properties, target)();
+          callFunction(contract, properties, target)().then(function() {
+            logFinish($logs);
+          });
         }
 
         var callFunction = function(contract, properties, target) {
