@@ -70,6 +70,12 @@
             console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params.toString() : ''));
         };
 
+        var logWaiting = function(logger) {
+          if (logger) {
+            $(logger.children()[0]).append('.');
+          }
+        };
+
         var logFinish = function(logger) {
           if (logger) {
             _log('<hr/>', logger);
@@ -105,6 +111,7 @@
             }
           };
 
+          var waitReceiptTimeoutSeconds = 240;
           var gas = (argsObject && argsObject.gas) ? argsObject.gas : 500000;
           return function(testRun) {
             processFunctionParams(params);
@@ -168,9 +175,10 @@
                       if (receipt) {
                         resolve([tryNum, result[1]]);
                       } else {
-                        if (tryNum > 240) {
-                          reject('No transaction receipt after >120 seconds.');
+                        if (tryNum > waitReceiptTimeoutSeconds) {
+                          reject('No transaction receipt after >' + waitReceiptTimeoutSeconds + ' seconds.');
                         } else {
+                          logWaiting($logs);
                           setTimeout(waitReceipt(txHash, tryNum + 1), 1000);
                         }
                       }
