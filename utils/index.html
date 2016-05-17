@@ -35,6 +35,8 @@
         var eth = web3.eth;
         var address;
 
+        var nowSeconds = function(){return (Date.now() / 1000);};
+
         var cb = function(err,ok){if (err) {console.log(err);} else {console.log(ok);}};
         var cbval = function(err,ok){if (err) {console.log(err);} else {console.log(ok.valueOf());}};
 
@@ -62,12 +64,19 @@
             throw message;
         };
 
+        var logWarning = function(message, logger) {
+            if (logger) {
+                _log('<p class="warning">' + message + '</p>', logger);
+            }
+            console.log('Warning: ' + message);
+        };
+
         var logSuccess = function(gas, result, params, logger) {
             if (logger) {
                 var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '">' + result + '</a>' : result;
-                _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params.toString() : '') + '</p>', logger);
+                _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params.join(', ') : '') + '</p>', logger);
             }
-            console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params.toString() : ''));
+            console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params.join(', ') : ''));
         };
 
         var logWaiting = function(logger) {
@@ -82,6 +91,41 @@
           }
           console.log('--------------------------------------------------------------------------------');
         }
+
+        var flowControl = function() {
+          var STATES = { ready: 'ready', waiting: 'waiting', stopping: 'stopping' };
+          var state = STATES.ready;
+          return {
+            get ready () {
+              return state === STATES.ready;
+            },
+            get waiting () {
+              return state === STATES.waiting;
+            },
+            get stopping () {
+              return state === STATES.stopping;
+            },
+            get state () {
+              return state;
+            },
+            stop: function() {
+              if (state === STATES.waiting) {
+                state = STATES.stopping;
+              }
+              return state;
+            },
+            continue: function() {
+              if (state === STATES.waiting || state === STATES.stopping) {
+                state = STATES.ready;
+              }
+              return state;
+            },
+            __wait__: function() {
+              state = STATES.waiting;
+              return state;
+            }
+          };
+        }();
 
         var safeTransaction = function(fun, params, sender, argsObject) {
           safeTransactionFunction(fun, params, sender, argsObject)().then(function() {
@@ -111,7 +155,7 @@
             }
           };
 
-          var waitReceiptTimeoutSeconds = 240;
+          var waitReceiptTimeoutSeconds = 120;
           var gas = (argsObject && argsObject.gas) ? argsObject.gas : 500000;
           return function(testRun) {
             processFunctionParams(params);
@@ -166,25 +210,36 @@
                 fun.apply(this, _params);
               });
             }).then(function(result) {
-              logSuccess(result[1], result[0], params.toString(), $logs);
+              logSuccess(result[1], result[0], params, $logs);
               if (!testRun && argsObject && !argsObject.testRun && argsObject.waitReceipt) {
                 log('Waiting receipt for ' + result[0], $logs);
                 return new Promise(function(resolve, reject) {
-                  var waitReceipt = function(txHash, tryNum) {
+                  flowControl.__wait__();
+                  var startTime = nowSeconds();
+                  var timeoutTime = startTime + waitReceiptTimeoutSeconds;
+                  var waitReceipt = function(txHash) {
                     web3.eth.getTransactionReceipt(txHash, function(err, receipt) {
-                      if (receipt) {
-                        resolve([tryNum, result[1]]);
+                      var secondsPassed = Math.round(nowSeconds() - startTime);
+                      if (receipt || flowControl.ready) {
+                        flowControl.continue();
+                        resolve([secondsPassed, result[1]]);
                       } else {
-                        if (tryNum > waitReceiptTimeoutSeconds) {
-                          reject('No transaction receipt after >' + waitReceiptTimeoutSeconds + ' seconds.');
-                        } else {
-                          logWaiting($logs);
-                          setTimeout(waitReceipt(txHash, tryNum + 1), 1000);
+                        var message = 'No transaction receipt after ' + secondsPassed + ' seconds.';
+                        if (flowControl.stopping) {
+                          flowControl.continue();
+                          reject(message);
+                          return;
                         }
+                        if (nowSeconds() > timeoutTime) {
+                          logWarning(message + " If you are sure that transaction is already mined do: flowControl.continue(); If you want to stop execution do: flowControl.stop();", $logs);
+                          timeoutTime += 60;
+                        }
+                        logWaiting($logs);
+                        setTimeout(waitReceipt(txHash), 1000);
                       }
                     });
                   };
-                  waitReceipt(result[0], 1);
+                  waitReceipt(result[0]);
                 });
               } else {
                 return [false, result[1]];
@@ -288,6 +343,9 @@
         }
         p.error {
             color: red;
+        }
+        p.warning {
+            color: orangered;
         }
         a:visited {
             color: darkgreen;
