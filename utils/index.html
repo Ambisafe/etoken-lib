@@ -37,6 +37,8 @@
 
         var nowSeconds = function(){return (Date.now() / 1000);};
 
+        var gasPrice = web3.toBigNumber(web3.toWei(20, 'gwei'));
+
         var cb = function(err,ok){if (err) {console.log(err);} else {console.log(ok);}};
         var cbval = function(err,ok){if (err) {console.log(err);} else {console.log(ok.valueOf());}};
 
@@ -139,6 +141,41 @@
           });
         };
 
+        var safeSendAll = function(to, sender, argsObject) {
+          eth.getBalance(sender, function(err, balance) {
+            if (err) {
+              throw err;
+            }
+            var gas = argsObject && argsObject.gas || 21000;
+            var value = balance.sub(gasPrice.mul(gas));
+            safeSend(to, value, sender, argsObject);
+          });
+        };
+
+        var safeTopup = function(to, targetValue, sender, argsObject) {
+          safeTopupFunction(to, targetValue, sender, argsObject)().then(function() {
+            logFinish($logs);
+          });
+        };
+
+        var safeTopupFunction = function(to, targetValue, sender, argsObject) {
+          return asyncFunction(function(resolve, reject) {
+            eth.getBalance(to, function(err, balance) {
+              if (err) {
+                reject(err);
+                return;
+              }
+              var value = web3.toBigNumber(targetValue).sub(balance);
+              if (value.lte(0)) {
+                log("Skipping: balance of " + to + " is " + web3.fromWei(balance, 'ether') + " ETH and it is more than target value of " + web3.fromWei(targetValue, 'ether') + " ETH.", $logs);
+                resolve(0);
+                return;
+              }
+              safeSendFunction(to, value, sender, argsObject)().then(resolve).catch(reject);
+            });
+          });
+        };
+
         var safeSendFunction = function(to, value, sender, argsObject) {
           argsObject = argsObject || {};
           argsObject.value = argsObject.value || value;
@@ -173,22 +210,25 @@
           return function(testRun) {
             processFunctionParams(params);
             return new Promise(function(resolve, reject) {
-              if (typeof fun.call === "string") {
-                // simple eth.sendTransaction
-                gas = argsObject && argsObject.gas || 21000;
-                resolve(gas);
-                return;
-              }
               var _params = params.slice(0);
               _params.push(merge({from: sender, gas: 3000000}, argsObject));
               _params.push(function(err, result) {
                 if (err) {
+                  if (err.toString().startsWith('Error: no contract code at given address')) {
+                    gas = argsObject && argsObject.gas || 21000;
+                    resolve(gas);
+                    return;
+                  }
                   reject(err);
                 } else {
                   resolve(result);
                 }
               });
-              fun.estimateGas.apply(this, _params);
+              if (typeof fun.call === "string") {
+                eth.estimateGas.apply(this, _params);
+              } else {
+                fun.estimateGas.apply(this, _params);
+              }
             }).then(function(estimateGas) {
               return new Promise(function(resolve, reject) {
                 var _params = params.slice(0);
@@ -232,8 +272,9 @@
                 fun.apply(this, _params);
               });
             }).then(function(result) {
-              var value = (argsObject && argsObject.value) ? " value: " + web3.fromWei(argsObject.value, 'ether') + " ETH." : ".";
-              logSuccess(result[1], result[0], params.join(', ') + value, $logs);
+              var value = (argsObject && argsObject.value) ? " value: " + web3.fromWei(argsObject.value.valueOf(), 'ether') + " ETH." : "";
+              var to = (argsObject && argsObject.to) ? " to: " + argsObject.to : "";
+              logSuccess(result[1], result[0], params.join(', ') + to + value, $logs);
               if (!testRun && argsObject && !argsObject.testRun && argsObject.waitReceipt) {
                 log('Waiting receipt for ' + result[0], $logs);
                 return new Promise(function(resolve, reject) {
@@ -271,7 +312,7 @@
               if (results[0]) {
                 log('Mined in ' + results[0] + ' seconds.', $logs);
               }
-              return results[1];
+              return [results[1], argsObject && argsObject.value];
             }).catch(function(err) {
               logError(err, $logs);
               log('<hr/>', $logs);
@@ -279,15 +320,16 @@
           };
         };
 
-        var safeTransactions = function(txFunctions, testRun, cumulativeGasUsed) {
+        var safeTransactions = function(txFunctions, testRun, cumulativeGasUsed, totalValueSpent) {
           cumulativeGasUsed = cumulativeGasUsed || 0;
+          totalValueSpent = totalValueSpent || 0;
           if (txFunctions.length === 0) {
-            log('Done! Cumulative gas used: ' + cumulativeGasUsed, $logs);
+            log('Done! Cumulative gas used: ' + cumulativeGasUsed + ', total value sent: ' + web3.fromWei(totalValueSpent, 'ether') + ' ETH.', $logs);
             logFinish($logs);
             return true;
           }
-          txFunctions.shift()(testRun).then(function(gasUsed){
-            safeTransactions(txFunctions, testRun, cumulativeGasUsed + (gasUsed || 0));
+          txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
+            safeTransactions(txFunctions, testRun, cumulativeGasUsed + (gasUsedAndvalueSpent[0] || 0), totalValueSpent + (gasUsedAndvalueSpent[1] || 0));
           });
         };
 
