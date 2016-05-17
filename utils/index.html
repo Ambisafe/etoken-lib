@@ -74,9 +74,9 @@
         var logSuccess = function(gas, result, params, logger) {
             if (logger) {
                 var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '">' + result + '</a>' : result;
-                _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params.join(', ') : '') + '</p>', logger);
+                _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params : '') + '</p>', logger);
             }
-            console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params.join(', ') : ''));
+            console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params : ''));
         };
 
         var logWaiting = function(logger) {
@@ -133,6 +133,19 @@
           });
         };
 
+        var safeSend = function(to, value, sender, argsObject) {
+          safeSendFunction(to, value, sender, argsObject)().then(function() {
+            logFinish($logs);
+          });
+        };
+
+        var safeSendFunction = function(to, value, sender, argsObject) {
+          argsObject = argsObject || {};
+          argsObject.value = argsObject.value || value;
+          argsObject.to = argsObject.to || to;
+          return safeTransactionFunction(eth.sendTransaction, [], sender, argsObject);
+        };
+
         var safeTransactionFunction = function(fun, params, sender, argsObject) {
           var merge = function(base, args) {
             var target = ['nonce', 'value', 'gasPrice', 'to', 'data'];
@@ -156,10 +169,16 @@
           };
 
           var waitReceiptTimeoutSeconds = 120;
-          var gas = (argsObject && argsObject.gas) ? argsObject.gas : 500000;
+          var gas = argsObject && argsObject.gas || 500000;
           return function(testRun) {
             processFunctionParams(params);
             return new Promise(function(resolve, reject) {
+              if (typeof fun.call === "string") {
+                // simple eth.sendTransaction
+                gas = argsObject && argsObject.gas || 21000;
+                resolve(gas);
+                return;
+              }
               var _params = params.slice(0);
               _params.push(merge({from: sender, gas: 3000000}, argsObject));
               _params.push(function(err, result) {
@@ -175,6 +194,9 @@
                 var _params = params.slice(0);
                 if (estimateGas > gas) {
                   reject('Estimate gas is too big: ' + estimateGas);
+                } else if (typeof fun.call === "string") {
+                  // simple eth.sendTransaction
+                  resolve(estimateGas);
                 } else {
                   _params.push(merge({from: sender, gas: gas}, argsObject));
                   _params.push(function(err, result) {
@@ -210,7 +232,8 @@
                 fun.apply(this, _params);
               });
             }).then(function(result) {
-              logSuccess(result[1], result[0], params, $logs);
+              var value = (argsObject && argsObject.value) ? " value: " + web3.fromWei(argsObject.value, 'ether') + " ETH." : ".";
+              logSuccess(result[1], result[0], params.join(', ') + value, $logs);
               if (!testRun && argsObject && !argsObject.testRun && argsObject.waitReceipt) {
                 log('Waiting receipt for ' + result[0], $logs);
                 return new Promise(function(resolve, reject) {
