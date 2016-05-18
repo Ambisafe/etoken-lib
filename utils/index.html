@@ -18,6 +18,9 @@
     <p>var tx2 = safeTransactionFunction(ambiUtils.test, [], address); // Will stop on this one.</p>
     <p>var tx3 = safeTransactionFunction(ambiUtils.test, [], address, {ignoreCallResponse: true});</p>
     <p>safeTransactions([tx1, tx2, tx3], true); // true means testRun for all transactions;</p>
+    <p>safeSend(ambiUtils.address, 1000, address, {testRun: true}); // Send 100 wei.</p>
+    <p>safeSendAll(ambiUtils.address, address, {testRun: true}); // Send all you have available, will result in 0 wei on sender.</p>
+    <p>safeTopup(ambiUtils.address, 1488, address, {testRun: true}); // Send enough for the receiver to have exactly 1488 wei.</p>
     <h3>Logs</h3>
     <div id='logs'>
     </div>
