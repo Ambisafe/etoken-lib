@@ -21,12 +21,12 @@
     <p>safeSend(ambiUtils.address, 1000, address, {testRun: true}); // Send 100 wei.</p>
     <p>safeSendAll(ambiUtils.address, address, {testRun: true}); // Send all you have available, will result in 0 wei on sender.</p>
     <p>safeTopup(ambiUtils.address, 1488, address, {testRun: true}); // Send enough for the receiver to have exactly 1488 wei.</p>
-    <p>fastTopups([ // Will topup to the specified balance.</p>
-    <p>  fastTopupFunction('0x1c4a10b09f54c2a2601b71e7644124efefd2cd7b', 20000000000000001, address),</p>
-    <p>  fastTopupFunction('0x4793f63e6e270a78c9533ba2743905beeade40a6', 20000000000000100, address),</p>
-    <p>  fastTopupFunction('0x787f0a7639fd444ae6464e02f29763f06c76232f', 10000000000000000, address),</p>
-    <p>  fastTopupFunction('0x8622c07a3b6496df703ab644698162c3f265a98b', 20000200020000000, address)</p>
-    <p>], 0, true); // 0 is the first unused nonce. Testrun true.</p>
+    <pre>fastTopups([ // Will topup to the specified balance.
+  fastTopupFunction('0x1c4a10b09f54c2a2601b71e7644124efefd2cd7b', 20000000000000001, address),
+  fastTopupFunction('0x4793f63e6e270a78c9533ba2743905beeade40a6', 20000000000000100, address),
+  fastTopupFunction('0x787f0a7639fd444ae6464e02f29763f06c76232f', 10000000000000000, address),
+  fastTopupFunction('0x8622c07a3b6496df703ab644698162c3f265a98b', 20000200020000000, address)
+], 0, true); // 0 is the first unused nonce. Testrun true.</pre>
 
     <h3>Logs</h3>
     <div id='logs'>
@@ -332,7 +332,7 @@
             }).then(function(result) {
               var value = (argsObject && argsObject.value) ? " value: " + web3.fromWei(argsObject.value.valueOf(), 'ether') + " ETH." : "";
               var to = (argsObject && argsObject.to) ? " to: " + argsObject.to : "";
-              var nonce = (argsObject && argsObject.nonce) ? " nonce: " + argsObject.nonce : "";
+              var nonce = (argsObject && argsObject.nonce !== undefined) ? " nonce: " + argsObject.nonce : "";
               logSuccess(result[1], result[0], params.join(', ') + to + value + nonce, $logs);
               if (!testRun && argsObject && !argsObject.testRun && argsObject.waitReceipt) {
                 log('Waiting receipt for ' + result[0], $logs);
