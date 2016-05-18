@@ -373,12 +373,19 @@
                 if (typeof property === 'object') {
                   var params = property.params || [];
                   var alias = property.alias || property.name;
-                  params.push(processResult(property.name, alias, finished, reject));
-                  contract[property.name].call.apply(this, params)
+                  var name = property.name;
                 } else {
-                  contract[property].call(processResult(property, property, finished, reject));
+                  var params = [];
+                  var alias = property;
+                  var name = property;
                 }
-                log("Calling for property: " + (property.name || property), $logs);
+                params.push(processResult(name, alias, finished, reject));
+                if (contract.call === 'eth_getBalance') {
+                  contract.apply(this, params);
+                } else {
+                  contract[name].call.apply(this, params);
+                }
+                log("Calling for property: " + name, $logs);
               });
             });
           };
