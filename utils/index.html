@@ -142,7 +142,7 @@
         };
 
         var safeSendAll = function(to, sender, argsObject) {
-          eth.getBalance(sender, function(err, balance) {
+          eth.getBalance(sender, 'pending', function(err, balance) {
             if (err) {
               throw err;
             }
@@ -160,7 +160,7 @@
 
         var safeTopupFunction = function(to, targetValue, sender, argsObject) {
           return asyncFunction(function(resolve, reject, testRun) {
-            eth.getBalance(to, function(err, balance) {
+            eth.getBalance(to, 'pending', function(err, balance) {
               if (err) {
                 reject(err);
                 return;
