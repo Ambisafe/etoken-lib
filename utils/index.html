@@ -157,6 +157,7 @@
 
         var safeTopup = function(to, targetValue, sender, argsObject) {
           safeTopupFunction(to, targetValue, sender, argsObject)().then(function() {
+            log('Topup to ' + to + ' finished.', $logs);
             logFinish($logs);
           });
         };
@@ -170,12 +171,50 @@
               }
               var value = web3.toBigNumber(targetValue).sub(balance);
               if (value.lte(0)) {
-                log("Skipping: balance of " + to + " is " + web3.fromWei(balance, 'ether') + " ETH and it is more than target value of " + web3.fromWei(targetValue, 'ether') + " ETH.", $logs);
+                log("Skipping: balance of " + to + " is " + web3.fromWei(balance, 'ether') + " ETH and it is more or equal to target value of " + web3.fromWei(targetValue, 'ether') + " ETH.", $logs);
                 resolve(0);
                 return;
               }
               safeSendFunction(to, value, sender, argsObject)(testRun).then(resolve).catch(reject);
             });
+          });
+        };
+
+        var fastTopup = function(to, targetValue, sender, nonce) {
+          fastTopupFunction(to, targetValue, sender, nonce)().then(function(nonce) {
+            log('Topup to ' + to + ' finished. Next nonce: ' + nonce, $logs);
+          });
+        };
+
+        var fastTopupFunction = function(to, targetValue, sender, nonce) {
+          return asyncFunction(function(resolve, reject, testRun) {
+            eth.getBalance(to, 'pending', function(err, balance) {
+              if (err) {
+                reject(err);
+                return;
+              }
+              var value = web3.toBigNumber(targetValue).sub(balance);
+              if (value.lte(0)) {
+                log("Skipping: balance of " + to + " is " + web3.fromWei(balance, 'ether') + " ETH and it is more or equal to target value of " + web3.fromWei(targetValue, 'ether') + " ETH.", $logs);
+                resolve(nonce);
+                return;
+              }
+              resolve(nonce+1);
+              safeSendFunction(to, value, sender, {nonce: nonce})(testRun).catch(function(error) {
+                throw error;
+              });
+            });
+          });
+        };
+
+        var fastTopups = function(txFunctions, nonce, testRun) {
+          if (txFunctions.length === 0) {
+            log('Done! Next nonce: ' + nonce + '.', $logs);
+            logFinish($logs);
+            return true;
+          }
+          txFunctions.shift()(testRun).then(function(nextNonce){
+            fastTopups(txFunctions, nextNonce, testRun);
           });
         };
 
