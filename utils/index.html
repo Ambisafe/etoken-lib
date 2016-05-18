@@ -159,7 +159,7 @@
         };
 
         var safeTopupFunction = function(to, targetValue, sender, argsObject) {
-          return asyncFunction(function(resolve, reject) {
+          return asyncFunction(function(resolve, reject, testRun) {
             eth.getBalance(to, function(err, balance) {
               if (err) {
                 reject(err);
@@ -171,7 +171,7 @@
                 resolve(0);
                 return;
               }
-              safeSendFunction(to, value, sender, argsObject)().then(resolve).catch(reject);
+              safeSendFunction(to, value, sender, argsObject)(testRun).then(resolve).catch(reject);
             });
           });
         };
@@ -380,17 +380,17 @@
         };
 
         var asyncFunction = function(fun) {
-          return function() {
+          return function(testRun) {
             return new Promise(function(resolve, reject) {
-              fun(resolve, reject);
+              fun(resolve, reject, testRun);
             });
           };
         };
 
         var syncFunction = function(fun) {
-          return function() {
+          return function(testRun) {
             return new Promise(function(resolve, _) {
-              fun();
+              fun(testRun);
               resolve();
             });
           };
