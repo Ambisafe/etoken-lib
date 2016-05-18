@@ -329,7 +329,7 @@
             return true;
           }
           txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
-            safeTransactions(txFunctions, testRun, cumulativeGasUsed + (gasUsedAndvalueSpent[0] || 0), totalValueSpent + (gasUsedAndvalueSpent[1] || 0));
+            safeTransactions(txFunctions, testRun, cumulativeGasUsed + (gasUsedAndvalueSpent[0] || 0), web3.toBigNumber(gasUsedAndvalueSpent[1] || 0).add(totalValueSpent));
           });
         };
 
