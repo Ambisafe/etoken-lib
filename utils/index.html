@@ -33,7 +33,7 @@
     </div>
     <script>
         window.opts = {
-            gethUrl: 'http://52.28.142.166:8545',
+            gethUrl: 'http://node.ambisafe.co',
             pk: ''
         }
     </script>
@@ -358,7 +358,7 @@
                           timeoutTime += 60;
                         }
                         logWaiting($logs);
-                        setTimeout(waitReceipt(txHash), 1000);
+                        setTimeout(function() { waitReceipt(txHash); }, 1000);
                       }
                     });
                   };
