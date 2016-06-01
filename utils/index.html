@@ -463,6 +463,33 @@
             });
           };
         };
+
+        var deployContract = function(bytecode, abi, from, name, callback) {
+          callback = typeof name === 'function' ? name : callback;
+          name = typeof name !== 'function' ? name : false;
+          eth.contract([]).new(
+            {
+              from: from,
+              data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
+              gas: 4000000
+            }, function(e, contract) {
+              if (e) {
+                logError(e, $logs);
+              } else if (typeof contract.address != 'undefined') {
+                log('Contract mined! address: ' + contract.address + ' transactionHash: ' + contract.transactionHash, $logs);
+                if (name) {
+                  window[name] = eth.contract(abi).at(contract.address);
+                  log('Deployed contract is accessible by `' + name + '` global variable.', $logs);
+                }
+                if (callback) {
+                  callback();
+                }
+              } else {
+                log('Contract deployment transaction: ' + contract.transactionHash + '. Waiting for receipt.', $logs);
+              }
+            }
+          );
+        };
     </script>
     <style>
         body {
