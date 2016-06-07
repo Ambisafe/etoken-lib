@@ -85,7 +85,7 @@
 
         var logSuccess = function(gas, result, params, logger) {
             if (logger) {
-                var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '">' + result + '</a>' : result;
+                var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '" target="_blank">' + result + '</a>' : result;
                 _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params : '') + '</p>', logger);
             }
             console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params : ''));
@@ -297,6 +297,7 @@
                   resolve(estimateGas);
                 } else {
                   _params.push(merge({from: sender, gas: gas}, argsObject));
+                  _params.push('pending');
                   _params.push(function(err, result) {
                     result = typeof result === 'number' ? result > 0 : result;
                     if (err) {
@@ -435,6 +436,7 @@
                   var alias = property;
                   var name = property;
                 }
+                params.push('pending');
                 params.push(processResult(name, alias, finished, reject));
                 if (contract.call === 'eth_getBalance') {
                   contract.apply(this, params);
@@ -482,7 +484,7 @@
                   log('Deployed contract is accessible by `' + name + '` global variable.', $logs);
                 }
                 if (callback) {
-                  callback();
+                  callback(eth.contract(abi).at(contract.address));
                 }
               } else {
                 log('Contract deployment transaction: ' + contract.transactionHash + '. Waiting for receipt.', $logs);
