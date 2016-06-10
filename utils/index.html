@@ -299,14 +299,14 @@
                   _params.push(merge({from: sender, gas: gas}, argsObject));
                   _params.push('pending');
                   _params.push(function(err, result) {
-                    result = typeof result === 'number' ? result > 0 : result;
+                    var success = typeof result.toNumber === 'function' ? result.toNumber() > 0 : result;
                     if (err) {
                       reject(err);
                     } else {
-                      if (result || (argsObject && argsObject.ignoreCallResponse)) {
+                      if (success || (argsObject && argsObject.ignoreCallResponse)) {
                         resolve(estimateGas);
                       } else {
-                        reject('Call with gas: ' + gas + ' returned false.');
+                        reject('Call with gas: ' + gas + ' returned ' + result.toString() + '.');
                       }
                     }
                   });
