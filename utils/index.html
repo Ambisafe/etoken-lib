@@ -436,6 +436,7 @@
                   var alias = property;
                   var name = property;
                 }
+                var callParams = params.slice(0);
                 params.push('pending');
                 params.push(processResult(name, alias, finished, reject));
                 if (contract.call === 'eth_getBalance') {
@@ -443,7 +444,7 @@
                 } else {
                   contract[name].call.apply(this, params);
                 }
-                log("Calling for property: " + name, $logs);
+                log("Calling for property: " + name + (callParams.length ? " params: " + callParams.join(', ') : ""), $logs);
               });
             });
           };
