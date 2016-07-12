@@ -140,18 +140,30 @@
         }();
 
         var safeTransaction = function(fun, params, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('safeTransaction(contract.method, paramsArray, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+            return;
+          }
           safeTransactionFunction(fun, params, sender, argsObject)().then(function() {
             logFinish($logs);
           });
         };
 
         var safeSend = function(to, value, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('safeSend(toAddress, valueInWei, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+            return;
+          }
           safeSendFunction(to, value, sender, argsObject)().then(function() {
             logFinish($logs);
           });
         };
 
         var safeSendAll = function(to, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('safeSendAll(toAddress, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+            return;
+          }
           eth.getBalance(sender, 'pending', function(err, balance) {
             if (err) {
               throw err;
@@ -163,6 +175,10 @@
         };
 
         var safeTopup = function(to, targetValue, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('safeTopup(toAddress, targetValueInWei, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+            return;
+          }
           safeTopupFunction(to, targetValue, sender, argsObject)().then(function() {
             log('Topup to ' + to + ' finished.', $logs);
             logFinish($logs);
@@ -170,6 +186,10 @@
         };
 
         var safeTopupFunction = function(to, targetValue, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('See safeTopup(). To be used as part of safeTransactions().', $logs);
+            return;
+          }
           return asyncFunction(function(resolve, reject, testRun) {
             eth.getBalance(to, 'pending', function(err, balance) {
               if (err) {
@@ -188,12 +208,20 @@
         };
 
         var fastTopup = function(to, targetValue, sender, nonce, argsObject) {
+          if (arguments.length === 0) {
+            log('fastTopup(toAddress, targetValueInWei, sender, nonce[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+            return;
+          }
           fastTopupFunction(to, targetValue, sender, argsObject)(nonce).then(function(nonce) {
             log('Topup to ' + to + ' finished. Next nonce: ' + nonce, $logs);
           });
         };
 
         var fastTopupFunction = function(to, targetValue, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('See fastTopup(). To be used as part of fastTopups(), nonce will be passed automatically.', $logs);
+            return;
+          }
           return function(nonce, _testRun) {
             return asyncFunction(function(resolve, reject, testRun) {
               eth.getBalance(to, 'pending', function(err, balance) {
@@ -222,6 +250,10 @@
         };
 
         var fastTopups = function(txFunctions, nonce, testRun) {
+          if (arguments.length === 0) {
+            log('fastTopups(fastTopupFunctionArray, startingNonce[, testRun]);', $logs);
+            return;
+          }
           if (txFunctions.length === 0) {
             setTimeout(function() {
               log('Done! Next nonce: ' + nonce + '.', $logs);
@@ -235,6 +267,10 @@
         };
 
         var safeSendFunction = function(to, value, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('See safeSend(). To be used as part of safeTransactions().', $logs);
+            return;
+          }
           argsObject = argsObject || {};
           argsObject.value = argsObject.value || value;
           argsObject.to = argsObject.to || to;
@@ -242,6 +278,10 @@
         };
 
         var safeTransactionFunction = function(fun, params, sender, argsObject) {
+          if (arguments.length === 0) {
+            log('See safeTransaction(). To be used as part of safeTransactions().', $logs);
+            return;
+          }
           var merge = function(base, args) {
             var target = ['nonce', 'value', 'gasPrice', 'to', 'data'];
             if (args) {
@@ -381,6 +421,10 @@
         };
 
         var safeTransactions = function(txFunctions, testRun, cumulativeGasUsed, totalValueSpent) {
+          if (arguments.length === 0) {
+            log('safeTransactions(safeFunctionsArray[, testRun]);', $logs);
+            return;
+          }
           cumulativeGasUsed = cumulativeGasUsed || 0;
           totalValueSpent = totalValueSpent || 0;
           if (txFunctions.length === 0) {
@@ -396,12 +440,20 @@
         };
 
         var call = function(contract, properties, target) {
+          if (arguments.length === 0) {
+            log('call(contract, {name: methodName, params: methodCallParamsArray, alias: toStore}Array, savingObjReference);', $logs);
+            return;
+          }
           callFunction(contract, properties, target)().then(function() {
             logFinish($logs);
           });
         }
 
         var callFunction = function(contract, properties, target) {
+          if (arguments.length === 0) {
+            log('See call(). To be used as part of safeTransactions().', $logs);
+            return;
+          }
           var processResult = function(property, alias, done, reject) {
             return function(error, result) {
               if (error) {
@@ -451,6 +503,10 @@
         };
 
         var asyncFunction = function(fun) {
+          if (arguments.length === 0) {
+            log('asyncFunction(function(testRun) {}); To be used as part of safeTransactions().', $logs);
+            return;
+          }
           return function(testRun) {
             return new Promise(function(resolve, reject) {
               fun(resolve, reject, testRun);
@@ -459,6 +515,10 @@
         };
 
         var syncFunction = function(fun) {
+          if (arguments.length === 0) {
+            log('syncFunction(function(testRun) {}); To be used as part of safeTransactions().', $logs);
+            return;
+          }
           return function(testRun) {
             return new Promise(function(resolve, _) {
               fun(testRun);
@@ -468,6 +528,10 @@
         };
 
         var deployContract = function(bytecode, abi, from, name, callback) {
+          if (arguments.length === 0) {
+            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract)]);', $logs);
+            return;
+          }
           callback = typeof name === 'function' ? name : callback;
           name = typeof name !== 'function' ? name : false;
           eth.contract([]).new(
