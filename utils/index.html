@@ -336,7 +336,7 @@
                   // simple eth.sendTransaction
                   resolve(estimateGas);
                 } else {
-                  _params.push(merge({from: sender, gas: gas}, argsObject));
+                  _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
                   _params.push('pending');
                   _params.push(function(err, result) {
                     var success = typeof result.toNumber === 'function' ? result.toNumber() > 0 : result;
@@ -356,7 +356,7 @@
             }).then(function(estimateGas) {
               return new Promise(function(resolve, reject) {
                 var _params = params.slice(0);
-                _params.push(merge({from: sender, gas: gas}, argsObject));
+                _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
                 _params.push(function(err, result) {
                   if (err) {
                     reject(err);
