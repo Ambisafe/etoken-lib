@@ -16,7 +16,7 @@ var signerPrivateKey,
 
 engine.addProvider(new HookedWalletEthTxSubprovider({
     getPrivateKey: function (address, callback) {
-        if (address == signerAddress) {
+        if (address.toLowerCase() == signerAddress.toLowerCase()) {
             callback(null, signerPrivateKey);
         } else {
             storage.getPrivateKey(address, callback);
