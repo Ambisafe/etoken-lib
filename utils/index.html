@@ -309,7 +309,7 @@
             processFunctionParams(params);
             return new Promise(function(resolve, reject) {
               var _params = params.slice(0);
-              _params.push(merge({from: sender, gas: 3000000}, argsObject));
+              _params.push(merge({from: sender, gas: 3000000, gasPrice: gasPrice}, argsObject));
               _params.push(function(err, result) {
                 if (err) {
                   if (err.toString().startsWith('Error: no contract code at given address')) {
@@ -500,6 +500,25 @@
               });
             });
           };
+        };
+
+        var assertCallFunction = function(contract, propertyName, expectedValue) {
+          if (arguments.length === 0) {
+            log('assertCallFunction(contract, propertyName, expectedValue); To be used as part of safeTransactions().', $logs);
+            return;
+          }
+          return asyncFunction(function(checkFeeResolve, checkFeeReject, __testRun) {
+            var callObj = {};
+            callFunction(contract, [propertyName], callObj)()
+            .then(function() {
+              if (callObj[propertyName].toString() !== expectedValue.toString()) {
+                checkFeeReject(propertyName + ' is expected to be: "' + expectedValue + '" actual: "' + callObj[propertyName] + '"');
+                return;
+              }
+              checkFeeResolve();
+            })
+            .catch(checkFeeReject);
+          });
         };
 
         var asyncFunction = function(fun) {
