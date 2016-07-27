@@ -169,6 +169,7 @@
               throw err;
             }
             var gas = argsObject && argsObject.gas || 21000;
+            var gasPrice = argsObject && argsObject.gasPrice || gasPrice;
             var value = balance.sub(gasPrice.mul(gas));
             safeSend(to, value, sender, argsObject);
           });
@@ -546,9 +547,9 @@
           };
         };
 
-        var deployContract = function(bytecode, abi, from, name, callback) {
+        var deployContract = function(bytecode, abi, from, name, callback, gas) {
           if (arguments.length === 0) {
-            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract)]);', $logs);
+            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas]);', $logs);
             return;
           }
           callback = typeof name === 'function' ? name : callback;
@@ -557,7 +558,7 @@
             {
               from: from,
               data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
-              gas: 4700000,
+              gas: gas || 4500000, // leave some space for other transactions
               gasPrice: gasPrice
             }, function(e, contract) {
               if (e) {
