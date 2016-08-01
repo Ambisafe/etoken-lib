@@ -552,11 +552,12 @@
         };
 
         var getBalance = function(sender) {
-          eth.getBalance(sender || address, 'pending', function(err, balance) {
+          sender = sender || address;
+          eth.getBalance(sender, 'pending', function(err, balance) {
             if (err) {
               throw err;
             }
-            log(sender + ' address balance is ' + web3.fromWei(balance, 'ether').toString(), $logs);
+            log(sender + ' address balance is ' + web3.fromWei(balance, 'ether').toString() + ' ETH', $logs);
           });
         };
 
