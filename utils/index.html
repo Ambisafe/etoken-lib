@@ -503,33 +503,37 @@
           };
         };
 
-        var assertCallFunction = function(contract, propertyName, expectedValue) {
+        var assertCallFunction = function(contract, propertyNameOrObject, expectedValue, testRun) {
           if (arguments.length === 0) {
-            log('assertCallFunction(contract, propertyName, expectedValue); To be used as part of safeTransactions().', $logs);
+            log('assertCallFunction(contract, propertyNameOrObject, expectedValue, testRun); To be used as part of safeTransactions().', $logs);
             return;
           }
-          return asyncFunction(function(checkFeeResolve, checkFeeReject, __testRun) {
+          return asyncFunction(function(resolve, reject, _testRun) {
             var callObj = {};
-            callFunction(contract, [propertyName], callObj)()
+            var propertyName = propertyNameOrObject.alias || propertyNameOrObject;
+            callFunction(contract, [propertyNameOrObject], callObj)()
             .then(function() {
               if (callObj[propertyName].toString() !== expectedValue.toString()) {
-                checkFeeReject(propertyName + ' is expected to be: "' + expectedValue + '" actual: "' + callObj[propertyName] + '"');
+                if (_testRun) {
+                  resolve();
+                }
+                reject(propertyName + ' is expected to be: "' + expectedValue + '" actual: "' + callObj[propertyName] + '"');
                 return;
               }
-              checkFeeResolve();
-            })
-            .catch(checkFeeReject);
+              resolve();
+            }, testRun)
+            .catch(reject);
           });
         };
 
-        var asyncFunction = function(fun) {
+        var asyncFunction = function(fun, testRun) {
           if (arguments.length === 0) {
-            log('asyncFunction(function(testRun) {}); To be used as part of safeTransactions().', $logs);
+            log('asyncFunction(function(testRun) {}, testRun); To be used as part of safeTransactions().', $logs);
             return;
           }
-          return function(testRun) {
+          return function(_testRun) {
             return new Promise(function(resolve, reject) {
-              fun(resolve, reject, testRun);
+              fun(resolve, reject, _testRun || testRun);
             });
           };
         };
@@ -545,6 +549,15 @@
               resolve();
             });
           };
+        };
+
+        var getBalance = function(sender) {
+          eth.getBalance(sender || address, 'pending', function(err, balance) {
+            if (err) {
+              throw err;
+            }
+            log(sender + ' address balance is ' + web3.fromWei(balance, 'ether').toString(), $logs);
+          });
         };
 
         var deployContract = function(bytecode, abi, from, name, callback, gas) {
