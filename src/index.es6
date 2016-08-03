@@ -1,6 +1,6 @@
 'use strict';
 
-import AccountStorage from 'account-storage';
+import AccountStorage from 'contract-container-storage-js';
 import Ambisafe from 'ambisafe-client-javascript';
 import Web3Subprovider from 'web3-provider-engine/subproviders/web3'
 import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx'
@@ -16,7 +16,7 @@ var signerPrivateKey,
 
 engine.addProvider(new HookedWalletEthTxSubprovider({
     getPrivateKey: function (address, callback) {
-        if (address == signerAddress) {
+        if (address.toLowerCase() == signerAddress.toLowerCase()) {
             callback(null, signerPrivateKey);
         } else {
             storage.getPrivateKey(address, callback);

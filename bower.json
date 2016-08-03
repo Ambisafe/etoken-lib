@@ -7,10 +7,10 @@
   ],
   "license": "ISC",
   "moduleType": [
-    "node"
+    "es6"
   ],
   "homepage": "",
-  "private": true,
+  "private": false,
   "ignore": [
     "**/.*",
     "node_modules",
