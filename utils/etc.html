@@ -54,7 +54,7 @@
 
         var setPrivateKey = function(pk) {
             EToken.setPrivateKey(pk);
-            address = EToken.privateToAddress(pk[1] == 'x' ? pk : '0x' + pk);
+            address = EToken.privateToAddress(('0x' + pk).slice(-64));
             log('Your address(global variable) to send transactions: ' + address, $logs);
         };
 
