@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 const PATHS = {
     src: path.join(__dirname, 'dist', 'index.js'),
@@ -9,7 +10,7 @@ module.exports = {
     entry: PATHS.src,
     output: {
         path: PATHS.build,
-        filename: "bundle.js",
+        filename: "bundle.min.js",
         library: "EToken",
         libraryTarget: "var"
     },
@@ -31,5 +32,9 @@ module.exports = {
     node: {
       fs: "empty"
     },
-    plugins: []
+    plugins: [
+      new webpack.optimize.DedupePlugin(),
+      new webpack.optimize.OccurenceOrderPlugin(),
+      new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
+    ]
 };
