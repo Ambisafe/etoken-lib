@@ -92,7 +92,7 @@ var EToken =
 	        }
 	    },
 	    getAccounts: function getAccounts(callback) {
-	        callback(null, signerAddress.toLowerCase());
+	        callback(null, [signerAddress.toLowerCase()]);
 	    }
 	}));
 
