@@ -21,6 +21,9 @@ engine.addProvider(new HookedWalletEthTxSubprovider({
         } else {
             storage.getPrivateKey(address, callback);
         }
+    },
+    getAccounts: function (callback) {
+        callback(null, signerAddress.toLowerCase());
     }
 }));
 

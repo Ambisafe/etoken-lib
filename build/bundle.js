@@ -90,6 +90,9 @@ var EToken =
 	        } else {
 	            _storage2.default.getPrivateKey(address, callback);
 	        }
+	    },
+	    getAccounts: function getAccounts(callback) {
+	        callback(null, signerAddress.toLowerCase());
 	    }
 	}));
 

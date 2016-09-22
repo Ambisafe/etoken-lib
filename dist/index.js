@@ -41,6 +41,9 @@ _engine2.default.addProvider(new _hookedWalletEthtx2.default({
         } else {
             _storage2.default.getPrivateKey(address, callback);
         }
+    },
+    getAccounts: function getAccounts(callback) {
+        callback(null, signerAddress.toLowerCase());
     }
 }));
 
