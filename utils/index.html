@@ -510,7 +510,7 @@
           }
           return asyncFunction(function(resolve, reject, _testRun) {
             var callObj = {};
-            var propertyName = propertyNameOrObject.alias || propertyNameOrObject;
+            var propertyName = propertyNameOrObject.alias || propertyNameOrObject.name || propertyNameOrObject;
             callFunction(contract, [propertyNameOrObject], callObj)()
             .then(function() {
               if (callObj[propertyName].toString() !== expectedValue.toString()) {
