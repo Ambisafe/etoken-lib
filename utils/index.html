@@ -561,14 +561,22 @@
           });
         };
 
-        var deployContract = function(bytecode, abi, from, name, callback, gas) {
+        var deployContract = function() {
           if (arguments.length === 0) {
             log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas]);', $logs);
             return;
           }
+          deployContractComplex.apply(null, [[]].concat(arguments));
+        };
+
+        var deployContractComplex = function(constructorArgs, bytecode, abi, from, name, callback, gas) {
+          if (arguments.length === 0) {
+            log('deployContractComplex(constructorArgs, byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas]);', $logs);
+            return;
+          }
           callback = typeof name === 'function' ? name : callback;
           name = typeof name !== 'function' ? name : false;
-          eth.contract([]).new(
+          eth.contract([]).new.apply(null, constructorArgs.concat(
             {
               from: from,
               data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
@@ -589,7 +597,7 @@
               } else {
                 log('Contract deployment transaction: ' + contract.transactionHash + '. Waiting for receipt.', $logs);
               }
-            }
+            })
           );
         };
     </script>
