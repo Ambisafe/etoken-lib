@@ -566,7 +566,7 @@
             log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas]);', $logs);
             return;
           }
-          deployContractComplex.apply(null, [[]].concat(arguments));
+          deployContractComplex([], ...Array.from(arguments));
         };
 
         var deployContractComplex = function(constructorArgs, bytecode, abi, from, name, callback, gas) {
@@ -576,7 +576,8 @@
           }
           callback = typeof name === 'function' ? name : callback;
           name = typeof name !== 'function' ? name : false;
-          eth.contract([]).new.apply(null, constructorArgs.concat(
+          eth.contract(abi).new(
+            ...constructorArgs,
             {
               from: from,
               data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
@@ -597,7 +598,7 @@
               } else {
                 log('Contract deployment transaction: ' + contract.transactionHash + '. Waiting for receipt.', $logs);
               }
-            })
+            }
           );
         };
     </script>
