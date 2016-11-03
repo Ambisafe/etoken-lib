@@ -1,6 +1,6 @@
 {
   "name": "etoken-lib",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Ambisafe Etoken Lib",
   "main": "dist/index.js",
   "repository": "https://bitbucket.org/ambisafe/etoken-lib",
@@ -12,8 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "contract-container-storage-js": "0.0.3",
-    "ambisafe-client-javascript": "0.11.2",
+    "contract-container-storage-js": "0.0.4",
+    "ambisafe-client-javascript": "0.11.4",
     "crypto": "0.0.3",
     "ethereumjs-util": "4.3.0",
     "web3": "0.15.3",
