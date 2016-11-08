@@ -43,7 +43,7 @@ _engine2.default.addProvider(new _hookedWalletEthtx2.default({
         }
     },
     getAccounts: function getAccounts(callback) {
-        callback(null, signerAddress.toLowerCase());
+        callback(null, [signerAddress.toLowerCase()]);
     }
 }));
 

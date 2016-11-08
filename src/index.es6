@@ -23,7 +23,7 @@ engine.addProvider(new HookedWalletEthTxSubprovider({
         }
     },
     getAccounts: function (callback) {
-        callback(null, signerAddress.toLowerCase());
+        callback(null, [signerAddress.toLowerCase()]);
     }
 }));
 
