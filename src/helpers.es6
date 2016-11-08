@@ -21,5 +21,5 @@ export function publicToAddress(address) {
 }
 
 export function privateToAddress(privateKey) {
-    return "0x" + privToAddress(new Buffer(privateKey, 'hex'), true).toString("hex");
+    return '0x' + privToAddress(new Buffer(privateKey, 'hex'), true).toString('hex');
 }

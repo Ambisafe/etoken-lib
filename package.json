@@ -15,6 +15,7 @@
     "contract-container-storage-js": "0.0.4",
     "ambisafe-client-javascript": "0.11.4",
     "crypto": "0.0.3",
+    "ethereumjs-tx": "^1.1.2",
     "ethereumjs-util": "4.3.0",
     "web3": "0.15.3",
     "web3-provider-engine": "Ambisafe/provider-engine.git#forgive-undef-strings"
