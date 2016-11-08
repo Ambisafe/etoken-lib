@@ -2,8 +2,9 @@
 
 import AccountStorage from 'contract-container-storage-js';
 import Ambisafe from 'ambisafe-client-javascript';
-import Web3Subprovider from 'web3-provider-engine/subproviders/web3'
-import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx'
+import Web3Subprovider from 'web3-provider-engine/subproviders/web3';
+import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx';
+import EthTx from 'ethereumjs-tx';
 
 import engine from './engine';
 import web3 from './web3';
@@ -62,6 +63,25 @@ function setPrivateKey(privateKey) {
     signerAddress = privateToAddress(signerPrivateKey);
 }
 
+function buildRawTransaction(contract, method) {
+    return (...params) => {
+        if (signerPrivateKey === undefined) {
+            throw Error('Building transaction is only possible after setPrivateKey().');
+        }
+        let txData = params.slice(-1)[0];
+        txData.data = txData.data || contract[method].getData(...params.slice(0, -1));
+        txData.to = txData.to || contract.address;
+        txData.from = txData.from || signerAddress;
+        txData.nonce = web3.toHex(txData.nonce);
+        txData.gas = web3.toHex(txData.gas || txData.gasLimit);
+        txData.gasLimit = txData.gas;
+        txData.gasPrice = web3.toHex(txData.gasPrice);
+        txData.value = web3.toHex(txData.value || 0);
+        let tx = new EthTx(txData);
+        tx.sign(signerPrivateKey);
+        return '0x' + tx.serialize().toString('hex');
+    };
+}
 
 module.exports = {
     web3: web3,
@@ -73,5 +93,6 @@ module.exports = {
     waitForTransaction: waitForTransaction,
     createAccount: createAccount,
     setPassword: setPassword,
-    setPrivateKey: setPrivateKey
+    setPrivateKey: setPrivateKey,
+    buildRawTransaction: buildRawTransaction
 };
