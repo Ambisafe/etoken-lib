@@ -436,7 +436,8 @@
           txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
             var gasUsed = gasUsedAndvalueSpent && gasUsedAndvalueSpent[0] || 0;
             var valueSent = web3.toBigNumber(gasUsedAndvalueSpent && gasUsedAndvalueSpent[1] || 0);
-            safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+            setTimeout(safeTransactions, 1000, txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+            // safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
           });
         };
 
@@ -563,27 +564,32 @@
 
         var deployContract = function() {
           if (arguments.length === 0) {
-            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas]);', $logs);
+            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
             return;
           }
           deployContractComplex([], ...Array.from(arguments));
         };
 
-        var deployContractComplex = function(constructorArgs, bytecode, abi, from, name, callback, gas) {
+        var deployContractComplex = function(constructorArgs, bytecode, abi, from, name, callback, gas, nonce) {
           if (arguments.length === 0) {
-            log('deployContractComplex(constructorArgs, byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas]);', $logs);
+            log('deployContractComplex(constructorArgs, byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
             return;
           }
           callback = typeof name === 'function' ? name : callback;
           name = typeof name !== 'function' ? name : false;
+          var params = {
+            from: from,
+            data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
+            gas: gas || 3900000, // leave some space for other transactions
+            gasPrice: gasPrice
+          };
+          if (nonce !== undefined) {
+            params.nonce = nonce;
+          }
           eth.contract(abi).new(
             ...constructorArgs,
-            {
-              from: from,
-              data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
-              gas: gas || 4500000, // leave some space for other transactions
-              gasPrice: gasPrice
-            }, function(e, contract) {
+            params,
+            function(e, contract) {
               if (e) {
                 logError(e, $logs);
               } else if (typeof contract.address != 'undefined') {
