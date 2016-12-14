@@ -9,23 +9,23 @@
     <h4>To begin, do: setPrivateKey('yourPkHere'); in the browser javascript console.</h4>
     <h3>Example usage, test func will return false if there is less than 500000 gas available inside it:</h3>
     <p>var ambiUtils = web3.eth.contract([{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[],"name":"test","outputs":[{"name":"","type":"bool"}],"type":"function"}]).at("0x75c5751b5eca193c5e38e1128f543b0250e24b0a");</p>
-    <p>safeTransaction(ambiUtils.test, [], address, {testRun: true});</p>
-    <p>safeTransaction(ambiUtils.test, [], address, {testRun: true, ignoreCallResponse: true});</p>
-    <p>safeTransaction(ambiUtils.test, [], address, {testRun: true, gas: 1000000});</p>
-    <p>safeTransaction(ambiUtils.test, [], address, {waitReceipt: true}); // Will fail on checks.</p>
-    <p>safeTransaction(ambiUtils.test, [], address, {waitReceipt: true, gas: 1000000}); // Submitting real transaction!</p>
-    <p>var tx1 = safeTransactionFunction(ambiUtils.test, [], address, {gas: 1000000});</p>
-    <p>var tx2 = safeTransactionFunction(ambiUtils.test, [], address); // Will stop on this one.</p>
-    <p>var tx3 = safeTransactionFunction(ambiUtils.test, [], address, {ignoreCallResponse: true});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true, ignoreCallResponse: true});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true, gas: 1000000});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {waitReceipt: true}); // Will fail on checks.</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {waitReceipt: true, gas: 1000000}); // Submitting real transaction!</p>
+    <p>var tx1 = safeTransactionFunction(ambiUtils.test, [], sender, {gas: 1000000});</p>
+    <p>var tx2 = safeTransactionFunction(ambiUtils.test, [], sender); // Will stop on this one.</p>
+    <p>var tx3 = safeTransactionFunction(ambiUtils.test, [], sender, {ignoreCallResponse: true});</p>
     <p>safeTransactions([tx1, tx2, tx3], true); // true means testRun for all transactions;</p>
-    <p>safeSend(ambiUtils.address, 1000, address, {testRun: true}); // Send 100 wei.</p>
-    <p>safeSendAll(ambiUtils.address, address, {testRun: true}); // Send all you have available, will result in 0 wei on sender.</p>
-    <p>safeTopup(ambiUtils.address, 1488, address, {testRun: true}); // Send enough for the receiver to have exactly 1488 wei.</p>
+    <p>safeSend(ambiUtils.address, 1000, sender, {testRun: true}); // Send 100 wei.</p>
+    <p>safeSendAll(ambiUtils.address, sender, {testRun: true}); // Send all you have available, will result in 0 wei on sender.</p>
+    <p>safeTopup(ambiUtils.address, 1488, sender, {testRun: true}); // Send enough for the receiver to have exactly 1488 wei.</p>
     <pre>fastTopups([ // Will topup to the specified balance.
-  fastTopupFunction('0x1c4a10b09f54c2a2601b71e7644124efefd2cd7b', 20000000000000001, address),
-  fastTopupFunction('0x4793f63e6e270a78c9533ba2743905beeade40a6', 20000000000000100, address),
-  fastTopupFunction('0x787f0a7639fd444ae6464e02f29763f06c76232f', 10000000000000000, address),
-  fastTopupFunction('0x8622c07a3b6496df703ab644698162c3f265a98b', 20000200020000000, address)
+  fastTopupFunction('0x1c4a10b09f54c2a2601b71e7644124efefd2cd7b', 20000000000000001, sender),
+  fastTopupFunction('0x4793f63e6e270a78c9533ba2743905beeade40a6', 20000000000000100, sender),
+  fastTopupFunction('0x787f0a7639fd444ae6464e02f29763f06c76232f', 10000000000000000, sender),
+  fastTopupFunction('0x8622c07a3b6496df703ab644698162c3f265a98b', 20000200020000000, sender)
 ], 0, true); // 0 is the first unused nonce. Testrun true.</pre>
 
     <h3>Logs</h3>
@@ -33,7 +33,7 @@
     </div>
     <script>
         window.opts = {
-            gethUrl: 'http://oxogamestudio.com:8645',
+            gethUrl: 'http://35.156.6.89:8545',
             pk: ''
         }
     </script>
@@ -44,6 +44,7 @@
         var web3 = EToken.web3;
         var eth = web3.eth;
         var address;
+        var sender;
 
         var nowSeconds = function(){return (Date.now() / 1000);};
 
@@ -55,7 +56,8 @@
         var setPrivateKey = function(pk) {
             EToken.setPrivateKey(pk);
             address = EToken.privateToAddress(('0x' + pk).slice(-64));
-            log('Your address(global variable) to send transactions: ' + address, $logs);
+            sender = address;
+            log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
         };
 
         var _log = function(message, logger) {
@@ -169,6 +171,7 @@
               throw err;
             }
             var gas = argsObject && argsObject.gas || 21000;
+            var gasPrice = argsObject && argsObject.gasPrice || gasPrice;
             var value = balance.sub(gasPrice.mul(gas));
             safeSend(to, value, sender, argsObject);
           });
@@ -309,7 +312,7 @@
             processFunctionParams(params);
             return new Promise(function(resolve, reject) {
               var _params = params.slice(0);
-              _params.push(merge({from: sender, gas: 3000000}, argsObject));
+              _params.push(merge({from: sender, gas: 3000000, gasPrice: gasPrice}, argsObject));
               _params.push(function(err, result) {
                 if (err) {
                   if (err.toString().startsWith('Error: no contract code at given address')) {
@@ -435,7 +438,8 @@
           txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
             var gasUsed = gasUsedAndvalueSpent && gasUsedAndvalueSpent[0] || 0;
             var valueSent = web3.toBigNumber(gasUsedAndvalueSpent && gasUsedAndvalueSpent[1] || 0);
-            safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+            setTimeout(safeTransactions, 1000, txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+            // safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
           });
         };
 
@@ -502,14 +506,37 @@
           };
         };
 
-        var asyncFunction = function(fun) {
+        var assertCallFunction = function(contract, propertyNameOrObject, expectedValue, testRun) {
           if (arguments.length === 0) {
-            log('asyncFunction(function(testRun) {}); To be used as part of safeTransactions().', $logs);
+            log('assertCallFunction(contract, propertyNameOrObject, expectedValue, testRun); To be used as part of safeTransactions().', $logs);
             return;
           }
-          return function(testRun) {
+          return asyncFunction(function(resolve, reject, _testRun) {
+            var callObj = {};
+            var propertyName = propertyNameOrObject.alias || propertyNameOrObject.name || propertyNameOrObject;
+            callFunction(contract, [propertyNameOrObject], callObj)()
+            .then(function() {
+              if (callObj[propertyName].toString() !== expectedValue.toString()) {
+                if (_testRun) {
+                  resolve();
+                }
+                reject(propertyName + ' is expected to be: "' + expectedValue + '" actual: "' + callObj[propertyName] + '"');
+                return;
+              }
+              resolve();
+            }, testRun)
+            .catch(reject);
+          });
+        };
+
+        var asyncFunction = function(fun, testRun) {
+          if (arguments.length === 0) {
+            log('asyncFunction(function(testRun) {}, testRun); To be used as part of safeTransactions().', $logs);
+            return;
+          }
+          return function(_testRun) {
             return new Promise(function(resolve, reject) {
-              fun(resolve, reject, testRun);
+              fun(resolve, reject, _testRun || testRun);
             });
           };
         };
@@ -527,19 +554,44 @@
           };
         };
 
-        var deployContract = function(bytecode, abi, from, name, callback) {
+        var getBalance = function(sender) {
+          sender = sender || address;
+          eth.getBalance(sender, 'pending', function(err, balance) {
+            if (err) {
+              throw err;
+            }
+            log(sender + ' address balance is ' + web3.fromWei(balance, 'ether').toString() + ' ETH', $logs);
+          });
+        };
+
+        var deployContract = function() {
           if (arguments.length === 0) {
-            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract)]);', $logs);
+            log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
+            return;
+          }
+          deployContractComplex([], ...Array.from(arguments));
+        };
+
+        var deployContractComplex = function(constructorArgs, bytecode, abi, from, name, callback, gas, nonce) {
+          if (arguments.length === 0) {
+            log('deployContractComplex(constructorArgs, byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
             return;
           }
           callback = typeof name === 'function' ? name : callback;
           name = typeof name !== 'function' ? name : false;
-          eth.contract([]).new(
-            {
-              from: from,
-              data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
-              gas: 4700000
-            }, function(e, contract) {
+          var params = {
+            from: from,
+            data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
+            gas: gas || 3900000, // leave some space for other transactions
+            gasPrice: gasPrice
+          };
+          if (nonce !== undefined) {
+            params.nonce = nonce;
+          }
+          eth.contract(abi).new(
+            ...constructorArgs,
+            params,
+            function(e, contract) {
               if (e) {
                 logError(e, $logs);
               } else if (typeof contract.address != 'undefined') {
@@ -556,12 +608,6 @@
               }
             }
           );
-        };
-
-        var safeSendEToken = function(to, value, symbol, env, from) {
-          var etok = web3.eth.contract([{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_eventsHistory","type":"address"}],"name":"setupEventsHistory","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_switch","type":"bytes32"}],"name":"isEnabled","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_address","type":"address"},{"name":"enabled","type":"bool"},{"name":"_symbol","type":"bytes32"}],"name":"setProxy","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_symbol","type":"bytes32"},{"name":"_value","type":"uint256"},{"name":"_name","type":"string"},{"name":"_description","type":"string"},{"name":"_baseUnit","type":"uint8"},{"name":"_isReissuable","type":"bool"}],"name":"issueAsset","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_holder","type":"address"}],"name":"getHolderId","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"_stackDepthLib","type":"address"}],"name":"setupStackDepthLib","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_from","type":"address"},{"name":"_spender","type":"address"},{"name":"_symbol","type":"bytes32"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"holders","outputs":[{"name":"trustsCount","type":"uint256"},{"name":"addr","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_address","type":"address"},{"name":"_symbol","type":"bytes32"}],"name":"setCosignerAddress","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"isCreated","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_address","type":"address"},{"name":"_symbol","type":"bytes32"}],"name":"setEventsProxy","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"},{"name":"_reference","type":"string"}],"name":"transferFromWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[],"name":"claimContractOwnership","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"}],"name":"trust","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"cosigners","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_holder","type":"address"},{"name":"_symbol","type":"bytes32"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"}],"name":"proxyApprove","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"}],"name":"changeContractOwnership","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[],"name":"pendingContractOwner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"}],"name":"recover","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"},{"name":"_reference","type":"string"}],"name":"proxyTransferWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"}],"name":"isTrusted","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"name","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"proxies","outputs":[{"name":"proxy","type":"address"},{"name":"onlyProxy","type":"bool"},{"name":"throwOnFailedEmit","type":"bool"}],"type":"function"},{"constant":true,"inputs":[],"name":"holdersCount","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"},{"name":"_reference","type":"string"}],"name":"transferWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_data","type":"bytes"}],"name":"forwardCall","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_switch","type":"bytes32"},{"name":"_state","type":"bool"}],"name":"setSwitch","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_icap","type":"bytes32"},{"name":"_value","type":"uint256"}],"name":"transferToICAP","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_registryICAP","type":"address"}],"name":"setupRegistryICAP","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_icap","type":"bytes32"},{"name":"_value","type":"uint256"},{"name":"_reference","type":"string"}],"name":"transferToICAPWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"assets","outputs":[{"name":"owner","type":"uint256"},{"name":"totalSupply","type":"uint256"},{"name":"name","type":"string"},{"name":"description","type":"string"},{"name":"isReissuable","type":"bool"},{"name":"baseUnit","type":"uint8"}],"type":"function"},{"constant":true,"inputs":[],"name":"registryICAP","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_icap","type":"bytes32"},{"name":"_value","type":"uint256"},{"name":"_reference","type":"string"}],"name":"transferFromToICAPWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_icap","type":"bytes32"},{"name":"_value","type":"uint256"}],"name":"transferFromToICAP","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"switches","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[],"name":"distrustAll","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"description","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"isReissuable","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_icap","type":"bytes32"},{"name":"_value","type":"uint256"},{"name":"_reference","type":"string"}],"name":"proxyTransferToICAPWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_symbol","type":"bytes32"},{"name":"_value","type":"uint256"}],"name":"revokeAsset","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_address","type":"address"}],"name":"setCosignerAddressForUser","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[],"name":"contractOwner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_symbol","type":"bytes32"}],"name":"baseUnit","outputs":[{"name":"","type":"uint8"}],"type":"function"},{"constant":false,"inputs":[{"name":"_symbol","type":"bytes32"},{"name":"_value","type":"uint256"}],"name":"reissueAsset","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_address","type":"address"},{"name":"_symbol","type":"bytes32"}],"name":"proxySetCosignerAddress","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_symbol","type":"bytes32"}],"name":"isOwner","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_icap","type":"bytes32"},{"name":"_value","type":"uint256"},{"name":"_reference","type":"string"}],"name":"proxyTransferFromToICAPWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_onlyThroughProxy","type":"bool"},{"name":"_throwOnFailedEmit","type":"bool"},{"name":"_symbol","type":"bytes32"}],"name":"setProxyConf","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[],"name":"eventsHistory","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"}],"name":"distrust","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"},{"name":"_symbol","type":"bytes32"},{"name":"_reference","type":"string"}],"name":"proxyTransferFromWithReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_symbol","type":"bytes32"},{"name":"_newOwner","type":"address"}],"name":"changeOwnership","outputs":[{"name":"","type":"bool"}],"type":"function"}])
-            .at(env === 'prod' ? '0x68c769478002b2e2db64fe3be55c943fe4fbd6b1' : '0x3fce483a0236ba36869e4e82151006045e7d3331');
-
         };
     </script>
     <style>
