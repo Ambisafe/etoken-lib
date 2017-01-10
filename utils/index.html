@@ -378,38 +378,51 @@
               var to = (argsObject && argsObject.to) ? " to: " + argsObject.to : "";
               var nonce = (argsObject && argsObject.nonce !== undefined) ? " nonce: " + argsObject.nonce : "";
               logSuccess(result[1], result[0], params.join(', ') + to + value + nonce, $logs);
-              if (!testRun && argsObject && !argsObject.testRun && argsObject.waitReceipt) {
-                log('Waiting receipt for ' + result[0], $logs);
-                return new Promise(function(resolve, reject) {
-                  flowControl.__wait__();
-                  var startTime = nowSeconds();
-                  var timeoutTime = startTime + waitReceiptTimeoutSeconds;
-                  var waitReceipt = function(txHash) {
-                    web3.eth.getTransactionReceipt(txHash, function(err, receipt) {
-                      var secondsPassed = Math.round(nowSeconds() - startTime);
-                      if (receipt || flowControl.ready) {
-                        flowControl.continue();
-                        resolve([secondsPassed, result[1]]);
-                      } else {
-                        var message = 'No transaction receipt after ' + secondsPassed + ' seconds.';
-                        if (flowControl.stopping) {
-                          flowControl.continue();
-                          reject(message);
-                          return;
-                        }
-                        if (nowSeconds() > timeoutTime) {
-                          logWarning(message + " If you are sure that transaction is already mined do: flowControl.continue(); If you want to stop execution do: flowControl.stop();", $logs);
-                          timeoutTime += 60;
-                        }
-                        logWaiting($logs);
-                        setTimeout(function() { waitReceipt(txHash); }, 1000);
-                      }
-                    });
-                  };
-                  waitReceipt(result[0]);
-                });
-              } else {
+              if (testRun || (argsObject && argsObject.testRun)) {
                 return [false, result[1]];
+              } else {
+                return new Promise(function(resolve, reject) {
+                  if (argsObject && argsObject.waitReceipt) {
+                    log('Waiting receipt for ' + result[0], $logs);
+                    flowControl.__wait__();
+                    var startTime = nowSeconds();
+                    var timeoutTime = startTime + waitReceiptTimeoutSeconds;
+                    var waitReceipt = function(txHash) {
+                      web3.eth.getTransactionReceipt(txHash, function(err, receipt) {
+                        var secondsPassed = Math.round(nowSeconds() - startTime);
+                        if ((receipt && receipt.blockNumber) || flowControl.ready) {
+                          flowControl.continue();
+                          resolve([secondsPassed, result[1]]);
+                        } else {
+                          var message = 'No transaction receipt after ' + secondsPassed + ' seconds.';
+                          if (flowControl.stopping) {
+                            flowControl.continue();
+                            reject(message);
+                            return;
+                          }
+                          if (nowSeconds() > timeoutTime) {
+                            logWarning(message + " If you are sure that transaction is already mined do: flowControl.continue(); If you want to stop execution do: flowControl.stop();", $logs);
+                            timeoutTime += 60;
+                          }
+                          logWaiting($logs);
+                          setTimeout(function() { waitReceipt(txHash); }, 1000);
+                        }
+                      });
+                    };
+                    waitReceipt(result[0]);
+                  } else {
+                    var waitPending = function(txHash) {
+                      web3.eth.getTransaction(txHash, function(err, pending) {
+                        if (pending) {
+                          resolve([false, result[1]]);
+                        } else {
+                          setTimeout(function() { waitPending(txHash); }, 500);
+                        }
+                      });
+                    };
+                    waitPending(result[0]);
+                  }
+                });
               }
             }).then(function(results) {
               if (results[0]) {
@@ -438,8 +451,8 @@
           txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
             var gasUsed = gasUsedAndvalueSpent && gasUsedAndvalueSpent[0] || 0;
             var valueSent = web3.toBigNumber(gasUsedAndvalueSpent && gasUsedAndvalueSpent[1] || 0);
-            setTimeout(safeTransactions, 1000, txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
-            // safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+            // setTimeout(safeTransactions, 1000, txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+            safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
           });
         };
 
