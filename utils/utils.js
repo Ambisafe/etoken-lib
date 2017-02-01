@@ -297,6 +297,18 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
           // simple eth.sendTransaction
           resolve(estimateGas);
         } else {
+          var repeater = function(tries, funcToCall, funcToCallArgs) {
+            var _repeat = function() {
+              if (tries-- === 0) {
+                return false;
+              }
+              logWaiting($logs);
+              setTimeout(() => funcToCall.apply(null, funcToCallArgs), 500);
+              return true;
+            };
+            return _repeat;
+          };
+          var repeat = repeater(20, fun.call, _params);
           _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
           _params.push('pending');
           _params.push(function(err, result) {
@@ -307,11 +319,13 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
               if (success || (argsObject && argsObject.ignoreCallResponse)) {
                 resolve(estimateGas);
               } else {
-                reject('Call with gas: ' + gas + ' returned ' + result.toString() + '.');
+                if (!repeat()) {
+                  reject('Call with gas: ' + gas + ' returned ' + result.toString() + ' 20 times in a row.');
+                }
               }
             }
           });
-          fun.call.apply(this, _params);
+          repeat();
         }
       });
     }).then(function(estimateGas) {
