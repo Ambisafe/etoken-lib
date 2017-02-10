@@ -29,9 +29,12 @@ var log = function(message, logger) {
     }
 };
 
-var logError = function(message, logger) {
+var logError = function(message, logger, dontThrow) {
     if (logger) {
         _log('<p class="error">' + message + '</p>', logger);
+    }
+    if (dontThrow) {
+      return;
     }
     throw message;
 };
@@ -308,7 +311,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
             };
             return _repeat;
           };
-          var repeat = repeater(20, fun.call, _params);
+          var repeat = repeater(40, fun.call, _params);
           _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
           _params.push('pending');
           _params.push(function(err, result) {
@@ -320,7 +323,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
                 resolve(estimateGas);
               } else {
                 if (!repeat()) {
-                  reject('Call with gas: ' + gas + ' returned ' + result.toString() + ' 20 times in a row.');
+                  reject('Call with gas: ' + gas + ' returned ' + result.toString() + ' 40 times in a row.');
                 }
               }
             }
@@ -401,30 +404,34 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
         log('Mined in ' + results[0] + ' seconds.', $logs);
       }
       return [results[1], argsObject && argsObject.value];
-    }).catch(function(err) {
-      logError(err, $logs);
-      log('<hr/>', $logs);
     });
   };
 };
 
-var safeTransactions = function(txFunctions, testRun, cumulativeGasUsed, totalValueSpent) {
-  if (arguments.length === 0) {
-    log('safeTransactions(safeFunctionsArray[, testRun]);', $logs);
-    return;
-  }
-  cumulativeGasUsed = cumulativeGasUsed || 0;
-  totalValueSpent = totalValueSpent || 0;
-  if (txFunctions.length === 0) {
-    log('Done! Cumulative gas used: ' + cumulativeGasUsed + ', total value sent: ' + web3.fromWei(totalValueSpent, 'ether') + ' ETH.', $logs);
-    logFinish($logs);
-    return true;
-  }
-  txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
-    var gasUsed = gasUsedAndvalueSpent && gasUsedAndvalueSpent[0] || 0;
-    var valueSent = web3.toBigNumber(gasUsedAndvalueSpent && gasUsedAndvalueSpent[1] || 0);
-    // setTimeout(safeTransactions, 1000, txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
-    safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+var safeTransactions = function(...args) {
+  var _safeTransactions = function(txFunctions, testRun, cumulativeGasUsed, totalValueSpent) {
+    if (arguments.length === 0) {
+      log('safeTransactions(safeFunctionsArray[, testRun]);', $logs);
+      return Promise.resolve();
+    }
+    cumulativeGasUsed = cumulativeGasUsed || 0;
+    totalValueSpent = totalValueSpent || 0;
+    if (txFunctions.length === 0) {
+      log('Done! Cumulative gas used: ' + cumulativeGasUsed + ', total value sent: ' + web3.fromWei(totalValueSpent, 'ether') + ' ETH.', $logs);
+      logFinish($logs);
+      return Promise.resolve();
+    }
+    return txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
+      var gasUsed = gasUsedAndvalueSpent && gasUsedAndvalueSpent[0] || 0;
+      var valueSent = web3.toBigNumber(gasUsedAndvalueSpent && gasUsedAndvalueSpent[1] || 0);
+      return _safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+    });
+  };
+  return _safeTransactions(...args)
+  .catch(function(err) {
+    logError(err, $logs, true);
+    log('<hr/>', $logs);
+    throw err;
   });
 };
 
@@ -549,6 +556,52 @@ var getBalance = function(sender) {
   });
 };
 
+var getTransaction = function(txHash, tries = 40) {
+  return new Promise((resolve, reject) => {
+    try {
+      if (tries === 0) {
+        return reject(new Error(`Transaction ${txHash} not found.`));
+      }
+      eth.getTransaction(txHash, (e, tx) => {
+        if (e) {
+          return reject(e);
+        }
+        resolve(tx);
+      });
+    } catch(err) {
+      reject(err);
+    }
+  }).then(tx => {
+    if (tx) {
+      return tx;
+    }
+    return delay(500)
+    .then(() => {
+      return getTransaction(txHash, tries - 1);
+    });
+  });
+};
+
+var delay = function(msec) {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, msec);
+  });
+};
+
+var deployContractAsync = function(...args) {
+  return deployContractComplexAsync([], ...args);
+};
+
+var deployContractComplexAsync = function(constructorArgs, bytecode, abi, sender, name, gas, nonce) {
+  return new Promise((resolve, reject) => {
+    try {
+      deployContractComplex(constructorArgs, bytecode, abi, sender, name, resolve, gas, nonce);
+    } catch(e) {
+      reject(e);
+    }
+  });
+};
+
 var deployContract = function(...args) {
   if (args.length === 0) {
     log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
@@ -557,40 +610,83 @@ var deployContract = function(...args) {
   deployContractComplex([], ...args);
 };
 
-var deployContractComplex = function(constructorArgs, bytecode, abi, from, name, callback, gas, nonce) {
+var deployContractComplex = function(constructorArgs, bytecode, abi, sender, name, callback, gas, nonce) {
   if (arguments.length === 0) {
     log('deployContractComplex(constructorArgs, byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
     return;
   }
   callback = typeof name === 'function' ? name : callback;
   name = typeof name !== 'function' ? name : false;
-  var params = {
-    from: from,
+  smartDeployContract({
+    constructorArgs,
+    bytecode,
+    abi,
+    sender,
+    name,
+    gas,
+    nonce,
+    waitReceipt: true,
+  }).then(contract => {
+    if (callback) {
+      callback(contract);
+    }
+  });
+};
+
+var smartDeployContract = function(args) {
+  if (arguments.length === 0) {
+    log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt});', $logs);
+    return;
+  }
+  const constructorArgs = args.constructorArgs || [];
+  const bytecode = args.bytecode;
+  const abi = args.abi || [];
+  const sender = args.sender;
+  const name = args.name;
+  const gas = args.gas;
+  const nonce = args.nonce;
+  const waitReceipt = args.waitReceipt;
+  const params = {
+    from: sender,
     data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
     gas: gas || 3900000, // leave some space for other transactions
-    gasPrice: gasPrice
+    gasPrice: gasPrice,
   };
   if (nonce !== undefined) {
     params.nonce = nonce;
   }
-  eth.contract(abi).new(
-    ...constructorArgs,
-    params,
-    function(e, contract) {
-      if (e) {
-        logError(e, $logs);
-      } else if (typeof contract.address != 'undefined') {
-        log('Contract mined! address: ' + contract.address + ' transactionHash: ' + contract.transactionHash, $logs);
-        if (name) {
-          window[name] = eth.contract(abi).at(contract.address);
-          log('Deployed contract is accessible by `' + name + '` global variable.', $logs);
+  let processed = false;
+  return new Promise((resolve, reject) => {
+    eth.contract(abi).new(
+      ...constructorArgs,
+      params,
+      (e, contract) => {
+        if (e) {
+          return reject(e);
         }
-        if (callback) {
-          callback(eth.contract(abi).at(contract.address));
+        if (waitReceipt) {
+          if (typeof contract.address != 'undefined') {
+            log(`Contract mined! address: ${contract.address} transactionHash: ${contract.transactionHash}`, $logs);
+            return resolve(eth.contract(abi).at(contract.address));
+          } else {
+            log(`Contract deployment transaction: ${contract.transactionHash}. Waiting for receipt.`, $logs);
+          }
+        } else {
+          if (processed) {
+            return;
+          }
+          processed = true;
+          getTransaction(contract.transactionHash)
+          .then(tx => resolve(eth.contract(abi).at(tx.creates)))
+          .catch(reject);
         }
-      } else {
-        log('Contract deployment transaction: ' + contract.transactionHash + '. Waiting for receipt.', $logs);
       }
+    );
+  }).then(contract => {
+    if (name) {
+      window[name] = contract;
+      log(`Deployed contract is accessible by '${name}' global variable.`, $logs);
     }
-  );
+    return contract;
+  });
 };
