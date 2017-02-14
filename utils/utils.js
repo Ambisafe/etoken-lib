@@ -107,7 +107,7 @@ var safeTransaction = function(fun, params, sender, argsObject) {
     log('safeTransaction(contract.method, paramsArray, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  safeTransactionFunction(fun, params, sender, argsObject)().then(function() {
+  return safeTransactionFunction(fun, params, sender, argsObject)().then(function() {
     logFinish($logs);
   });
 };
@@ -269,11 +269,11 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
 
   var waitReceiptTimeoutSeconds = 120;
   var gas = argsObject && argsObject.gas || 500000;
-  return function(testRun) {
+  return function(testRun, fastRun) {
     processFunctionParams(params);
     return new Promise(function(resolve, reject) {
       var _params = params.slice(0);
-      _params.push(merge({from: sender, gas: 3000000, gasPrice: gasPrice}, argsObject));
+      _params.push(merge({from: sender, gas: Math.max(3000000, gas), gasPrice: gasPrice}, argsObject));
       _params.push(function(err, result) {
         if (err) {
           if (err.toString().startsWith('Error: no contract code at given address')) {
@@ -296,7 +296,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
         var _params = params.slice(0);
         if (estimateGas > gas) {
           reject('Estimate gas is too big: ' + estimateGas);
-        } else if (typeof fun.call === "string") {
+        } else if (typeof fun.call === "string" || fastRun || (argsObject && argsObject.ignoreCallResponse)) {
           // simple eth.sendTransaction
           resolve(estimateGas);
         } else {
@@ -319,7 +319,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
             if (err) {
               reject(err);
             } else {
-              if (success || (argsObject && argsObject.ignoreCallResponse)) {
+              if (success) {
                 resolve(estimateGas);
               } else {
                 if (!repeat()) {
@@ -355,50 +355,42 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
       logSuccess(result[1], result[0], params.join(', ') + to + value + nonce, $logs);
       if (testRun || (argsObject && argsObject.testRun)) {
         return [false, result[1]];
-      } else {
-        return new Promise(function(resolve, reject) {
-          if (argsObject && argsObject.waitReceipt) {
-            log('Waiting receipt for ' + result[0], $logs);
-            flowControl.__wait__();
-            var startTime = nowSeconds();
-            var timeoutTime = startTime + waitReceiptTimeoutSeconds;
-            var waitReceipt = function(txHash) {
-              web3.eth.getTransactionReceipt(txHash, function(err, receipt) {
-                var secondsPassed = Math.round(nowSeconds() - startTime);
-                if ((receipt && receipt.blockNumber) || flowControl.ready) {
-                  flowControl.continue();
-                  resolve([secondsPassed, result[1]]);
-                } else {
-                  var message = 'No transaction receipt after ' + secondsPassed + ' seconds.';
-                  if (flowControl.stopping) {
-                    flowControl.continue();
-                    reject(message);
-                    return;
-                  }
-                  if (nowSeconds() > timeoutTime) {
-                    logWarning(message + " If you are sure that transaction is already mined do: flowControl.continue(); If you want to stop execution do: flowControl.stop();", $logs);
-                    timeoutTime += 60;
-                  }
-                  logWaiting($logs);
-                  setTimeout(function() { waitReceipt(txHash); }, 1000);
-                }
-              });
-            };
-            waitReceipt(result[0]);
-          } else {
-            var waitPending = function(txHash) {
-              web3.eth.getTransaction(txHash, function(err, pending) {
-                if (pending) {
-                  resolve([false, result[1]]);
-                } else {
-                  setTimeout(function() { waitPending(txHash); }, 500);
-                }
-              });
-            };
-            waitPending(result[0]);
-          }
-        });
       }
+      return new Promise(function(resolve, reject) {
+        if (argsObject && argsObject.waitReceipt) {
+          log('Waiting receipt for ' + result[0], $logs);
+          flowControl.__wait__();
+          var startTime = nowSeconds();
+          var timeoutTime = startTime + waitReceiptTimeoutSeconds;
+          var waitReceipt = function(txHash) {
+            web3.eth.getTransactionReceipt(txHash, function(err, receipt) {
+              var secondsPassed = Math.round(nowSeconds() - startTime);
+              if ((receipt && receipt.blockNumber) || flowControl.ready) {
+                flowControl.continue();
+                resolve([secondsPassed, result[1]]);
+              } else {
+                var message = 'No transaction receipt after ' + secondsPassed + ' seconds.';
+                if (flowControl.stopping) {
+                  flowControl.continue();
+                  reject(message);
+                  return;
+                }
+                if (nowSeconds() > timeoutTime) {
+                  logWarning(message + " If you are sure that transaction is already mined do: flowControl.continue(); If you want to stop execution do: flowControl.stop();", $logs);
+                  timeoutTime += 60;
+                }
+                logWaiting($logs);
+                setTimeout(function() { waitReceipt(txHash); }, 1000);
+              }
+            });
+          };
+          return waitReceipt(result[0]);
+        }
+        if (fastRun) {
+          return resolve([false, result[1]]);
+        }
+        return waitTransactionEvaluation(result[0]).then(() => resolve([false, result[1]])).catch(reject);
+      });
     }).then(function(results) {
       if (results[0]) {
         log('Mined in ' + results[0] + ' seconds.', $logs);
@@ -409,9 +401,9 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
 };
 
 var safeTransactions = function(...args) {
-  var _safeTransactions = function(txFunctions, testRun, cumulativeGasUsed, totalValueSpent) {
+  var _safeTransactions = function(txFunctions, testRun, fastRun, cumulativeGasUsed, totalValueSpent) {
     if (arguments.length === 0) {
-      log('safeTransactions(safeFunctionsArray[, testRun]);', $logs);
+      log('safeTransactions(safeFunctionsArray[, testRun[, fastRun]]);', $logs);
       return Promise.resolve();
     }
     cumulativeGasUsed = cumulativeGasUsed || 0;
@@ -421,10 +413,10 @@ var safeTransactions = function(...args) {
       logFinish($logs);
       return Promise.resolve();
     }
-    return txFunctions.shift()(testRun).then(function(gasUsedAndvalueSpent){
+    return txFunctions.shift()(testRun, fastRun).then(function(gasUsedAndvalueSpent){
       var gasUsed = gasUsedAndvalueSpent && gasUsedAndvalueSpent[0] || 0;
       var valueSent = web3.toBigNumber(gasUsedAndvalueSpent && gasUsedAndvalueSpent[1] || 0);
-      return _safeTransactions(txFunctions, testRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
+      return _safeTransactions(txFunctions, testRun, fastRun, cumulativeGasUsed + gasUsed, valueSent.add(totalValueSpent));
     });
   };
   return _safeTransactions(...args)
@@ -588,6 +580,37 @@ var delay = function(msec) {
   });
 };
 
+var getBlock = function(block) {
+  return new Promise((resolve, reject) => {
+    try {
+      eth.getBlock(block || 'latest', (e, result) => {
+        if (e) {
+          return reject(e);
+        }
+        resolve(result);
+      });
+    } catch(err) {
+      reject(err);
+    }
+  });
+};
+
+var waitTransactionEvaluation = function(txHash) {
+  return getTransaction(txHash)
+  .then(tx => {
+    if (tx.blockNumber) {
+      return true;
+    }
+    return getBlock('pending')
+    .then(block => {
+      if (block.transactions.indexOf(txHash) >= 0) {
+        return true;
+      }
+      return delay(500).then(() => waitTransactionEvaluation(txHash));
+    });
+  })
+};
+
 var deployContractAsync = function(...args) {
   return deployContractComplexAsync([], ...args);
 };
@@ -635,7 +658,7 @@ var deployContractComplex = function(constructorArgs, bytecode, abi, sender, nam
 
 var smartDeployContract = function(args) {
   if (arguments.length === 0) {
-    log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt});', $logs);
+    log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt, fastRun});', $logs);
     return;
   }
   const constructorArgs = args.constructorArgs || [];
@@ -646,6 +669,7 @@ var smartDeployContract = function(args) {
   const gas = args.gas;
   const nonce = args.nonce;
   const waitReceipt = args.waitReceipt;
+  const fastRun = args.fastRun;
   const params = {
     from: sender,
     data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
@@ -677,8 +701,14 @@ var smartDeployContract = function(args) {
           }
           processed = true;
           getTransaction(contract.transactionHash)
-          .then(tx => resolve(eth.contract(abi).at(tx.creates)))
-          .catch(reject);
+          .then(tx => {
+            const result = eth.contract(abi).at(tx.creates);
+            if (fastRun) {
+              return result;
+            }
+            return waitTransactionEvaluation(contract.transactionHash)
+            .then(() => result);
+          }).then(resolve).catch(reject);
         }
       }
     );
