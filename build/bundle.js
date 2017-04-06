@@ -67,19 +67,19 @@ var EToken =
 
 	var _ethereumjsTx2 = _interopRequireDefault(_ethereumjsTx);
 
-	var _engine = __webpack_require__(215);
+	var _engine = __webpack_require__(222);
 
 	var _engine2 = _interopRequireDefault(_engine);
 
-	var _web3 = __webpack_require__(220);
+	var _web3 = __webpack_require__(227);
 
 	var _web4 = _interopRequireDefault(_web3);
 
-	var _storage = __webpack_require__(306);
+	var _storage = __webpack_require__(313);
 
 	var _storage2 = _interopRequireDefault(_storage);
 
-	var _helpers = __webpack_require__(307);
+	var _helpers = __webpack_require__(314);
 
 	function _interopRequireDefault(obj) {
 	    return obj && obj.__esModule ? obj : { default: obj };
@@ -2366,8 +2366,8 @@ var EToken =
 	 * This section defines the required libraries
 	 */
 	var bitcoin = __webpack_require__(9),
-	    crypto = __webpack_require__(86),
-	    BigInteger = __webpack_require__(63),
+	    crypto = __webpack_require__(85),
+	    BigInteger = __webpack_require__(62),
 	    uuid4 = __webpack_require__(181),
 	    utils = __webpack_require__(182);
 
@@ -2589,23 +2589,23 @@ var EToken =
 
 	module.exports = {
 	  Address: __webpack_require__(10),
-	  base58check: __webpack_require__(75),
-	  Block: __webpack_require__(76),
-	  bufferutils: __webpack_require__(72),
-	  crypto: __webpack_require__(73),
-	  ecdsa: __webpack_require__(78),
-	  ECKey: __webpack_require__(79),
-	  ECPubKey: __webpack_require__(81),
-	  ECSignature: __webpack_require__(70),
-	  Message: __webpack_require__(82),
-	  opcodes: __webpack_require__(60),
-	  HDNode: __webpack_require__(83),
-	  Script: __webpack_require__(71),
-	  scripts: __webpack_require__(59),
-	  Transaction: __webpack_require__(77),
-	  TransactionBuilder: __webpack_require__(84),
-	  networks: __webpack_require__(58),
-	  Wallet: __webpack_require__(85)
+	  base58check: __webpack_require__(74),
+	  Block: __webpack_require__(75),
+	  bufferutils: __webpack_require__(71),
+	  crypto: __webpack_require__(72),
+	  ecdsa: __webpack_require__(77),
+	  ECKey: __webpack_require__(78),
+	  ECPubKey: __webpack_require__(80),
+	  ECSignature: __webpack_require__(69),
+	  Message: __webpack_require__(81),
+	  opcodes: __webpack_require__(59),
+	  HDNode: __webpack_require__(82),
+	  Script: __webpack_require__(70),
+	  scripts: __webpack_require__(58),
+	  Transaction: __webpack_require__(76),
+	  TransactionBuilder: __webpack_require__(83),
+	  networks: __webpack_require__(57),
+	  Wallet: __webpack_require__(84)
 	}
 
 
@@ -2615,9 +2615,9 @@ var EToken =
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
 	var base58check = __webpack_require__(16)
-	var typeForce = __webpack_require__(54)
-	var networks = __webpack_require__(58)
-	var scripts = __webpack_require__(59)
+	var typeForce = __webpack_require__(53)
+	var networks = __webpack_require__(57)
+	var scripts = __webpack_require__(58)
 
 	function findScriptTypeByVersion (version) {
 	  for (var networkName in networks) {
@@ -4001,7 +4001,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict'
 
 	var base58 = __webpack_require__(17)
-	var createHash = __webpack_require__(18)
+	var createHash = __webpack_require__(19)
 
 	// SHA256(SHA256(buffer))
 	function sha256x2 (buffer) {
@@ -4019,10 +4019,7 @@ var EToken =
 	  ], payload.length + 4))
 	}
 
-	// Decode a base58-check encoded string to a buffer, no result if checksum is wrong
-	function decodeRaw (string) {
-	  var buffer = new Buffer(base58.decode(string))
-
+	function decodeRaw (buffer) {
 	  var payload = buffer.slice(0, -4)
 	  var checksum = buffer.slice(-4)
 	  var newChecksum = sha256x2(payload)
@@ -4035,8 +4032,19 @@ var EToken =
 	  return payload
 	}
 
+	// Decode a base58-check encoded string to a buffer, no result if checksum is wrong
+	function decodeUnsafe (string) {
+	  var array = base58.decodeUnsafe(string)
+	  if (!array) return
+
+	  var buffer = new Buffer(array)
+	  return decodeRaw(buffer)
+	}
+
 	function decode (string) {
-	  var payload = decodeRaw(string)
+	  var array = base58.decode(string)
+	  var buffer = new Buffer(array)
+	  var payload = decodeRaw(buffer)
 	  if (!payload) throw new Error('Invalid checksum')
 	  return payload
 	}
@@ -4044,113 +4052,127 @@ var EToken =
 	module.exports = {
 	  encode: encode,
 	  decode: decode,
-	  decodeRaw: decodeRaw
+	  decodeUnsafe: decodeUnsafe,
+
+	  // FIXME: remove in 2.0.0
+	  decodeRaw: decodeUnsafe
 	}
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
 /* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var basex = __webpack_require__(18)
+	var ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+	module.exports = basex(ALPHABET)
+
+
+/***/ },
+/* 18 */
 /***/ function(module, exports) {
 
-	// Base58 encoding/decoding
+	// base-x encoding
+	// Forked from https://github.com/cryptocoinjs/bs58
 	// Originally written by Mike Hearn for BitcoinJ
 	// Copyright (c) 2011 Google Inc
 	// Ported to JavaScript by Stefan Thomas
 	// Merged Buffer refactorings from base58-native by Stephen Pair
 	// Copyright (c) 2013 BitPay Inc
 
-	var ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-	var ALPHABET_MAP = {}
-	for(var i = 0; i < ALPHABET.length; i++) {
-	  ALPHABET_MAP[ALPHABET.charAt(i)] = i
-	}
-	var BASE = 58
+	module.exports = function base (ALPHABET) {
+	  var ALPHABET_MAP = {}
+	  var BASE = ALPHABET.length
+	  var LEADER = ALPHABET.charAt(0)
 
-	function encode(buffer) {
-	  if (buffer.length === 0) return ''
-
-	  var i, j, digits = [0]
-	  for (i = 0; i < buffer.length; i++) {
-	    for (j = 0; j < digits.length; j++) digits[j] <<= 8
-
-	    digits[0] += buffer[i]
-
-	    var carry = 0
-	    for (j = 0; j < digits.length; ++j) {
-	      digits[j] += carry
-
-	      carry = (digits[j] / BASE) | 0
-	      digits[j] %= BASE
-	    }
-
-	    while (carry) {
-	      digits.push(carry % BASE)
-
-	      carry = (carry / BASE) | 0
-	    }
+	  // pre-compute lookup table
+	  for (var i = 0; i < ALPHABET.length; i++) {
+	    ALPHABET_MAP[ALPHABET.charAt(i)] = i
 	  }
 
-	  // deal with leading zeros
-	  for (i = 0; buffer[i] === 0 && i < buffer.length - 1; i++) digits.push(0)
+	  function encode (source) {
+	    if (source.length === 0) return ''
 
-	  // convert digits to a string
-	  var stringOutput = ""
-	  for (var i = digits.length - 1; i >= 0; i--) {
-	    stringOutput = stringOutput + ALPHABET[digits[i]]
-	  }
-	  return stringOutput
-	}
+	    var digits = [0]
+	    for (var i = 0; i < source.length; ++i) {
+	      for (var j = 0, carry = source[i]; j < digits.length; ++j) {
+	        carry += digits[j] << 8
+	        digits[j] = carry % BASE
+	        carry = (carry / BASE) | 0
+	      }
 
-	function decode(string) {
-	  if (string.length === 0) return []
-
-	  var i, j, bytes = [0]
-	  for (i = 0; i < string.length; i++) {
-	    var c = string[i]
-	    if (!(c in ALPHABET_MAP)) throw new Error('Non-base58 character')
-
-	    for (j = 0; j < bytes.length; j++) bytes[j] *= BASE
-	    bytes[0] += ALPHABET_MAP[c]
-
-	    var carry = 0
-	    for (j = 0; j < bytes.length; ++j) {
-	      bytes[j] += carry
-
-	      carry = bytes[j] >> 8
-	      bytes[j] &= 0xff
+	      while (carry > 0) {
+	        digits.push(carry % BASE)
+	        carry = (carry / BASE) | 0
+	      }
 	    }
 
-	    while (carry) {
-	      bytes.push(carry & 0xff)
+	    var string = ''
 
-	      carry >>= 8
-	    }
+	    // deal with leading zeros
+	    for (var k = 0; source[k] === 0 && k < source.length - 1; ++k) string += ALPHABET[0]
+	    // convert digits to a string
+	    for (var q = digits.length - 1; q >= 0; --q) string += ALPHABET[digits[q]]
+
+	    return string
 	  }
 
-	  // deal with leading zeros
-	  for (i = 0; string[i] === '1' && i < string.length - 1; i++) bytes.push(0)
+	  function decodeUnsafe (string) {
+	    if (string.length === 0) return []
 
-	  return bytes.reverse()
-	}
+	    var bytes = [0]
+	    for (var i = 0; i < string.length; i++) {
+	      var value = ALPHABET_MAP[string[i]]
+	      if (value === undefined) return
 
-	module.exports = {
-	  encode: encode,
-	  decode: decode
+	      for (var j = 0, carry = value; j < bytes.length; ++j) {
+	        carry += bytes[j] * BASE
+	        bytes[j] = carry & 0xff
+	        carry >>= 8
+	      }
+
+	      while (carry > 0) {
+	        bytes.push(carry & 0xff)
+	        carry >>= 8
+	      }
+	    }
+
+	    // deal with leading zeros
+	    for (var k = 0; string[k] === LEADER && k < string.length - 1; ++k) {
+	      bytes.push(0)
+	    }
+
+	    return bytes.reverse()
+	  }
+
+	  function decode (string) {
+	    var array = decodeUnsafe(string)
+	    if (array) return array
+
+	    throw new Error('Non-base' + BASE + ' character')
+	  }
+
+	  return {
+	    encode: encode,
+	    decodeUnsafe: decodeUnsafe,
+	    decode: decode
+	  }
 	}
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
-	var inherits = __webpack_require__(19)
-	var md5 = __webpack_require__(20)
-	var rmd160 = __webpack_require__(22)
-	var sha = __webpack_require__(23)
+	var inherits = __webpack_require__(20)
+	var md5 = __webpack_require__(21)
+	var rmd160 = __webpack_require__(23)
+	var sha = __webpack_require__(24)
 
-	var Base = __webpack_require__(31)
+	var Base = __webpack_require__(32)
 
 	function HashNoConstructor(hash) {
 	  Base.call(this, 'digest')
@@ -4200,7 +4222,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	if (typeof Object.create === 'function') {
@@ -4229,7 +4251,7 @@ var EToken =
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -4242,7 +4264,7 @@ var EToken =
 	 * See http://pajhome.org.uk/crypt/md5 for more info.
 	 */
 
-	var helpers = __webpack_require__(21);
+	var helpers = __webpack_require__(22);
 
 	/*
 	 * Calculate the MD5 of an array of little-endian words, and a bit length
@@ -4390,7 +4412,7 @@ var EToken =
 	};
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
@@ -4430,7 +4452,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
@@ -4647,7 +4669,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var exports = module.exports = function SHA (algorithm) {
@@ -4659,16 +4681,16 @@ var EToken =
 	  return new Algorithm()
 	}
 
-	exports.sha = __webpack_require__(24)
-	exports.sha1 = __webpack_require__(26)
-	exports.sha224 = __webpack_require__(27)
-	exports.sha256 = __webpack_require__(28)
-	exports.sha384 = __webpack_require__(29)
-	exports.sha512 = __webpack_require__(30)
+	exports.sha = __webpack_require__(25)
+	exports.sha1 = __webpack_require__(27)
+	exports.sha224 = __webpack_require__(28)
+	exports.sha256 = __webpack_require__(29)
+	exports.sha384 = __webpack_require__(30)
+	exports.sha512 = __webpack_require__(31)
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
@@ -4679,8 +4701,8 @@ var EToken =
 	 * operation was added.
 	 */
 
-	var inherits = __webpack_require__(19)
-	var Hash = __webpack_require__(25)
+	var inherits = __webpack_require__(20)
+	var Hash = __webpack_require__(26)
 
 	var K = [
 	  0x5a827999, 0x6ed9eba1, 0x8f1bbcdc | 0, 0xca62c1d6 | 0
@@ -4768,7 +4790,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {// prototype class for hash functions
@@ -4844,7 +4866,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*
@@ -4856,8 +4878,8 @@ var EToken =
 	 * See http://pajhome.org.uk/crypt/md5 for details.
 	 */
 
-	var inherits = __webpack_require__(19)
-	var Hash = __webpack_require__(25)
+	var inherits = __webpack_require__(20)
+	var Hash = __webpack_require__(26)
 
 	var K = [
 	  0x5a827999, 0x6ed9eba1, 0x8f1bbcdc | 0, 0xca62c1d6 | 0
@@ -4949,7 +4971,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -4960,9 +4982,9 @@ var EToken =
 	 *
 	 */
 
-	var inherits = __webpack_require__(19)
-	var Sha256 = __webpack_require__(28)
-	var Hash = __webpack_require__(25)
+	var inherits = __webpack_require__(20)
+	var Sha256 = __webpack_require__(29)
+	var Hash = __webpack_require__(26)
 
 	var W = new Array(64)
 
@@ -5008,7 +5030,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/**
@@ -5019,8 +5041,8 @@ var EToken =
 	 *
 	 */
 
-	var inherits = __webpack_require__(19)
-	var Hash = __webpack_require__(25)
+	var inherits = __webpack_require__(20)
+	var Hash = __webpack_require__(26)
 
 	var K = [
 	  0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
@@ -5149,12 +5171,12 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(19)
-	var SHA512 = __webpack_require__(30)
-	var Hash = __webpack_require__(25)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(20)
+	var SHA512 = __webpack_require__(31)
+	var Hash = __webpack_require__(26)
 
 	var W = new Array(160)
 
@@ -5212,11 +5234,11 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(19)
-	var Hash = __webpack_require__(25)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var inherits = __webpack_require__(20)
+	var Hash = __webpack_require__(26)
 
 	var K = [
 	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
@@ -5478,12 +5500,12 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var Transform = __webpack_require__(32).Transform
-	var inherits = __webpack_require__(19)
-	var StringDecoder = __webpack_require__(47).StringDecoder
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var Transform = __webpack_require__(33).Transform
+	var inherits = __webpack_require__(20)
+	var StringDecoder = __webpack_require__(46).StringDecoder
 	module.exports = CipherBase
 	inherits(CipherBase, Transform)
 	function CipherBase (hashMode) {
@@ -5575,7 +5597,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -5601,15 +5623,15 @@ var EToken =
 
 	module.exports = Stream;
 
-	var EE = __webpack_require__(33).EventEmitter;
-	var inherits = __webpack_require__(19);
+	var EE = __webpack_require__(34).EventEmitter;
+	var inherits = __webpack_require__(15);
 
 	inherits(Stream, EE);
-	Stream.Readable = __webpack_require__(34);
-	Stream.Writable = __webpack_require__(50);
-	Stream.Duplex = __webpack_require__(51);
-	Stream.Transform = __webpack_require__(52);
-	Stream.PassThrough = __webpack_require__(53);
+	Stream.Readable = __webpack_require__(35);
+	Stream.Writable = __webpack_require__(49);
+	Stream.Duplex = __webpack_require__(50);
+	Stream.Transform = __webpack_require__(51);
+	Stream.PassThrough = __webpack_require__(52);
 
 	// Backwards-compat with node 0.4.x
 	Stream.Stream = Stream;
@@ -5708,7 +5730,7 @@ var EToken =
 
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -6016,21 +6038,21 @@ var EToken =
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {var Stream = (function (){
 	  try {
-	    return __webpack_require__(32); // hack to fix a circular dependency issue when used with browserify
+	    return __webpack_require__(33); // hack to fix a circular dependency issue when used with browserify
 	  } catch(_){}
 	}());
-	exports = module.exports = __webpack_require__(35);
+	exports = module.exports = __webpack_require__(36);
 	exports.Stream = Stream || exports;
 	exports.Readable = exports;
 	exports.Writable = __webpack_require__(43);
 	exports.Duplex = __webpack_require__(42);
-	exports.Transform = __webpack_require__(48);
-	exports.PassThrough = __webpack_require__(49);
+	exports.Transform = __webpack_require__(47);
+	exports.PassThrough = __webpack_require__(48);
 
 	if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 	  module.exports = Stream;
@@ -6039,7 +6061,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)))
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -6047,17 +6069,21 @@ var EToken =
 	module.exports = Readable;
 
 	/*<replacement>*/
-	var processNextTick = __webpack_require__(36);
+	var processNextTick = __webpack_require__(37);
 	/*</replacement>*/
 
 	/*<replacement>*/
-	var isArray = __webpack_require__(37);
+	var isArray = __webpack_require__(4);
+	/*</replacement>*/
+
+	/*<replacement>*/
+	var Duplex;
 	/*</replacement>*/
 
 	Readable.ReadableState = ReadableState;
 
 	/*<replacement>*/
-	var EE = __webpack_require__(33).EventEmitter;
+	var EE = __webpack_require__(34).EventEmitter;
 
 	var EElistenerCount = function (emitter, type) {
 	  return emitter.listeners(type).length;
@@ -6068,9 +6094,9 @@ var EToken =
 	var Stream;
 	(function () {
 	  try {
-	    Stream = __webpack_require__(32);
+	    Stream = __webpack_require__(33);
 	  } catch (_) {} finally {
-	    if (!Stream) Stream = __webpack_require__(33).EventEmitter;
+	    if (!Stream) Stream = __webpack_require__(34).EventEmitter;
 	  }
 	})();
 	/*</replacement>*/
@@ -6082,7 +6108,7 @@ var EToken =
 
 	/*<replacement>*/
 	var util = __webpack_require__(39);
-	util.inherits = __webpack_require__(19);
+	util.inherits = __webpack_require__(20);
 	/*</replacement>*/
 
 	/*<replacement>*/
@@ -6101,6 +6127,8 @@ var EToken =
 	util.inherits(Readable, Stream);
 
 	function prependListener(emitter, event, fn) {
+	  // Sadly this is not cacheable as some libraries bundle their own
+	  // event emitter implementation with them.
 	  if (typeof emitter.prependListener === 'function') {
 	    return emitter.prependListener(event, fn);
 	  } else {
@@ -6112,7 +6140,6 @@ var EToken =
 	  }
 	}
 
-	var Duplex;
 	function ReadableState(options, stream) {
 	  Duplex = Duplex || __webpack_require__(42);
 
@@ -6176,13 +6203,12 @@ var EToken =
 	  this.decoder = null;
 	  this.encoding = null;
 	  if (options.encoding) {
-	    if (!StringDecoder) StringDecoder = __webpack_require__(47).StringDecoder;
+	    if (!StringDecoder) StringDecoder = __webpack_require__(46).StringDecoder;
 	    this.decoder = new StringDecoder(options.encoding);
 	    this.encoding = options.encoding;
 	  }
 	}
 
-	var Duplex;
 	function Readable(options) {
 	  Duplex = Duplex || __webpack_require__(42);
 
@@ -6287,7 +6313,7 @@ var EToken =
 
 	// backwards compatibility.
 	Readable.prototype.setEncoding = function (enc) {
-	  if (!StringDecoder) StringDecoder = __webpack_require__(47).StringDecoder;
+	  if (!StringDecoder) StringDecoder = __webpack_require__(46).StringDecoder;
 	  this._readableState.decoder = new StringDecoder(enc);
 	  this._readableState.encoding = enc;
 	  return this;
@@ -6505,7 +6531,7 @@ var EToken =
 	// for virtual (non-string, non-buffer) streams, "length" is somewhat
 	// arbitrary, and perhaps not very meaningful.
 	Readable.prototype._read = function (n) {
-	  this.emit('error', new Error('not implemented'));
+	  this.emit('error', new Error('_read() is not implemented'));
 	};
 
 	Readable.prototype.pipe = function (dest, pipeOpts) {
@@ -6683,16 +6709,16 @@ var EToken =
 	    state.pipesCount = 0;
 	    state.flowing = false;
 
-	    for (var _i = 0; _i < len; _i++) {
-	      dests[_i].emit('unpipe', this);
+	    for (var i = 0; i < len; i++) {
+	      dests[i].emit('unpipe', this);
 	    }return this;
 	  }
 
 	  // try to find the right one.
-	  var i = indexOf(state.pipes, dest);
-	  if (i === -1) return this;
+	  var index = indexOf(state.pipes, dest);
+	  if (index === -1) return this;
 
-	  state.pipes.splice(i, 1);
+	  state.pipes.splice(index, 1);
 	  state.pipesCount -= 1;
 	  if (state.pipesCount === 1) state.pipes = state.pipes[0];
 
@@ -6982,7 +7008,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)))
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -7030,17 +7056,6 @@ var EToken =
 	}
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)))
-
-/***/ },
-/* 37 */
-/***/ function(module, exports) {
-
-	var toString = {}.toString;
-
-	module.exports = Array.isArray || function (arr) {
-	  return toString.call(arr) == '[object Array]';
-	};
-
 
 /***/ },
 /* 38 */
@@ -7370,15 +7385,15 @@ var EToken =
 	module.exports = Duplex;
 
 	/*<replacement>*/
-	var processNextTick = __webpack_require__(36);
+	var processNextTick = __webpack_require__(37);
 	/*</replacement>*/
 
 	/*<replacement>*/
 	var util = __webpack_require__(39);
-	util.inherits = __webpack_require__(19);
+	util.inherits = __webpack_require__(20);
 	/*</replacement>*/
 
-	var Readable = __webpack_require__(35);
+	var Readable = __webpack_require__(36);
 	var Writable = __webpack_require__(43);
 
 	util.inherits(Duplex, Readable);
@@ -7439,23 +7454,27 @@ var EToken =
 	module.exports = Writable;
 
 	/*<replacement>*/
-	var processNextTick = __webpack_require__(36);
+	var processNextTick = __webpack_require__(37);
 	/*</replacement>*/
 
 	/*<replacement>*/
 	var asyncWrite = !process.browser && ['v0.10', 'v0.9.'].indexOf(process.version.slice(0, 5)) > -1 ? setImmediate : processNextTick;
 	/*</replacement>*/
 
+	/*<replacement>*/
+	var Duplex;
+	/*</replacement>*/
+
 	Writable.WritableState = WritableState;
 
 	/*<replacement>*/
 	var util = __webpack_require__(39);
-	util.inherits = __webpack_require__(19);
+	util.inherits = __webpack_require__(20);
 	/*</replacement>*/
 
 	/*<replacement>*/
 	var internalUtil = {
-	  deprecate: __webpack_require__(46)
+	  deprecate: __webpack_require__(45)
 	};
 	/*</replacement>*/
 
@@ -7463,9 +7482,9 @@ var EToken =
 	var Stream;
 	(function () {
 	  try {
-	    Stream = __webpack_require__(32);
+	    Stream = __webpack_require__(33);
 	  } catch (_) {} finally {
-	    if (!Stream) Stream = __webpack_require__(33).EventEmitter;
+	    if (!Stream) Stream = __webpack_require__(34).EventEmitter;
 	  }
 	})();
 	/*</replacement>*/
@@ -7486,7 +7505,6 @@ var EToken =
 	  this.next = null;
 	}
 
-	var Duplex;
 	function WritableState(options, stream) {
 	  Duplex = Duplex || __webpack_require__(42);
 
@@ -7508,6 +7526,7 @@ var EToken =
 	  // cast to ints.
 	  this.highWaterMark = ~ ~this.highWaterMark;
 
+	  // drain event flag.
 	  this.needDrain = false;
 	  // at the start of calling end()
 	  this.ending = false;
@@ -7582,7 +7601,7 @@ var EToken =
 	  this.corkedRequestsFree = new CorkedRequest(this);
 	}
 
-	WritableState.prototype.getBuffer = function writableStateGetBuffer() {
+	WritableState.prototype.getBuffer = function getBuffer() {
 	  var current = this.bufferedRequest;
 	  var out = [];
 	  while (current) {
@@ -7602,13 +7621,37 @@ var EToken =
 	  } catch (_) {}
 	})();
 
-	var Duplex;
+	// Test _writableState for inheritance to account for Duplex streams,
+	// whose prototype chain only points to Readable.
+	var realHasInstance;
+	if (typeof Symbol === 'function' && Symbol.hasInstance && typeof Function.prototype[Symbol.hasInstance] === 'function') {
+	  realHasInstance = Function.prototype[Symbol.hasInstance];
+	  Object.defineProperty(Writable, Symbol.hasInstance, {
+	    value: function (object) {
+	      if (realHasInstance.call(this, object)) return true;
+
+	      return object && object._writableState instanceof WritableState;
+	    }
+	  });
+	} else {
+	  realHasInstance = function (object) {
+	    return object instanceof this;
+	  };
+	}
+
 	function Writable(options) {
 	  Duplex = Duplex || __webpack_require__(42);
 
-	  // Writable ctor is applied to Duplexes, though they're not
-	  // instanceof Writable, they're instanceof Readable.
-	  if (!(this instanceof Writable) && !(this instanceof Duplex)) return new Writable(options);
+	  // Writable ctor is applied to Duplexes, too.
+	  // `realHasInstance` is necessary because using plain `instanceof`
+	  // would return false, as no `_writableState` property is attached.
+
+	  // Trying to use the custom `instanceof` for Writable here will also break the
+	  // Node.js LazyTransform implementation, which has a non-trivial getter for
+	  // `_writableState` that would lead to infinite recursion.
+	  if (!realHasInstance.call(Writable, this) && !(this instanceof Duplex)) {
+	    return new Writable(options);
+	  }
 
 	  this._writableState = new WritableState(options, this);
 
@@ -7868,7 +7911,7 @@ var EToken =
 	}
 
 	Writable.prototype._write = function (chunk, encoding, cb) {
-	  cb(new Error('not implemented'));
+	  cb(new Error('_write() is not implemented'));
 	};
 
 	Writable.prototype._writev = null;
@@ -7962,7 +8005,7 @@ var EToken =
 /* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(45).nextTick;
+	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(13).nextTick;
 	var apply = Function.prototype.apply;
 	var slice = Array.prototype.slice;
 	var immediateIds = {};
@@ -8044,192 +8087,6 @@ var EToken =
 /* 45 */
 /***/ function(module, exports) {
 
-	// shim for using process in browser
-	var process = module.exports = {};
-
-	// cached from whatever global is present so that test runners that stub it
-	// don't break things.  But we need to wrap it in a try catch in case it is
-	// wrapped in strict mode code which doesn't define any globals.  It's inside a
-	// function because try/catches deoptimize in certain engines.
-
-	var cachedSetTimeout;
-	var cachedClearTimeout;
-
-	function defaultSetTimout() {
-	    throw new Error('setTimeout has not been defined');
-	}
-	function defaultClearTimeout () {
-	    throw new Error('clearTimeout has not been defined');
-	}
-	(function () {
-	    try {
-	        if (typeof setTimeout === 'function') {
-	            cachedSetTimeout = setTimeout;
-	        } else {
-	            cachedSetTimeout = defaultSetTimout;
-	        }
-	    } catch (e) {
-	        cachedSetTimeout = defaultSetTimout;
-	    }
-	    try {
-	        if (typeof clearTimeout === 'function') {
-	            cachedClearTimeout = clearTimeout;
-	        } else {
-	            cachedClearTimeout = defaultClearTimeout;
-	        }
-	    } catch (e) {
-	        cachedClearTimeout = defaultClearTimeout;
-	    }
-	} ())
-	function runTimeout(fun) {
-	    if (cachedSetTimeout === setTimeout) {
-	        //normal enviroments in sane situations
-	        return setTimeout(fun, 0);
-	    }
-	    // if setTimeout wasn't available but was latter defined
-	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-	        cachedSetTimeout = setTimeout;
-	        return setTimeout(fun, 0);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedSetTimeout(fun, 0);
-	    } catch(e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-	            return cachedSetTimeout.call(null, fun, 0);
-	        } catch(e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-	            return cachedSetTimeout.call(this, fun, 0);
-	        }
-	    }
-
-
-	}
-	function runClearTimeout(marker) {
-	    if (cachedClearTimeout === clearTimeout) {
-	        //normal enviroments in sane situations
-	        return clearTimeout(marker);
-	    }
-	    // if clearTimeout wasn't available but was latter defined
-	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-	        cachedClearTimeout = clearTimeout;
-	        return clearTimeout(marker);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedClearTimeout(marker);
-	    } catch (e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-	            return cachedClearTimeout.call(null, marker);
-	        } catch (e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-	            return cachedClearTimeout.call(this, marker);
-	        }
-	    }
-
-
-
-	}
-	var queue = [];
-	var draining = false;
-	var currentQueue;
-	var queueIndex = -1;
-
-	function cleanUpNextTick() {
-	    if (!draining || !currentQueue) {
-	        return;
-	    }
-	    draining = false;
-	    if (currentQueue.length) {
-	        queue = currentQueue.concat(queue);
-	    } else {
-	        queueIndex = -1;
-	    }
-	    if (queue.length) {
-	        drainQueue();
-	    }
-	}
-
-	function drainQueue() {
-	    if (draining) {
-	        return;
-	    }
-	    var timeout = runTimeout(cleanUpNextTick);
-	    draining = true;
-
-	    var len = queue.length;
-	    while(len) {
-	        currentQueue = queue;
-	        queue = [];
-	        while (++queueIndex < len) {
-	            if (currentQueue) {
-	                currentQueue[queueIndex].run();
-	            }
-	        }
-	        queueIndex = -1;
-	        len = queue.length;
-	    }
-	    currentQueue = null;
-	    draining = false;
-	    runClearTimeout(timeout);
-	}
-
-	process.nextTick = function (fun) {
-	    var args = new Array(arguments.length - 1);
-	    if (arguments.length > 1) {
-	        for (var i = 1; i < arguments.length; i++) {
-	            args[i - 1] = arguments[i];
-	        }
-	    }
-	    queue.push(new Item(fun, args));
-	    if (queue.length === 1 && !draining) {
-	        runTimeout(drainQueue);
-	    }
-	};
-
-	// v8 likes predictible objects
-	function Item(fun, array) {
-	    this.fun = fun;
-	    this.array = array;
-	}
-	Item.prototype.run = function () {
-	    this.fun.apply(null, this.array);
-	};
-	process.title = 'browser';
-	process.browser = true;
-	process.env = {};
-	process.argv = [];
-	process.version = ''; // empty string to avoid regexp issues
-	process.versions = {};
-
-	function noop() {}
-
-	process.on = noop;
-	process.addListener = noop;
-	process.once = noop;
-	process.off = noop;
-	process.removeListener = noop;
-	process.removeAllListeners = noop;
-	process.emit = noop;
-
-	process.binding = function (name) {
-	    throw new Error('process.binding is not supported');
-	};
-
-	process.cwd = function () { return '/' };
-	process.chdir = function (dir) {
-	    throw new Error('process.chdir is not supported');
-	};
-	process.umask = function() { return 0; };
-
-
-/***/ },
-/* 46 */
-/***/ function(module, exports) {
-
 	/* WEBPACK VAR INJECTION */(function(global) {
 	/**
 	 * Module exports.
@@ -8301,7 +8158,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 47 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -8528,7 +8385,7 @@ var EToken =
 
 
 /***/ },
-/* 48 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// a transform stream is a readable/writable stream where you do
@@ -8581,7 +8438,7 @@ var EToken =
 
 	/*<replacement>*/
 	var util = __webpack_require__(39);
-	util.inherits = __webpack_require__(19);
+	util.inherits = __webpack_require__(20);
 	/*</replacement>*/
 
 	util.inherits(Transform, Duplex);
@@ -8627,7 +8484,6 @@ var EToken =
 
 	  this._transformState = new TransformState(this);
 
-	  // when the writable side finishes, then flush out anything remaining.
 	  var stream = this;
 
 	  // start out asking for a readable event once data is transformed.
@@ -8644,9 +8500,10 @@ var EToken =
 	    if (typeof options.flush === 'function') this._flush = options.flush;
 	  }
 
+	  // When the writable side finishes, then flush out anything remaining.
 	  this.once('prefinish', function () {
-	    if (typeof this._flush === 'function') this._flush(function (er) {
-	      done(stream, er);
+	    if (typeof this._flush === 'function') this._flush(function (er, data) {
+	      done(stream, er, data);
 	    });else done(stream);
 	  });
 	}
@@ -8667,7 +8524,7 @@ var EToken =
 	// an error, then that'll put the hurt on the whole operation.  If you
 	// never call cb(), then you'll never get another chunk.
 	Transform.prototype._transform = function (chunk, encoding, cb) {
-	  throw new Error('Not implemented');
+	  throw new Error('_transform() is not implemented');
 	};
 
 	Transform.prototype._write = function (chunk, encoding, cb) {
@@ -8697,8 +8554,10 @@ var EToken =
 	  }
 	};
 
-	function done(stream, er) {
+	function done(stream, er, data) {
 	  if (er) return stream.emit('error', er);
+
+	  if (data !== null && data !== undefined) stream.push(data);
 
 	  // if there's nothing in the write buffer, then that means
 	  // that nothing more will ever be provided
@@ -8713,7 +8572,7 @@ var EToken =
 	}
 
 /***/ },
-/* 49 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// a passthrough stream.
@@ -8724,11 +8583,11 @@ var EToken =
 
 	module.exports = PassThrough;
 
-	var Transform = __webpack_require__(48);
+	var Transform = __webpack_require__(47);
 
 	/*<replacement>*/
 	var util = __webpack_require__(39);
-	util.inherits = __webpack_require__(19);
+	util.inherits = __webpack_require__(20);
 	/*</replacement>*/
 
 	util.inherits(PassThrough, Transform);
@@ -8744,17 +8603,24 @@ var EToken =
 	};
 
 /***/ },
-/* 50 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__(43)
 
 
 /***/ },
-/* 51 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__(42)
+
+
+/***/ },
+/* 51 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(47)
 
 
 /***/ },
@@ -8768,29 +8634,22 @@ var EToken =
 /* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(49)
-
-
-/***/ },
-/* 54 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var errors = __webpack_require__(55)
-	var native = __webpack_require__(56)
+	var ERRORS = __webpack_require__(54)
+	var NATIVE = __webpack_require__(55)
 
 	// short-hand
-	var tfJSON = errors.tfJSON
-	var TfTypeError = errors.TfTypeError
-	var TfPropertyTypeError = errors.TfPropertyTypeError
-	var tfSubError = errors.tfSubError
-	var getValueTypeName = errors.getValueTypeName
+	var tfJSON = ERRORS.tfJSON
+	var TfTypeError = ERRORS.TfTypeError
+	var TfPropertyTypeError = ERRORS.TfPropertyTypeError
+	var tfSubError = ERRORS.tfSubError
+	var getValueTypeName = ERRORS.getValueTypeName
 
-	var types = {
+	var TYPES = {
 	  arrayOf: function arrayOf (type) {
 	    type = compile(type)
 
 	    function _arrayOf (array, strict) {
-	      if (!native.Array(array)) return false
+	      if (!NATIVE.Array(array)) return false
 
 	      return array.every(function (value, i) {
 	        try {
@@ -8809,7 +8668,7 @@ var EToken =
 	    type = compile(type)
 
 	    function _maybe (value, strict) {
-	      return native.Null(value) || type(value, strict, maybe)
+	      return NATIVE.Null(value) || type(value, strict, maybe)
 	    }
 	    _maybe.toJSON = function () { return '?' + tfJSON(type) }
 
@@ -8821,8 +8680,8 @@ var EToken =
 	    if (propertyKeyType) propertyKeyType = compile(propertyKeyType)
 
 	    function _map (value, strict) {
-	      if (!native.Object(value, strict)) return false
-	      if (native.Null(value, strict)) return false
+	      if (!NATIVE.Object(value, strict)) return false
+	      if (NATIVE.Null(value, strict)) return false
 
 	      for (var propertyName in value) {
 	        try {
@@ -8858,13 +8717,13 @@ var EToken =
 	  object: function object (uncompiled) {
 	    var type = {}
 
-	    for (var propertyName in uncompiled) {
-	      type[propertyName] = compile(uncompiled[propertyName])
+	    for (var typePropertyName in uncompiled) {
+	      type[typePropertyName] = compile(uncompiled[typePropertyName])
 	    }
 
 	    function _object (value, strict) {
-	      if (!native.Object(value)) return false
-	      if (native.Null(value)) return false
+	      if (!NATIVE.Object(value)) return false
+	      if (NATIVE.Null(value)) return false
 
 	      var propertyName
 
@@ -8948,23 +8807,23 @@ var EToken =
 	}
 
 	function compile (type) {
-	  if (native.String(type)) {
-	    if (type[0] === '?') return types.maybe(compile(type.slice(1)))
+	  if (NATIVE.String(type)) {
+	    if (type[0] === '?') return TYPES.maybe(compile(type.slice(1)))
 
-	    return native[type] || types.quacksLike(type)
-	  } else if (type && native.Object(type)) {
-	    if (native.Array(type)) return types.arrayOf(compile(type[0]))
+	    return NATIVE[type] || TYPES.quacksLike(type)
+	  } else if (type && NATIVE.Object(type)) {
+	    if (NATIVE.Array(type)) return TYPES.arrayOf(compile(type[0]))
 
-	    return types.object(type)
-	  } else if (native.Function(type)) {
+	    return TYPES.object(type)
+	  } else if (NATIVE.Function(type)) {
 	    return type
 	  }
 
-	  return types.value(type)
+	  return TYPES.value(type)
 	}
 
 	function typeforce (type, value, strict, surrogate) {
-	  if (native.Function(type)) {
+	  if (NATIVE.Function(type)) {
 	    if (type(value, strict)) return true
 
 	    throw new TfTypeError(surrogate || type, value)
@@ -8975,19 +8834,34 @@ var EToken =
 	}
 
 	// assign types to typeforce function
-	for (var typeName in native) {
-	  typeforce[typeName] = native[typeName]
+	for (var typeName in NATIVE) {
+	  typeforce[typeName] = NATIVE[typeName]
 	}
 
-	for (typeName in types) {
-	  typeforce[typeName] = types[typeName]
+	for (typeName in TYPES) {
+	  typeforce[typeName] = TYPES[typeName]
 	}
 
-	var extra = __webpack_require__(57)
+	var extra = __webpack_require__(56)
 	for (typeName in extra) {
 	  typeforce[typeName] = extra[typeName]
 	}
 
+	// async wrapper
+	function __async (type, value, strict, callback) {
+	  // default to falsy strict if using shorthand overload
+	  if (typeof strict === 'function') return __async(type, value, false, strict)
+
+	  try {
+	    typeforce(type, value, strict)
+	  } catch (e) {
+	    return callback(e)
+	  }
+
+	  callback()
+	}
+
+	typeforce.async = __async
 	typeforce.compile = compile
 	typeforce.TfTypeError = TfTypeError
 	typeforce.TfPropertyTypeError = TfPropertyTypeError
@@ -8996,11 +8870,11 @@ var EToken =
 
 
 /***/ },
-/* 55 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19)
-	var native = __webpack_require__(56)
+	var inherits = __webpack_require__(20)
+	var native = __webpack_require__(55)
 
 	function TfTypeError (type, value, valueTypeName) {
 	  this.__error = Error.call(this)
@@ -9129,7 +9003,7 @@ var EToken =
 
 
 /***/ },
-/* 56 */
+/* 55 */
 /***/ function(module, exports) {
 
 	var types = {
@@ -9153,17 +9027,17 @@ var EToken =
 
 
 /***/ },
-/* 57 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var errors = __webpack_require__(55)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var errors = __webpack_require__(54)
 
 	function _Buffer (value) {
 	  return Buffer.isBuffer(value)
 	}
 	_Buffer.toJSON = function () { return 'Buffer' }
 
-	function BufferN (length) {
+	function _BufferN (length) {
 	  function BufferN (value) {
 	    if (!Buffer.isBuffer(value)) return false
 	    if (value.length !== length) {
@@ -9172,7 +9046,6 @@ var EToken =
 
 	    return true
 	  }
-
 	  BufferN.toJSON = function () { return 'Buffer' }
 
 	  return BufferN
@@ -9182,14 +9055,25 @@ var EToken =
 	  return typeof value === 'string' && /^([0-9a-f]{2})+$/i.test(value)
 	}
 
-	function HexN (length) {
-	  return function HexN (value) {
-	    return Hex(value) && value.length === length
+	function _HexN (length) {
+	  function HexN (value) {
+	    if (!Hex(value)) return false
+	    if (value.length !== length) {
+	      throw errors.tfCustomError('Hex(Length: ' + length + ')', 'Hex(Length: ' + value.length + ')')
+	    }
+
+	    return true
 	  }
+	  HexN.toJSON = function () { return 'Hex' }
+
+	  return HexN
 	}
 
 	var UINT53_MAX = Math.pow(2, 53) - 1
 
+	function Finite (value) {
+	  return typeof value === 'number' && isFinite(value)
+	}
 	function Int8 (value) { return ((value << 24) >> 24) === value }
 	function Int16 (value) { return ((value << 16) >> 16) === value }
 	function Int32 (value) { return (value | 0) === value }
@@ -9205,9 +9089,10 @@ var EToken =
 
 	module.exports = {
 	  Buffer: _Buffer,
-	  BufferN: BufferN,
+	  BufferN: _BufferN,
+	  Finite: Finite,
 	  Hex: Hex,
-	  HexN: HexN,
+	  HexN: _HexN,
 	  Int8: Int8,
 	  Int16: Int16,
 	  Int32: Int32,
@@ -9220,7 +9105,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 58 */
+/* 57 */
 /***/ function(module, exports) {
 
 	// https://en.bitcoin.it/wiki/List_of_address_prefixes
@@ -9375,18 +9260,18 @@ var EToken =
 
 
 /***/ },
-/* 59 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var ops = __webpack_require__(60)
-	var typeForce = __webpack_require__(54)
+	var ops = __webpack_require__(59)
+	var typeForce = __webpack_require__(53)
 
-	var ecurve = __webpack_require__(61)
+	var ecurve = __webpack_require__(60)
 	var curve = ecurve.getCurveByName('secp256k1')
 
-	var ECSignature = __webpack_require__(70)
-	var Script = __webpack_require__(71)
+	var ECSignature = __webpack_require__(69)
+	var Script = __webpack_require__(70)
 
 	function isCanonicalPubKey (buffer) {
 	  if (!Buffer.isBuffer(buffer)) return false
@@ -9673,7 +9558,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 60 */
+/* 59 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -9817,13 +9702,13 @@ var EToken =
 
 
 /***/ },
-/* 61 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Point = __webpack_require__(62)
-	var Curve = __webpack_require__(67)
+	var Point = __webpack_require__(61)
+	var Curve = __webpack_require__(66)
 
-	var getCurveByName = __webpack_require__(68)
+	var getCurveByName = __webpack_require__(67)
 
 	module.exports = {
 	  Curve: Curve,
@@ -9833,11 +9718,11 @@ var EToken =
 
 
 /***/ },
-/* 62 */
+/* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var BigInteger = __webpack_require__(63)
+	var BigInteger = __webpack_require__(62)
 
 	var THREE = BigInteger.valueOf(3)
 
@@ -10026,11 +9911,8 @@ var EToken =
 
 	  var x = this.affineX
 	  var y = this.affineY
-
+	  var byteLength = this.curve.pLength
 	  var buffer
-
-	  // Determine size of q in bytes
-	  var byteLength = Math.floor((this.curve.p.bitLength() + 7) / 8)
 
 	  // 0x02/0x03 | X
 	  if (compressed) {
@@ -10086,18 +9968,18 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 63 */
+/* 62 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BigInteger = __webpack_require__(64)
+	var BigInteger = __webpack_require__(63)
 
 	//addons
-	__webpack_require__(66)
+	__webpack_require__(65)
 
 	module.exports = BigInteger
 
 /***/ },
-/* 64 */
+/* 63 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// (public) Constructor
@@ -10115,7 +9997,7 @@ var EToken =
 	var proto = BigInteger.prototype
 
 	// duck-typed isBigInteger
-	proto.__bigi = __webpack_require__(65).version
+	proto.__bigi = __webpack_require__(64).version
 	BigInteger.isBigInteger = function (obj, check_ver) {
 	  return obj && obj.__bigi && (!check_ver || obj.__bigi === proto.__bigi)
 	}
@@ -11614,7 +11496,7 @@ var EToken =
 
 
 /***/ },
-/* 65 */
+/* 64 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -11750,12 +11632,12 @@ var EToken =
 	};
 
 /***/ },
-/* 66 */
+/* 65 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {// FIXME: Kind of a weird way to throw exceptions, consider removing
 	var assert = __webpack_require__(11)
-	var BigInteger = __webpack_require__(64)
+	var BigInteger = __webpack_require__(63)
 
 	/**
 	 * Turns a byte array into a big integer.
@@ -11848,13 +11730,13 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 67 */
+/* 66 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var assert = __webpack_require__(11)
-	var BigInteger = __webpack_require__(63)
+	var BigInteger = __webpack_require__(62)
 
-	var Point = __webpack_require__(62)
+	var Point = __webpack_require__(61)
 
 	function Curve (p, a, b, Gx, Gy, n, h) {
 	  this.p = p
@@ -11868,6 +11750,9 @@ var EToken =
 
 	  // result caching
 	  this.pOverFour = p.add(BigInteger.ONE).shiftRight(2)
+
+	  // determine size of p in bytes
+	  this.pLength = Math.floor((this.p.bitLength() + 7) / 8)
 	}
 
 	Curve.prototype.pointFromX = function (isOdd, x) {
@@ -11928,13 +11813,13 @@ var EToken =
 
 
 /***/ },
-/* 68 */
+/* 67 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var BigInteger = __webpack_require__(63)
+	var BigInteger = __webpack_require__(62)
 
-	var curves = __webpack_require__(69)
-	var Curve = __webpack_require__(67)
+	var curves = __webpack_require__(68)
+	var Curve = __webpack_require__(66)
 
 	function getCurveByName (name) {
 	  var curve = curves[name]
@@ -11955,7 +11840,7 @@ var EToken =
 
 
 /***/ },
-/* 69 */
+/* 68 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -12025,13 +11910,13 @@ var EToken =
 	};
 
 /***/ },
-/* 70 */
+/* 69 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var typeForce = __webpack_require__(54)
+	var typeForce = __webpack_require__(53)
 
-	var BigInteger = __webpack_require__(63)
+	var BigInteger = __webpack_require__(62)
 
 	function ECSignature (r, s) {
 	  typeForce('BigInteger', r)
@@ -12162,14 +12047,14 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 71 */
+/* 70 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var bufferutils = __webpack_require__(72)
-	var crypto = __webpack_require__(73)
-	var typeForce = __webpack_require__(54)
-	var opcodes = __webpack_require__(60)
+	var bufferutils = __webpack_require__(71)
+	var crypto = __webpack_require__(72)
+	var typeForce = __webpack_require__(53)
+	var opcodes = __webpack_require__(59)
 
 	function Script (buffer, chunks) {
 	  typeForce('Buffer', buffer)
@@ -12313,11 +12198,11 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 72 */
+/* 71 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var opcodes = __webpack_require__(60)
+	var opcodes = __webpack_require__(59)
 
 	// https://github.com/feross/buffer/blob/master/index.js#L1127
 	function verifuint (value, max) {
@@ -12508,10 +12393,10 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 73 */
+/* 72 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createHash = __webpack_require__(18)
+	var createHash = __webpack_require__(19)
 
 	function hash160 (buffer) {
 	  return ripemd160(sha256(buffer))
@@ -12534,7 +12419,7 @@ var EToken =
 	}
 
 	// FIXME: Name not consistent with others
-	var createHmac = __webpack_require__(74)
+	var createHmac = __webpack_require__(73)
 
 	function HmacSHA256 (buffer, secret) {
 	  console.warn('Hmac* functions are deprecated for removal in 2.0.0, use node crypto instead')
@@ -12558,14 +12443,14 @@ var EToken =
 
 
 /***/ },
-/* 74 */
+/* 73 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
-	var createHash = __webpack_require__(18);
-	var inherits = __webpack_require__(19)
+	var createHash = __webpack_require__(19);
+	var inherits = __webpack_require__(20)
 
-	var Transform = __webpack_require__(32).Transform
+	var Transform = __webpack_require__(33).Transform
 
 	var ZEROS = new Buffer(128)
 	ZEROS.fill(0)
@@ -12633,7 +12518,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 75 */
+/* 74 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var bs58check = __webpack_require__(16)
@@ -12657,14 +12542,14 @@ var EToken =
 
 
 /***/ },
-/* 76 */
+/* 75 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var bufferutils = __webpack_require__(72)
-	var crypto = __webpack_require__(73)
+	var bufferutils = __webpack_require__(71)
+	var crypto = __webpack_require__(72)
 
-	var Transaction = __webpack_require__(77)
+	var Transaction = __webpack_require__(76)
 
 	function Block () {
 	  this.version = 1
@@ -12784,19 +12669,19 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 77 */
+/* 76 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var bufferutils = __webpack_require__(72)
-	var crypto = __webpack_require__(73)
-	var typeForce = __webpack_require__(54)
-	var opcodes = __webpack_require__(60)
-	var scripts = __webpack_require__(59)
+	var bufferutils = __webpack_require__(71)
+	var crypto = __webpack_require__(72)
+	var typeForce = __webpack_require__(53)
+	var opcodes = __webpack_require__(59)
+	var scripts = __webpack_require__(58)
 
 	var Address = __webpack_require__(10)
-	var ECSignature = __webpack_require__(70)
-	var Script = __webpack_require__(71)
+	var ECSignature = __webpack_require__(69)
+	var Script = __webpack_require__(70)
 
 	function Transaction () {
 	  this.version = 1
@@ -13160,15 +13045,15 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 78 */
+/* 77 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var createHmac = __webpack_require__(74)
-	var typeForce = __webpack_require__(54)
+	var createHmac = __webpack_require__(73)
+	var typeForce = __webpack_require__(53)
 
-	var BigInteger = __webpack_require__(63)
-	var ECSignature = __webpack_require__(70)
+	var BigInteger = __webpack_require__(62)
+	var ECSignature = __webpack_require__(69)
 
 	var ZERO = new Buffer([0])
 	var ONE = new Buffer([1])
@@ -13422,20 +13307,20 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 79 */
+/* 78 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
 	var base58check = __webpack_require__(16)
-	var ecdsa = __webpack_require__(78)
-	var networks = __webpack_require__(58)
-	var randomBytes = __webpack_require__(80)
-	var typeForce = __webpack_require__(54)
+	var ecdsa = __webpack_require__(77)
+	var networks = __webpack_require__(57)
+	var randomBytes = __webpack_require__(79)
+	var typeForce = __webpack_require__(53)
 
-	var BigInteger = __webpack_require__(63)
-	var ECPubKey = __webpack_require__(81)
+	var BigInteger = __webpack_require__(62)
+	var ECPubKey = __webpack_require__(80)
 
-	var ecurve = __webpack_require__(61)
+	var ecurve = __webpack_require__(60)
 	var secp256k1 = ecurve.getCurveByName('secp256k1')
 
 	function ECKey (d, compressed) {
@@ -13513,7 +13398,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 80 */
+/* 79 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, Buffer, process) {'use strict'
@@ -13556,17 +13441,17 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(1).Buffer, __webpack_require__(13)))
 
 /***/ },
-/* 81 */
+/* 80 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var crypto = __webpack_require__(73)
-	var ecdsa = __webpack_require__(78)
-	var typeForce = __webpack_require__(54)
-	var networks = __webpack_require__(58)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var crypto = __webpack_require__(72)
+	var ecdsa = __webpack_require__(77)
+	var typeForce = __webpack_require__(53)
+	var networks = __webpack_require__(57)
 
 	var Address = __webpack_require__(10)
 
-	var ecurve = __webpack_require__(61)
+	var ecurve = __webpack_require__(60)
 	var secp256k1 = ecurve.getCurveByName('secp256k1')
 
 	function ECPubKey (Q, compressed) {
@@ -13619,19 +13504,19 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 82 */
+/* 81 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var bufferutils = __webpack_require__(72)
-	var crypto = __webpack_require__(73)
-	var ecdsa = __webpack_require__(78)
-	var networks = __webpack_require__(58)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var bufferutils = __webpack_require__(71)
+	var crypto = __webpack_require__(72)
+	var ecdsa = __webpack_require__(77)
+	var networks = __webpack_require__(57)
 
-	var BigInteger = __webpack_require__(63)
-	var ECPubKey = __webpack_require__(81)
-	var ECSignature = __webpack_require__(70)
+	var BigInteger = __webpack_require__(62)
+	var ECPubKey = __webpack_require__(80)
+	var ECSignature = __webpack_require__(69)
 
-	var ecurve = __webpack_require__(61)
+	var ecurve = __webpack_require__(60)
 	var ecparams = ecurve.getCurveByName('secp256k1')
 
 	function magicHash (message, network) {
@@ -13680,21 +13565,21 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 83 */
+/* 82 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
 	var base58check = __webpack_require__(16)
-	var bcrypto = __webpack_require__(73)
-	var createHmac = __webpack_require__(74)
-	var typeForce = __webpack_require__(54)
-	var networks = __webpack_require__(58)
+	var bcrypto = __webpack_require__(72)
+	var createHmac = __webpack_require__(73)
+	var typeForce = __webpack_require__(53)
+	var networks = __webpack_require__(57)
 
-	var BigInteger = __webpack_require__(63)
-	var ECKey = __webpack_require__(79)
-	var ECPubKey = __webpack_require__(81)
+	var BigInteger = __webpack_require__(62)
+	var ECKey = __webpack_require__(78)
+	var ECPubKey = __webpack_require__(80)
 
-	var ecurve = __webpack_require__(61)
+	var ecurve = __webpack_require__(60)
 	var curve = ecurve.getCurveByName('secp256k1')
 
 	function findBIP32NetworkByVersion (version) {
@@ -14002,17 +13887,17 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 84 */
+/* 83 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var ops = __webpack_require__(60)
-	var scripts = __webpack_require__(59)
+	var ops = __webpack_require__(59)
+	var scripts = __webpack_require__(58)
 
-	var ECPubKey = __webpack_require__(81)
-	var ECSignature = __webpack_require__(70)
-	var Script = __webpack_require__(71)
-	var Transaction = __webpack_require__(77)
+	var ECPubKey = __webpack_require__(80)
+	var ECSignature = __webpack_require__(69)
+	var Script = __webpack_require__(70)
+	var Transaction = __webpack_require__(76)
 
 	function extractInput (txIn) {
 	  var redeemScript
@@ -14414,19 +14299,19 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 85 */
+/* 84 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var assert = __webpack_require__(11)
-	var bufferutils = __webpack_require__(72)
-	var typeForce = __webpack_require__(54)
-	var networks = __webpack_require__(58)
-	var randomBytes = __webpack_require__(80)
+	var bufferutils = __webpack_require__(71)
+	var typeForce = __webpack_require__(53)
+	var networks = __webpack_require__(57)
+	var randomBytes = __webpack_require__(79)
 
 	var Address = __webpack_require__(10)
-	var HDNode = __webpack_require__(83)
-	var TransactionBuilder = __webpack_require__(84)
-	var Script = __webpack_require__(71)
+	var HDNode = __webpack_require__(82)
+	var TransactionBuilder = __webpack_require__(83)
+	var Script = __webpack_require__(70)
 
 	function Wallet (seed, network) {
 	  console.warn('Wallet is deprecated and will be removed in 2.0.0, see #296')
@@ -14792,25 +14677,25 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 86 */
+/* 85 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict'
 
-	exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = __webpack_require__(80)
-	exports.createHash = exports.Hash = __webpack_require__(18)
-	exports.createHmac = exports.Hmac = __webpack_require__(74)
+	exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = __webpack_require__(79)
+	exports.createHash = exports.Hash = __webpack_require__(19)
+	exports.createHmac = exports.Hmac = __webpack_require__(73)
 
-	var hashes = ['sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'md5', 'rmd160'].concat(Object.keys(__webpack_require__(87)))
+	var hashes = ['sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'md5', 'rmd160'].concat(Object.keys(__webpack_require__(86)))
 	exports.getHashes = function () {
 	  return hashes
 	}
 
-	var p = __webpack_require__(88)
+	var p = __webpack_require__(87)
 	exports.pbkdf2 = p.pbkdf2
 	exports.pbkdf2Sync = p.pbkdf2Sync
 
-	var aes = __webpack_require__(90)
+	var aes = __webpack_require__(89)
 	;[
 	  'Cipher',
 	  'createCipher',
@@ -14826,7 +14711,7 @@ var EToken =
 	  exports[key] = aes[key]
 	})
 
-	var dh = __webpack_require__(117)
+	var dh = __webpack_require__(116)
 	;[
 	  'DiffieHellmanGroup',
 	  'createDiffieHellmanGroup',
@@ -14837,7 +14722,7 @@ var EToken =
 	  exports[key] = dh[key]
 	})
 
-	var sign = __webpack_require__(126)
+	var sign = __webpack_require__(125)
 	;[
 	  'createSign',
 	  'Sign',
@@ -14875,7 +14760,7 @@ var EToken =
 
 
 /***/ },
-/* 87 */
+/* 86 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict'
@@ -14954,11 +14839,11 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 88 */
+/* 87 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(process, Buffer) {var createHmac = __webpack_require__(74)
-	var checkParameters = __webpack_require__(89)
+	/* WEBPACK VAR INJECTION */(function(process, Buffer) {var createHmac = __webpack_require__(73)
+	var checkParameters = __webpack_require__(88)
 
 	exports.pbkdf2 = function (password, salt, iterations, keylen, digest, callback) {
 	  if (typeof digest === 'function') {
@@ -15029,7 +14914,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13), __webpack_require__(1).Buffer))
 
 /***/ },
-/* 89 */
+/* 88 */
 /***/ function(module, exports) {
 
 	var MAX_ALLOC = Math.pow(2, 30) - 1 // default in iojs
@@ -15053,14 +14938,14 @@ var EToken =
 
 
 /***/ },
-/* 90 */
+/* 89 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var ebtk = __webpack_require__(91)
-	var aes = __webpack_require__(92)
-	var DES = __webpack_require__(108)
-	var desModes = __webpack_require__(116)
-	var aesModes = __webpack_require__(95)
+	var ebtk = __webpack_require__(90)
+	var aes = __webpack_require__(91)
+	var DES = __webpack_require__(107)
+	var desModes = __webpack_require__(115)
+	var aesModes = __webpack_require__(94)
 	function createCipher (suite, password) {
 	  var keyLen, ivLen
 	  suite = suite.toLowerCase()
@@ -15132,10 +15017,10 @@ var EToken =
 
 
 /***/ },
-/* 91 */
+/* 90 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var md5 = __webpack_require__(20)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var md5 = __webpack_require__(21)
 	module.exports = EVP_BytesToKey
 	function EVP_BytesToKey (password, salt, keyLen, ivLen) {
 	  if (!Buffer.isBuffer(password)) {
@@ -15207,16 +15092,16 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 92 */
+/* 91 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var ciphers = __webpack_require__(93)
+	var ciphers = __webpack_require__(92)
 	exports.createCipher = exports.Cipher = ciphers.createCipher
 	exports.createCipheriv = exports.Cipheriv = ciphers.createCipheriv
-	var deciphers = __webpack_require__(107)
+	var deciphers = __webpack_require__(106)
 	exports.createDecipher = exports.Decipher = deciphers.createDecipher
 	exports.createDecipheriv = exports.Decipheriv = deciphers.createDecipheriv
-	var modes = __webpack_require__(95)
+	var modes = __webpack_require__(94)
 	function getCiphers () {
 	  return Object.keys(modes)
 	}
@@ -15224,16 +15109,16 @@ var EToken =
 
 
 /***/ },
-/* 93 */
+/* 92 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(94)
-	var Transform = __webpack_require__(31)
-	var inherits = __webpack_require__(19)
-	var modes = __webpack_require__(95)
-	var ebtk = __webpack_require__(91)
-	var StreamCipher = __webpack_require__(96)
-	var AuthCipher = __webpack_require__(97)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(93)
+	var Transform = __webpack_require__(32)
+	var inherits = __webpack_require__(20)
+	var modes = __webpack_require__(94)
+	var ebtk = __webpack_require__(90)
+	var StreamCipher = __webpack_require__(95)
+	var AuthCipher = __webpack_require__(96)
 	inherits(Cipher, Transform)
 	function Cipher (mode, key, iv) {
 	  if (!(this instanceof Cipher)) {
@@ -15304,14 +15189,14 @@ var EToken =
 	  return out
 	}
 	var modelist = {
-	  ECB: __webpack_require__(100),
-	  CBC: __webpack_require__(101),
-	  CFB: __webpack_require__(102),
-	  CFB8: __webpack_require__(103),
-	  CFB1: __webpack_require__(104),
-	  OFB: __webpack_require__(105),
-	  CTR: __webpack_require__(106),
-	  GCM: __webpack_require__(106)
+	  ECB: __webpack_require__(99),
+	  CBC: __webpack_require__(100),
+	  CFB: __webpack_require__(101),
+	  CFB8: __webpack_require__(102),
+	  CFB1: __webpack_require__(103),
+	  OFB: __webpack_require__(104),
+	  CTR: __webpack_require__(105),
+	  GCM: __webpack_require__(105)
 	}
 
 	function createCipheriv (suite, password, iv) {
@@ -15353,7 +15238,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 94 */
+/* 93 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {// based on the aes implimentation in triple sec
@@ -15537,7 +15422,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 95 */
+/* 94 */
 /***/ function(module, exports) {
 
 	exports['aes-128-ecb'] = {
@@ -15714,12 +15599,12 @@ var EToken =
 
 
 /***/ },
-/* 96 */
+/* 95 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(94)
-	var Transform = __webpack_require__(31)
-	var inherits = __webpack_require__(19)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(93)
+	var Transform = __webpack_require__(32)
+	var inherits = __webpack_require__(20)
 
 	inherits(StreamCipher, Transform)
 	module.exports = StreamCipher
@@ -15746,14 +15631,14 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 97 */
+/* 96 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(94)
-	var Transform = __webpack_require__(31)
-	var inherits = __webpack_require__(19)
-	var GHASH = __webpack_require__(98)
-	var xor = __webpack_require__(99)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(93)
+	var Transform = __webpack_require__(32)
+	var inherits = __webpack_require__(20)
+	var GHASH = __webpack_require__(97)
+	var xor = __webpack_require__(98)
 	inherits(StreamCipher, Transform)
 	module.exports = StreamCipher
 
@@ -15850,7 +15735,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 98 */
+/* 97 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var zeros = new Buffer(16)
@@ -15955,7 +15840,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 99 */
+/* 98 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {module.exports = function xor (a, b) {
@@ -15972,7 +15857,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 100 */
+/* 99 */
 /***/ function(module, exports) {
 
 	exports.encrypt = function (self, block) {
@@ -15984,10 +15869,10 @@ var EToken =
 
 
 /***/ },
-/* 101 */
+/* 100 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var xor = __webpack_require__(99)
+	var xor = __webpack_require__(98)
 
 	exports.encrypt = function (self, block) {
 	  var data = xor(block, self._prev)
@@ -16007,10 +15892,10 @@ var EToken =
 
 
 /***/ },
-/* 102 */
+/* 101 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var xor = __webpack_require__(99)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var xor = __webpack_require__(98)
 
 	exports.encrypt = function (self, data, decrypt) {
 	  var out = new Buffer('')
@@ -16045,7 +15930,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 103 */
+/* 102 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {function encryptByte (self, byteParam, decrypt) {
@@ -16067,7 +15952,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 104 */
+/* 103 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {function encryptByte (self, byteParam, decrypt) {
@@ -16108,10 +15993,10 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 105 */
+/* 104 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var xor = __webpack_require__(99)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var xor = __webpack_require__(98)
 
 	function getBlock (self) {
 	  self._prev = self._cipher.encryptBlock(self._prev)
@@ -16131,10 +16016,10 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 106 */
+/* 105 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var xor = __webpack_require__(99)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var xor = __webpack_require__(98)
 
 	function incr32 (iv) {
 	  var len = iv.length
@@ -16169,16 +16054,16 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 107 */
+/* 106 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(94)
-	var Transform = __webpack_require__(31)
-	var inherits = __webpack_require__(19)
-	var modes = __webpack_require__(95)
-	var StreamCipher = __webpack_require__(96)
-	var AuthCipher = __webpack_require__(97)
-	var ebtk = __webpack_require__(91)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var aes = __webpack_require__(93)
+	var Transform = __webpack_require__(32)
+	var inherits = __webpack_require__(20)
+	var modes = __webpack_require__(94)
+	var StreamCipher = __webpack_require__(95)
+	var AuthCipher = __webpack_require__(96)
+	var ebtk = __webpack_require__(90)
 
 	inherits(Decipher, Transform)
 	function Decipher (mode, key, iv) {
@@ -16264,14 +16149,14 @@ var EToken =
 	}
 
 	var modelist = {
-	  ECB: __webpack_require__(100),
-	  CBC: __webpack_require__(101),
-	  CFB: __webpack_require__(102),
-	  CFB8: __webpack_require__(103),
-	  CFB1: __webpack_require__(104),
-	  OFB: __webpack_require__(105),
-	  CTR: __webpack_require__(106),
-	  GCM: __webpack_require__(106)
+	  ECB: __webpack_require__(99),
+	  CBC: __webpack_require__(100),
+	  CFB: __webpack_require__(101),
+	  CFB8: __webpack_require__(102),
+	  CFB1: __webpack_require__(103),
+	  OFB: __webpack_require__(104),
+	  CTR: __webpack_require__(105),
+	  GCM: __webpack_require__(105)
 	}
 
 	function createDecipheriv (suite, password, iv) {
@@ -16313,12 +16198,12 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 108 */
+/* 107 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var CipherBase = __webpack_require__(31)
-	var des = __webpack_require__(109)
-	var inherits = __webpack_require__(19)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var CipherBase = __webpack_require__(32)
+	var des = __webpack_require__(108)
+	var inherits = __webpack_require__(20)
 
 	var modes = {
 	  'des-ede3-cbc': des.CBC.instantiate(des.EDE),
@@ -16363,20 +16248,20 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 109 */
+/* 108 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	exports.utils = __webpack_require__(110);
-	exports.Cipher = __webpack_require__(111);
-	exports.DES = __webpack_require__(113);
-	exports.CBC = __webpack_require__(114);
-	exports.EDE = __webpack_require__(115);
+	exports.utils = __webpack_require__(109);
+	exports.Cipher = __webpack_require__(110);
+	exports.DES = __webpack_require__(112);
+	exports.CBC = __webpack_require__(113);
+	exports.EDE = __webpack_require__(114);
 
 
 /***/ },
-/* 110 */
+/* 109 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -16638,12 +16523,12 @@ var EToken =
 
 
 /***/ },
-/* 111 */
+/* 110 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var assert = __webpack_require__(112);
+	var assert = __webpack_require__(111);
 
 	function Cipher(options) {
 	  this.options = options;
@@ -16785,7 +16670,7 @@ var EToken =
 
 
 /***/ },
-/* 112 */
+/* 111 */
 /***/ function(module, exports) {
 
 	module.exports = assert;
@@ -16802,15 +16687,15 @@ var EToken =
 
 
 /***/ },
-/* 113 */
+/* 112 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var assert = __webpack_require__(112);
-	var inherits = __webpack_require__(19);
+	var assert = __webpack_require__(111);
+	var inherits = __webpack_require__(20);
 
-	var des = __webpack_require__(109);
+	var des = __webpack_require__(108);
 	var utils = des.utils;
 	var Cipher = des.Cipher;
 
@@ -16951,13 +16836,13 @@ var EToken =
 
 
 /***/ },
-/* 114 */
+/* 113 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var assert = __webpack_require__(112);
-	var inherits = __webpack_require__(19);
+	var assert = __webpack_require__(111);
+	var inherits = __webpack_require__(20);
 
 	var proto = {};
 
@@ -17022,15 +16907,15 @@ var EToken =
 
 
 /***/ },
-/* 115 */
+/* 114 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var assert = __webpack_require__(112);
-	var inherits = __webpack_require__(19);
+	var assert = __webpack_require__(111);
+	var inherits = __webpack_require__(20);
 
-	var des = __webpack_require__(109);
+	var des = __webpack_require__(108);
 	var Cipher = des.Cipher;
 	var DES = des.DES;
 
@@ -17083,7 +16968,7 @@ var EToken =
 
 
 /***/ },
-/* 116 */
+/* 115 */
 /***/ function(module, exports) {
 
 	exports['des-ecb'] = {
@@ -17113,13 +16998,13 @@ var EToken =
 
 
 /***/ },
-/* 117 */
+/* 116 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var generatePrime = __webpack_require__(118)
-	var primes = __webpack_require__(124)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var generatePrime = __webpack_require__(117)
+	var primes = __webpack_require__(123)
 
-	var DH = __webpack_require__(125)
+	var DH = __webpack_require__(124)
 
 	function getDiffieHellman (mod) {
 	  var prime = new Buffer(primes[mod].prime, 'hex')
@@ -17162,16 +17047,16 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 118 */
+/* 117 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var randomBytes = __webpack_require__(80);
+	var randomBytes = __webpack_require__(79);
 	module.exports = findPrime;
 	findPrime.simpleSieve = simpleSieve;
 	findPrime.fermatTest = fermatTest;
-	var BN = __webpack_require__(119);
+	var BN = __webpack_require__(118);
 	var TWENTYFOUR = new BN(24);
-	var MillerRabin = __webpack_require__(121);
+	var MillerRabin = __webpack_require__(120);
 	var millerRabin = new MillerRabin();
 	var ONE = new BN(1);
 	var TWO = new BN(2);
@@ -17273,7 +17158,7 @@ var EToken =
 
 
 /***/ },
-/* 119 */
+/* 118 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(module) {(function (module, exports) {
@@ -20704,10 +20589,10 @@ var EToken =
 	  };
 	})(typeof module === 'undefined' || module, this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(120)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(119)(module)))
 
 /***/ },
-/* 120 */
+/* 119 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -20723,11 +20608,11 @@ var EToken =
 
 
 /***/ },
-/* 121 */
+/* 120 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var bn = __webpack_require__(119);
-	var brorand = __webpack_require__(122);
+	var bn = __webpack_require__(118);
+	var brorand = __webpack_require__(121);
 
 	function MillerRabin(rand) {
 	  this.rand = rand || new brorand.Rand();
@@ -20842,7 +20727,7 @@ var EToken =
 
 
 /***/ },
-/* 122 */
+/* 121 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var r;
@@ -20863,55 +20748,63 @@ var EToken =
 	  return this._rand(len);
 	};
 
-	if (typeof window === 'object') {
-	  if (window.crypto && window.crypto.getRandomValues) {
+	// Emulate crypto API using randy
+	Rand.prototype._rand = function _rand(n) {
+	  if (this.rand.getBytes)
+	    return this.rand.getBytes(n);
+
+	  var res = new Uint8Array(n);
+	  for (var i = 0; i < res.length; i++)
+	    res[i] = this.rand.getByte();
+	  return res;
+	};
+
+	if (typeof self === 'object') {
+	  if (self.crypto && self.crypto.getRandomValues) {
 	    // Modern browsers
 	    Rand.prototype._rand = function _rand(n) {
 	      var arr = new Uint8Array(n);
-	      window.crypto.getRandomValues(arr);
+	      self.crypto.getRandomValues(arr);
 	      return arr;
 	    };
-	  } else if (window.msCrypto && window.msCrypto.getRandomValues) {
+	  } else if (self.msCrypto && self.msCrypto.getRandomValues) {
 	    // IE
 	    Rand.prototype._rand = function _rand(n) {
 	      var arr = new Uint8Array(n);
-	      window.msCrypto.getRandomValues(arr);
+	      self.msCrypto.getRandomValues(arr);
 	      return arr;
 	    };
-	  } else {
+
+	  // Safari's WebWorkers do not have `crypto`
+	  } else if (typeof window === 'object') {
 	    // Old junk
 	    Rand.prototype._rand = function() {
 	      throw new Error('Not implemented yet');
 	    };
 	  }
 	} else {
-	  // Node.js or Web worker
+	  // Node.js or Web worker with no crypto support
 	  try {
-	    var crypto = __webpack_require__(123);
+	    var crypto = __webpack_require__(122);
+	    if (typeof crypto.randomBytes !== 'function')
+	      throw new Error('Not supported');
 
 	    Rand.prototype._rand = function _rand(n) {
 	      return crypto.randomBytes(n);
 	    };
 	  } catch (e) {
-	    // Emulate crypto API using randy
-	    Rand.prototype._rand = function _rand(n) {
-	      var res = new Uint8Array(n);
-	      for (var i = 0; i < res.length; i++)
-	        res[i] = this.rand.getByte();
-	      return res;
-	    };
 	  }
 	}
 
 
 /***/ },
-/* 123 */
+/* 122 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 124 */
+/* 123 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -20950,19 +20843,19 @@ var EToken =
 	};
 
 /***/ },
-/* 125 */
+/* 124 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var BN = __webpack_require__(119);
-	var MillerRabin = __webpack_require__(121);
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var BN = __webpack_require__(118);
+	var MillerRabin = __webpack_require__(120);
 	var millerRabin = new MillerRabin();
 	var TWENTYFOUR = new BN(24);
 	var ELEVEN = new BN(11);
 	var TEN = new BN(10);
 	var THREE = new BN(3);
 	var SEVEN = new BN(7);
-	var primes = __webpack_require__(118);
-	var randomBytes = __webpack_require__(80);
+	var primes = __webpack_require__(117);
+	var randomBytes = __webpack_require__(79);
 	module.exports = DH;
 
 	function setPublicKey(pub, enc) {
@@ -21121,14 +21014,14 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 126 */
+/* 125 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var _algos = __webpack_require__(87)
-	var createHash = __webpack_require__(18)
-	var inherits = __webpack_require__(19)
-	var sign = __webpack_require__(127)
-	var stream = __webpack_require__(32)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var _algos = __webpack_require__(86)
+	var createHash = __webpack_require__(19)
+	var inherits = __webpack_require__(20)
+	var sign = __webpack_require__(126)
+	var stream = __webpack_require__(33)
 	var verify = __webpack_require__(173)
 
 	var algos = {}
@@ -21231,17 +21124,17 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 127 */
+/* 126 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {// much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
-	var createHmac = __webpack_require__(74)
-	var crt = __webpack_require__(128)
-	var curves = __webpack_require__(129)
-	var elliptic = __webpack_require__(130)
+	var createHmac = __webpack_require__(73)
+	var crt = __webpack_require__(127)
+	var curves = __webpack_require__(128)
+	var elliptic = __webpack_require__(129)
 	var parseKeys = __webpack_require__(153)
 
-	var BN = __webpack_require__(119)
+	var BN = __webpack_require__(118)
 	var EC = elliptic.ec
 
 	function sign (hash, key, hashType, signType) {
@@ -21423,11 +21316,11 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 128 */
+/* 127 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var bn = __webpack_require__(119);
-	var randomBytes = __webpack_require__(80);
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var bn = __webpack_require__(118);
+	var randomBytes = __webpack_require__(79);
 	module.exports = crt;
 	function blind(priv) {
 	  var r = getr(priv);
@@ -21470,7 +21363,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 129 */
+/* 128 */
 /***/ function(module, exports) {
 
 	'use strict'
@@ -21488,27 +21381,26 @@ var EToken =
 
 
 /***/ },
-/* 130 */
+/* 129 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var elliptic = exports;
 
-	elliptic.version = __webpack_require__(131).version;
-	elliptic.utils = __webpack_require__(132);
-	elliptic.rand = __webpack_require__(122);
-	elliptic.hmacDRBG = __webpack_require__(133);
-	elliptic.curve = __webpack_require__(140);
-	elliptic.curves = __webpack_require__(145);
+	elliptic.version = __webpack_require__(130).version;
+	elliptic.utils = __webpack_require__(131);
+	elliptic.rand = __webpack_require__(121);
+	elliptic.curve = __webpack_require__(133);
+	elliptic.curves = __webpack_require__(138);
 
 	// Protocols
-	elliptic.ec = __webpack_require__(147);
+	elliptic.ec = __webpack_require__(146);
 	elliptic.eddsa = __webpack_require__(150);
 
 
 /***/ },
-/* 131 */
+/* 130 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -21527,20 +21419,20 @@ var EToken =
 			]
 		],
 		"_from": "elliptic@>=6.2.3 <7.0.0",
-		"_id": "elliptic@6.3.2",
+		"_id": "elliptic@6.4.0",
 		"_inCache": true,
 		"_installable": true,
 		"_location": "/elliptic",
-		"_nodeVersion": "6.3.0",
+		"_nodeVersion": "7.0.0",
 		"_npmOperationalInternal": {
-			"host": "packages-16-east.internal.npmjs.com",
-			"tmp": "tmp/elliptic-6.3.2.tgz_1473938837205_0.3108903462998569"
+			"host": "packages-18-east.internal.npmjs.com",
+			"tmp": "tmp/elliptic-6.4.0.tgz_1487798866428_0.30510620190761983"
 		},
 		"_npmUser": {
 			"name": "indutny",
 			"email": "fedor@indutny.com"
 		},
-		"_npmVersion": "3.10.3",
+		"_npmVersion": "3.10.8",
 		"_phantomChildren": {},
 		"_requested": {
 			"raw": "elliptic@^6.2.3",
@@ -21556,8 +21448,8 @@ var EToken =
 			"/create-ecdh",
 			"/secp256k1"
 		],
-		"_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.3.2.tgz",
-		"_shasum": "e4c81e0829cf0a65ab70e998b8232723b5c1bc48",
+		"_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz",
+		"_shasum": "cac9af8762c85836187003c8dfe193e5e2eae5df",
 		"_shrinkwrap": null,
 		"_spec": "elliptic@^6.2.3",
 		"_where": "/home/oleksii/etoken-lib/node_modules/secp256k1",
@@ -21572,7 +21464,10 @@ var EToken =
 			"bn.js": "^4.4.0",
 			"brorand": "^1.0.1",
 			"hash.js": "^1.0.0",
-			"inherits": "^2.0.1"
+			"hmac-drbg": "^1.0.0",
+			"inherits": "^2.0.1",
+			"minimalistic-assert": "^1.0.0",
+			"minimalistic-crypto-utils": "^1.0.0"
 		},
 		"description": "EC cryptography",
 		"devDependencies": {
@@ -21580,6 +21475,7 @@ var EToken =
 			"coveralls": "^2.11.3",
 			"grunt": "^0.4.5",
 			"grunt-browserify": "^5.0.0",
+			"grunt-cli": "^1.2.0",
 			"grunt-contrib-connect": "^1.0.0",
 			"grunt-contrib-copy": "^1.0.0",
 			"grunt-contrib-uglify": "^1.0.1",
@@ -21592,13 +21488,13 @@ var EToken =
 		},
 		"directories": {},
 		"dist": {
-			"shasum": "e4c81e0829cf0a65ab70e998b8232723b5c1bc48",
-			"tarball": "https://registry.npmjs.org/elliptic/-/elliptic-6.3.2.tgz"
+			"shasum": "cac9af8762c85836187003c8dfe193e5e2eae5df",
+			"tarball": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz"
 		},
 		"files": [
 			"lib"
 		],
-		"gitHead": "cbace4683a4a548dc0306ef36756151a20299cd5",
+		"gitHead": "6b0d2b76caae91471649c8e21f0b1d3ba0f96090",
 		"homepage": "https://github.com/indutny/elliptic",
 		"keywords": [
 			"EC",
@@ -21629,77 +21525,25 @@ var EToken =
 			"unit": "istanbul test _mocha --reporter=spec test/index.js",
 			"version": "grunt dist && git add dist/"
 		},
-		"version": "6.3.2"
+		"version": "6.4.0"
 	};
 
 /***/ },
-/* 132 */
+/* 131 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var utils = exports;
-	var BN = __webpack_require__(119);
+	var BN = __webpack_require__(118);
+	var minAssert = __webpack_require__(111);
+	var minUtils = __webpack_require__(132);
 
-	utils.assert = function assert(val, msg) {
-	  if (!val)
-	    throw new Error(msg || 'Assertion failed');
-	};
-
-	function toArray(msg, enc) {
-	  if (Array.isArray(msg))
-	    return msg.slice();
-	  if (!msg)
-	    return [];
-	  var res = [];
-	  if (typeof msg !== 'string') {
-	    for (var i = 0; i < msg.length; i++)
-	      res[i] = msg[i] | 0;
-	    return res;
-	  }
-	  if (!enc) {
-	    for (var i = 0; i < msg.length; i++) {
-	      var c = msg.charCodeAt(i);
-	      var hi = c >> 8;
-	      var lo = c & 0xff;
-	      if (hi)
-	        res.push(hi, lo);
-	      else
-	        res.push(lo);
-	    }
-	  } else if (enc === 'hex') {
-	    msg = msg.replace(/[^a-z0-9]+/ig, '');
-	    if (msg.length % 2 !== 0)
-	      msg = '0' + msg;
-	    for (var i = 0; i < msg.length; i += 2)
-	      res.push(parseInt(msg[i] + msg[i + 1], 16));
-	  }
-	  return res;
-	}
-	utils.toArray = toArray;
-
-	function zero2(word) {
-	  if (word.length === 1)
-	    return '0' + word;
-	  else
-	    return word;
-	}
-	utils.zero2 = zero2;
-
-	function toHex(msg) {
-	  var res = '';
-	  for (var i = 0; i < msg.length; i++)
-	    res += zero2(msg[i].toString(16));
-	  return res;
-	}
-	utils.toHex = toHex;
-
-	utils.encode = function encode(arr, enc) {
-	  if (enc === 'hex')
-	    return toHex(arr);
-	  else
-	    return arr;
-	};
+	utils.assert = minAssert;
+	utils.toArray = minUtils.toArray;
+	utils.zero2 = minUtils.zero2;
+	utils.toHex = minUtils.toHex;
+	utils.encode = minUtils.encode;
 
 	// Represent num in a w-NAF form
 	function getNAF(num, w) {
@@ -21811,152 +21655,12 @@ var EToken =
 
 
 /***/ },
-/* 133 */
-/***/ function(module, exports, __webpack_require__) {
+/* 132 */
+/***/ function(module, exports) {
 
 	'use strict';
 
-	var hash = __webpack_require__(134);
-	var elliptic = __webpack_require__(130);
-	var utils = elliptic.utils;
-	var assert = utils.assert;
-
-	function HmacDRBG(options) {
-	  if (!(this instanceof HmacDRBG))
-	    return new HmacDRBG(options);
-	  this.hash = options.hash;
-	  this.predResist = !!options.predResist;
-
-	  this.outLen = this.hash.outSize;
-	  this.minEntropy = options.minEntropy || this.hash.hmacStrength;
-
-	  this.reseed = null;
-	  this.reseedInterval = null;
-	  this.K = null;
-	  this.V = null;
-
-	  var entropy = utils.toArray(options.entropy, options.entropyEnc);
-	  var nonce = utils.toArray(options.nonce, options.nonceEnc);
-	  var pers = utils.toArray(options.pers, options.persEnc);
-	  assert(entropy.length >= (this.minEntropy / 8),
-	         'Not enough entropy. Minimum is: ' + this.minEntropy + ' bits');
-	  this._init(entropy, nonce, pers);
-	}
-	module.exports = HmacDRBG;
-
-	HmacDRBG.prototype._init = function init(entropy, nonce, pers) {
-	  var seed = entropy.concat(nonce).concat(pers);
-
-	  this.K = new Array(this.outLen / 8);
-	  this.V = new Array(this.outLen / 8);
-	  for (var i = 0; i < this.V.length; i++) {
-	    this.K[i] = 0x00;
-	    this.V[i] = 0x01;
-	  }
-
-	  this._update(seed);
-	  this.reseed = 1;
-	  this.reseedInterval = 0x1000000000000;  // 2^48
-	};
-
-	HmacDRBG.prototype._hmac = function hmac() {
-	  return new hash.hmac(this.hash, this.K);
-	};
-
-	HmacDRBG.prototype._update = function update(seed) {
-	  var kmac = this._hmac()
-	                 .update(this.V)
-	                 .update([ 0x00 ]);
-	  if (seed)
-	    kmac = kmac.update(seed);
-	  this.K = kmac.digest();
-	  this.V = this._hmac().update(this.V).digest();
-	  if (!seed)
-	    return;
-
-	  this.K = this._hmac()
-	               .update(this.V)
-	               .update([ 0x01 ])
-	               .update(seed)
-	               .digest();
-	  this.V = this._hmac().update(this.V).digest();
-	};
-
-	HmacDRBG.prototype.reseed = function reseed(entropy, entropyEnc, add, addEnc) {
-	  // Optional entropy enc
-	  if (typeof entropyEnc !== 'string') {
-	    addEnc = add;
-	    add = entropyEnc;
-	    entropyEnc = null;
-	  }
-
-	  entropy = utils.toBuffer(entropy, entropyEnc);
-	  add = utils.toBuffer(add, addEnc);
-
-	  assert(entropy.length >= (this.minEntropy / 8),
-	         'Not enough entropy. Minimum is: ' + this.minEntropy + ' bits');
-
-	  this._update(entropy.concat(add || []));
-	  this.reseed = 1;
-	};
-
-	HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
-	  if (this.reseed > this.reseedInterval)
-	    throw new Error('Reseed is required');
-
-	  // Optional encoding
-	  if (typeof enc !== 'string') {
-	    addEnc = add;
-	    add = enc;
-	    enc = null;
-	  }
-
-	  // Optional additional data
-	  if (add) {
-	    add = utils.toArray(add, addEnc);
-	    this._update(add);
-	  }
-
-	  var temp = [];
-	  while (temp.length < len) {
-	    this.V = this._hmac().update(this.V).digest();
-	    temp = temp.concat(this.V);
-	  }
-
-	  var res = temp.slice(0, len);
-	  this._update(add);
-	  this.reseed++;
-	  return utils.encode(res, enc);
-	};
-
-
-/***/ },
-/* 134 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hash = exports;
-
-	hash.utils = __webpack_require__(135);
-	hash.common = __webpack_require__(136);
-	hash.sha = __webpack_require__(137);
-	hash.ripemd = __webpack_require__(138);
-	hash.hmac = __webpack_require__(139);
-
-	// Proxy hash functions to the main object
-	hash.sha1 = hash.sha.sha1;
-	hash.sha256 = hash.sha.sha256;
-	hash.sha224 = hash.sha.sha224;
-	hash.sha384 = hash.sha.sha384;
-	hash.sha512 = hash.sha.sha512;
-	hash.ripemd160 = hash.ripemd.ripemd160;
-
-
-/***/ },
-/* 135 */
-/***/ function(module, exports, __webpack_require__) {
-
 	var utils = exports;
-	var inherits = __webpack_require__(19);
 
 	function toArray(msg, enc) {
 	  if (Array.isArray(msg))
@@ -21964,60 +21668,31 @@ var EToken =
 	  if (!msg)
 	    return [];
 	  var res = [];
-	  if (typeof msg === 'string') {
-	    if (!enc) {
-	      for (var i = 0; i < msg.length; i++) {
-	        var c = msg.charCodeAt(i);
-	        var hi = c >> 8;
-	        var lo = c & 0xff;
-	        if (hi)
-	          res.push(hi, lo);
-	        else
-	          res.push(lo);
-	      }
-	    } else if (enc === 'hex') {
-	      msg = msg.replace(/[^a-z0-9]+/ig, '');
-	      if (msg.length % 2 !== 0)
-	        msg = '0' + msg;
-	      for (var i = 0; i < msg.length; i += 2)
-	        res.push(parseInt(msg[i] + msg[i + 1], 16));
-	    }
-	  } else {
+	  if (typeof msg !== 'string') {
 	    for (var i = 0; i < msg.length; i++)
 	      res[i] = msg[i] | 0;
+	    return res;
+	  }
+	  if (enc === 'hex') {
+	    msg = msg.replace(/[^a-z0-9]+/ig, '');
+	    if (msg.length % 2 !== 0)
+	      msg = '0' + msg;
+	    for (var i = 0; i < msg.length; i += 2)
+	      res.push(parseInt(msg[i] + msg[i + 1], 16));
+	  } else {
+	    for (var i = 0; i < msg.length; i++) {
+	      var c = msg.charCodeAt(i);
+	      var hi = c >> 8;
+	      var lo = c & 0xff;
+	      if (hi)
+	        res.push(hi, lo);
+	      else
+	        res.push(lo);
+	    }
 	  }
 	  return res;
 	}
 	utils.toArray = toArray;
-
-	function toHex(msg) {
-	  var res = '';
-	  for (var i = 0; i < msg.length; i++)
-	    res += zero2(msg[i].toString(16));
-	  return res;
-	}
-	utils.toHex = toHex;
-
-	function htonl(w) {
-	  var res = (w >>> 24) |
-	            ((w >>> 8) & 0xff00) |
-	            ((w << 8) & 0xff0000) |
-	            ((w & 0xff) << 24);
-	  return res >>> 0;
-	}
-	utils.htonl = htonl;
-
-	function toHex32(msg, endian) {
-	  var res = '';
-	  for (var i = 0; i < msg.length; i++) {
-	    var w = msg[i];
-	    if (endian === 'little')
-	      w = htonl(w);
-	    res += zero8(w.toString(16));
-	  }
-	  return res;
-	}
-	utils.toHex32 = toHex32;
 
 	function zero2(word) {
 	  if (word.length === 1)
@@ -22027,1086 +21702,44 @@ var EToken =
 	}
 	utils.zero2 = zero2;
 
-	function zero8(word) {
-	  if (word.length === 7)
-	    return '0' + word;
-	  else if (word.length === 6)
-	    return '00' + word;
-	  else if (word.length === 5)
-	    return '000' + word;
-	  else if (word.length === 4)
-	    return '0000' + word;
-	  else if (word.length === 3)
-	    return '00000' + word;
-	  else if (word.length === 2)
-	    return '000000' + word;
-	  else if (word.length === 1)
-	    return '0000000' + word;
-	  else
-	    return word;
-	}
-	utils.zero8 = zero8;
-
-	function join32(msg, start, end, endian) {
-	  var len = end - start;
-	  assert(len % 4 === 0);
-	  var res = new Array(len / 4);
-	  for (var i = 0, k = start; i < res.length; i++, k += 4) {
-	    var w;
-	    if (endian === 'big')
-	      w = (msg[k] << 24) | (msg[k + 1] << 16) | (msg[k + 2] << 8) | msg[k + 3];
-	    else
-	      w = (msg[k + 3] << 24) | (msg[k + 2] << 16) | (msg[k + 1] << 8) | msg[k];
-	    res[i] = w >>> 0;
-	  }
+	function toHex(msg) {
+	  var res = '';
+	  for (var i = 0; i < msg.length; i++)
+	    res += zero2(msg[i].toString(16));
 	  return res;
 	}
-	utils.join32 = join32;
+	utils.toHex = toHex;
 
-	function split32(msg, endian) {
-	  var res = new Array(msg.length * 4);
-	  for (var i = 0, k = 0; i < msg.length; i++, k += 4) {
-	    var m = msg[i];
-	    if (endian === 'big') {
-	      res[k] = m >>> 24;
-	      res[k + 1] = (m >>> 16) & 0xff;
-	      res[k + 2] = (m >>> 8) & 0xff;
-	      res[k + 3] = m & 0xff;
-	    } else {
-	      res[k + 3] = m >>> 24;
-	      res[k + 2] = (m >>> 16) & 0xff;
-	      res[k + 1] = (m >>> 8) & 0xff;
-	      res[k] = m & 0xff;
-	    }
-	  }
-	  return res;
-	}
-	utils.split32 = split32;
-
-	function rotr32(w, b) {
-	  return (w >>> b) | (w << (32 - b));
-	}
-	utils.rotr32 = rotr32;
-
-	function rotl32(w, b) {
-	  return (w << b) | (w >>> (32 - b));
-	}
-	utils.rotl32 = rotl32;
-
-	function sum32(a, b) {
-	  return (a + b) >>> 0;
-	}
-	utils.sum32 = sum32;
-
-	function sum32_3(a, b, c) {
-	  return (a + b + c) >>> 0;
-	}
-	utils.sum32_3 = sum32_3;
-
-	function sum32_4(a, b, c, d) {
-	  return (a + b + c + d) >>> 0;
-	}
-	utils.sum32_4 = sum32_4;
-
-	function sum32_5(a, b, c, d, e) {
-	  return (a + b + c + d + e) >>> 0;
-	}
-	utils.sum32_5 = sum32_5;
-
-	function assert(cond, msg) {
-	  if (!cond)
-	    throw new Error(msg || 'Assertion failed');
-	}
-	utils.assert = assert;
-
-	utils.inherits = inherits;
-
-	function sum64(buf, pos, ah, al) {
-	  var bh = buf[pos];
-	  var bl = buf[pos + 1];
-
-	  var lo = (al + bl) >>> 0;
-	  var hi = (lo < al ? 1 : 0) + ah + bh;
-	  buf[pos] = hi >>> 0;
-	  buf[pos + 1] = lo;
-	}
-	exports.sum64 = sum64;
-
-	function sum64_hi(ah, al, bh, bl) {
-	  var lo = (al + bl) >>> 0;
-	  var hi = (lo < al ? 1 : 0) + ah + bh;
-	  return hi >>> 0;
-	};
-	exports.sum64_hi = sum64_hi;
-
-	function sum64_lo(ah, al, bh, bl) {
-	  var lo = al + bl;
-	  return lo >>> 0;
-	};
-	exports.sum64_lo = sum64_lo;
-
-	function sum64_4_hi(ah, al, bh, bl, ch, cl, dh, dl) {
-	  var carry = 0;
-	  var lo = al;
-	  lo = (lo + bl) >>> 0;
-	  carry += lo < al ? 1 : 0;
-	  lo = (lo + cl) >>> 0;
-	  carry += lo < cl ? 1 : 0;
-	  lo = (lo + dl) >>> 0;
-	  carry += lo < dl ? 1 : 0;
-
-	  var hi = ah + bh + ch + dh + carry;
-	  return hi >>> 0;
-	};
-	exports.sum64_4_hi = sum64_4_hi;
-
-	function sum64_4_lo(ah, al, bh, bl, ch, cl, dh, dl) {
-	  var lo = al + bl + cl + dl;
-	  return lo >>> 0;
-	};
-	exports.sum64_4_lo = sum64_4_lo;
-
-	function sum64_5_hi(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
-	  var carry = 0;
-	  var lo = al;
-	  lo = (lo + bl) >>> 0;
-	  carry += lo < al ? 1 : 0;
-	  lo = (lo + cl) >>> 0;
-	  carry += lo < cl ? 1 : 0;
-	  lo = (lo + dl) >>> 0;
-	  carry += lo < dl ? 1 : 0;
-	  lo = (lo + el) >>> 0;
-	  carry += lo < el ? 1 : 0;
-
-	  var hi = ah + bh + ch + dh + eh + carry;
-	  return hi >>> 0;
-	};
-	exports.sum64_5_hi = sum64_5_hi;
-
-	function sum64_5_lo(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
-	  var lo = al + bl + cl + dl + el;
-
-	  return lo >>> 0;
-	};
-	exports.sum64_5_lo = sum64_5_lo;
-
-	function rotr64_hi(ah, al, num) {
-	  var r = (al << (32 - num)) | (ah >>> num);
-	  return r >>> 0;
-	};
-	exports.rotr64_hi = rotr64_hi;
-
-	function rotr64_lo(ah, al, num) {
-	  var r = (ah << (32 - num)) | (al >>> num);
-	  return r >>> 0;
-	};
-	exports.rotr64_lo = rotr64_lo;
-
-	function shr64_hi(ah, al, num) {
-	  return ah >>> num;
-	};
-	exports.shr64_hi = shr64_hi;
-
-	function shr64_lo(ah, al, num) {
-	  var r = (ah << (32 - num)) | (al >>> num);
-	  return r >>> 0;
-	};
-	exports.shr64_lo = shr64_lo;
-
-
-/***/ },
-/* 136 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hash = __webpack_require__(134);
-	var utils = hash.utils;
-	var assert = utils.assert;
-
-	function BlockHash() {
-	  this.pending = null;
-	  this.pendingTotal = 0;
-	  this.blockSize = this.constructor.blockSize;
-	  this.outSize = this.constructor.outSize;
-	  this.hmacStrength = this.constructor.hmacStrength;
-	  this.padLength = this.constructor.padLength / 8;
-	  this.endian = 'big';
-
-	  this._delta8 = this.blockSize / 8;
-	  this._delta32 = this.blockSize / 32;
-	}
-	exports.BlockHash = BlockHash;
-
-	BlockHash.prototype.update = function update(msg, enc) {
-	  // Convert message to array, pad it, and join into 32bit blocks
-	  msg = utils.toArray(msg, enc);
-	  if (!this.pending)
-	    this.pending = msg;
+	utils.encode = function encode(arr, enc) {
+	  if (enc === 'hex')
+	    return toHex(arr);
 	  else
-	    this.pending = this.pending.concat(msg);
-	  this.pendingTotal += msg.length;
-
-	  // Enough data, try updating
-	  if (this.pending.length >= this._delta8) {
-	    msg = this.pending;
-
-	    // Process pending data in blocks
-	    var r = msg.length % this._delta8;
-	    this.pending = msg.slice(msg.length - r, msg.length);
-	    if (this.pending.length === 0)
-	      this.pending = null;
-
-	    msg = utils.join32(msg, 0, msg.length - r, this.endian);
-	    for (var i = 0; i < msg.length; i += this._delta32)
-	      this._update(msg, i, i + this._delta32);
-	  }
-
-	  return this;
-	};
-
-	BlockHash.prototype.digest = function digest(enc) {
-	  this.update(this._pad());
-	  assert(this.pending === null);
-
-	  return this._digest(enc);
-	};
-
-	BlockHash.prototype._pad = function pad() {
-	  var len = this.pendingTotal;
-	  var bytes = this._delta8;
-	  var k = bytes - ((len + this.padLength) % bytes);
-	  var res = new Array(k + this.padLength);
-	  res[0] = 0x80;
-	  for (var i = 1; i < k; i++)
-	    res[i] = 0;
-
-	  // Append length
-	  len <<= 3;
-	  if (this.endian === 'big') {
-	    for (var t = 8; t < this.padLength; t++)
-	      res[i++] = 0;
-
-	    res[i++] = 0;
-	    res[i++] = 0;
-	    res[i++] = 0;
-	    res[i++] = 0;
-	    res[i++] = (len >>> 24) & 0xff;
-	    res[i++] = (len >>> 16) & 0xff;
-	    res[i++] = (len >>> 8) & 0xff;
-	    res[i++] = len & 0xff;
-	  } else {
-	    res[i++] = len & 0xff;
-	    res[i++] = (len >>> 8) & 0xff;
-	    res[i++] = (len >>> 16) & 0xff;
-	    res[i++] = (len >>> 24) & 0xff;
-	    res[i++] = 0;
-	    res[i++] = 0;
-	    res[i++] = 0;
-	    res[i++] = 0;
-
-	    for (var t = 8; t < this.padLength; t++)
-	      res[i++] = 0;
-	  }
-
-	  return res;
+	    return arr;
 	};
 
 
 /***/ },
-/* 137 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hash = __webpack_require__(134);
-	var utils = hash.utils;
-	var assert = utils.assert;
-
-	var rotr32 = utils.rotr32;
-	var rotl32 = utils.rotl32;
-	var sum32 = utils.sum32;
-	var sum32_4 = utils.sum32_4;
-	var sum32_5 = utils.sum32_5;
-	var rotr64_hi = utils.rotr64_hi;
-	var rotr64_lo = utils.rotr64_lo;
-	var shr64_hi = utils.shr64_hi;
-	var shr64_lo = utils.shr64_lo;
-	var sum64 = utils.sum64;
-	var sum64_hi = utils.sum64_hi;
-	var sum64_lo = utils.sum64_lo;
-	var sum64_4_hi = utils.sum64_4_hi;
-	var sum64_4_lo = utils.sum64_4_lo;
-	var sum64_5_hi = utils.sum64_5_hi;
-	var sum64_5_lo = utils.sum64_5_lo;
-	var BlockHash = hash.common.BlockHash;
-
-	var sha256_K = [
-	  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-	  0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-	  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-	  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-	  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-	  0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-	  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-	  0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-	  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-	  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-	  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-	  0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-	  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-	  0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-	  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-	  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-	];
-
-	var sha512_K = [
-	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
-	  0xb5c0fbcf, 0xec4d3b2f, 0xe9b5dba5, 0x8189dbbc,
-	  0x3956c25b, 0xf348b538, 0x59f111f1, 0xb605d019,
-	  0x923f82a4, 0xaf194f9b, 0xab1c5ed5, 0xda6d8118,
-	  0xd807aa98, 0xa3030242, 0x12835b01, 0x45706fbe,
-	  0x243185be, 0x4ee4b28c, 0x550c7dc3, 0xd5ffb4e2,
-	  0x72be5d74, 0xf27b896f, 0x80deb1fe, 0x3b1696b1,
-	  0x9bdc06a7, 0x25c71235, 0xc19bf174, 0xcf692694,
-	  0xe49b69c1, 0x9ef14ad2, 0xefbe4786, 0x384f25e3,
-	  0x0fc19dc6, 0x8b8cd5b5, 0x240ca1cc, 0x77ac9c65,
-	  0x2de92c6f, 0x592b0275, 0x4a7484aa, 0x6ea6e483,
-	  0x5cb0a9dc, 0xbd41fbd4, 0x76f988da, 0x831153b5,
-	  0x983e5152, 0xee66dfab, 0xa831c66d, 0x2db43210,
-	  0xb00327c8, 0x98fb213f, 0xbf597fc7, 0xbeef0ee4,
-	  0xc6e00bf3, 0x3da88fc2, 0xd5a79147, 0x930aa725,
-	  0x06ca6351, 0xe003826f, 0x14292967, 0x0a0e6e70,
-	  0x27b70a85, 0x46d22ffc, 0x2e1b2138, 0x5c26c926,
-	  0x4d2c6dfc, 0x5ac42aed, 0x53380d13, 0x9d95b3df,
-	  0x650a7354, 0x8baf63de, 0x766a0abb, 0x3c77b2a8,
-	  0x81c2c92e, 0x47edaee6, 0x92722c85, 0x1482353b,
-	  0xa2bfe8a1, 0x4cf10364, 0xa81a664b, 0xbc423001,
-	  0xc24b8b70, 0xd0f89791, 0xc76c51a3, 0x0654be30,
-	  0xd192e819, 0xd6ef5218, 0xd6990624, 0x5565a910,
-	  0xf40e3585, 0x5771202a, 0x106aa070, 0x32bbd1b8,
-	  0x19a4c116, 0xb8d2d0c8, 0x1e376c08, 0x5141ab53,
-	  0x2748774c, 0xdf8eeb99, 0x34b0bcb5, 0xe19b48a8,
-	  0x391c0cb3, 0xc5c95a63, 0x4ed8aa4a, 0xe3418acb,
-	  0x5b9cca4f, 0x7763e373, 0x682e6ff3, 0xd6b2b8a3,
-	  0x748f82ee, 0x5defb2fc, 0x78a5636f, 0x43172f60,
-	  0x84c87814, 0xa1f0ab72, 0x8cc70208, 0x1a6439ec,
-	  0x90befffa, 0x23631e28, 0xa4506ceb, 0xde82bde9,
-	  0xbef9a3f7, 0xb2c67915, 0xc67178f2, 0xe372532b,
-	  0xca273ece, 0xea26619c, 0xd186b8c7, 0x21c0c207,
-	  0xeada7dd6, 0xcde0eb1e, 0xf57d4f7f, 0xee6ed178,
-	  0x06f067aa, 0x72176fba, 0x0a637dc5, 0xa2c898a6,
-	  0x113f9804, 0xbef90dae, 0x1b710b35, 0x131c471b,
-	  0x28db77f5, 0x23047d84, 0x32caab7b, 0x40c72493,
-	  0x3c9ebe0a, 0x15c9bebc, 0x431d67c4, 0x9c100d4c,
-	  0x4cc5d4be, 0xcb3e42b6, 0x597f299c, 0xfc657e2a,
-	  0x5fcb6fab, 0x3ad6faec, 0x6c44198c, 0x4a475817
-	];
-
-	var sha1_K = [
-	  0x5A827999, 0x6ED9EBA1,
-	  0x8F1BBCDC, 0xCA62C1D6
-	];
-
-	function SHA256() {
-	  if (!(this instanceof SHA256))
-	    return new SHA256();
-
-	  BlockHash.call(this);
-	  this.h = [ 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-	             0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 ];
-	  this.k = sha256_K;
-	  this.W = new Array(64);
-	}
-	utils.inherits(SHA256, BlockHash);
-	exports.sha256 = SHA256;
-
-	SHA256.blockSize = 512;
-	SHA256.outSize = 256;
-	SHA256.hmacStrength = 192;
-	SHA256.padLength = 64;
-
-	SHA256.prototype._update = function _update(msg, start) {
-	  var W = this.W;
-
-	  for (var i = 0; i < 16; i++)
-	    W[i] = msg[start + i];
-	  for (; i < W.length; i++)
-	    W[i] = sum32_4(g1_256(W[i - 2]), W[i - 7], g0_256(W[i - 15]), W[i - 16]);
-
-	  var a = this.h[0];
-	  var b = this.h[1];
-	  var c = this.h[2];
-	  var d = this.h[3];
-	  var e = this.h[4];
-	  var f = this.h[5];
-	  var g = this.h[6];
-	  var h = this.h[7];
-
-	  assert(this.k.length === W.length);
-	  for (var i = 0; i < W.length; i++) {
-	    var T1 = sum32_5(h, s1_256(e), ch32(e, f, g), this.k[i], W[i]);
-	    var T2 = sum32(s0_256(a), maj32(a, b, c));
-	    h = g;
-	    g = f;
-	    f = e;
-	    e = sum32(d, T1);
-	    d = c;
-	    c = b;
-	    b = a;
-	    a = sum32(T1, T2);
-	  }
-
-	  this.h[0] = sum32(this.h[0], a);
-	  this.h[1] = sum32(this.h[1], b);
-	  this.h[2] = sum32(this.h[2], c);
-	  this.h[3] = sum32(this.h[3], d);
-	  this.h[4] = sum32(this.h[4], e);
-	  this.h[5] = sum32(this.h[5], f);
-	  this.h[6] = sum32(this.h[6], g);
-	  this.h[7] = sum32(this.h[7], h);
-	};
-
-	SHA256.prototype._digest = function digest(enc) {
-	  if (enc === 'hex')
-	    return utils.toHex32(this.h, 'big');
-	  else
-	    return utils.split32(this.h, 'big');
-	};
-
-	function SHA224() {
-	  if (!(this instanceof SHA224))
-	    return new SHA224();
-
-	  SHA256.call(this);
-	  this.h = [ 0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
-	             0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4 ];
-	}
-	utils.inherits(SHA224, SHA256);
-	exports.sha224 = SHA224;
-
-	SHA224.blockSize = 512;
-	SHA224.outSize = 224;
-	SHA224.hmacStrength = 192;
-	SHA224.padLength = 64;
-
-	SHA224.prototype._digest = function digest(enc) {
-	  // Just truncate output
-	  if (enc === 'hex')
-	    return utils.toHex32(this.h.slice(0, 7), 'big');
-	  else
-	    return utils.split32(this.h.slice(0, 7), 'big');
-	};
-
-	function SHA512() {
-	  if (!(this instanceof SHA512))
-	    return new SHA512();
-
-	  BlockHash.call(this);
-	  this.h = [ 0x6a09e667, 0xf3bcc908,
-	             0xbb67ae85, 0x84caa73b,
-	             0x3c6ef372, 0xfe94f82b,
-	             0xa54ff53a, 0x5f1d36f1,
-	             0x510e527f, 0xade682d1,
-	             0x9b05688c, 0x2b3e6c1f,
-	             0x1f83d9ab, 0xfb41bd6b,
-	             0x5be0cd19, 0x137e2179 ];
-	  this.k = sha512_K;
-	  this.W = new Array(160);
-	}
-	utils.inherits(SHA512, BlockHash);
-	exports.sha512 = SHA512;
-
-	SHA512.blockSize = 1024;
-	SHA512.outSize = 512;
-	SHA512.hmacStrength = 192;
-	SHA512.padLength = 128;
-
-	SHA512.prototype._prepareBlock = function _prepareBlock(msg, start) {
-	  var W = this.W;
-
-	  // 32 x 32bit words
-	  for (var i = 0; i < 32; i++)
-	    W[i] = msg[start + i];
-	  for (; i < W.length; i += 2) {
-	    var c0_hi = g1_512_hi(W[i - 4], W[i - 3]);  // i - 2
-	    var c0_lo = g1_512_lo(W[i - 4], W[i - 3]);
-	    var c1_hi = W[i - 14];  // i - 7
-	    var c1_lo = W[i - 13];
-	    var c2_hi = g0_512_hi(W[i - 30], W[i - 29]);  // i - 15
-	    var c2_lo = g0_512_lo(W[i - 30], W[i - 29]);
-	    var c3_hi = W[i - 32];  // i - 16
-	    var c3_lo = W[i - 31];
-
-	    W[i] = sum64_4_hi(c0_hi, c0_lo,
-	                      c1_hi, c1_lo,
-	                      c2_hi, c2_lo,
-	                      c3_hi, c3_lo);
-	    W[i + 1] = sum64_4_lo(c0_hi, c0_lo,
-	                          c1_hi, c1_lo,
-	                          c2_hi, c2_lo,
-	                          c3_hi, c3_lo);
-	  }
-	};
-
-	SHA512.prototype._update = function _update(msg, start) {
-	  this._prepareBlock(msg, start);
-
-	  var W = this.W;
-
-	  var ah = this.h[0];
-	  var al = this.h[1];
-	  var bh = this.h[2];
-	  var bl = this.h[3];
-	  var ch = this.h[4];
-	  var cl = this.h[5];
-	  var dh = this.h[6];
-	  var dl = this.h[7];
-	  var eh = this.h[8];
-	  var el = this.h[9];
-	  var fh = this.h[10];
-	  var fl = this.h[11];
-	  var gh = this.h[12];
-	  var gl = this.h[13];
-	  var hh = this.h[14];
-	  var hl = this.h[15];
-
-	  assert(this.k.length === W.length);
-	  for (var i = 0; i < W.length; i += 2) {
-	    var c0_hi = hh;
-	    var c0_lo = hl;
-	    var c1_hi = s1_512_hi(eh, el);
-	    var c1_lo = s1_512_lo(eh, el);
-	    var c2_hi = ch64_hi(eh, el, fh, fl, gh, gl);
-	    var c2_lo = ch64_lo(eh, el, fh, fl, gh, gl);
-	    var c3_hi = this.k[i];
-	    var c3_lo = this.k[i + 1];
-	    var c4_hi = W[i];
-	    var c4_lo = W[i + 1];
-
-	    var T1_hi = sum64_5_hi(c0_hi, c0_lo,
-	                           c1_hi, c1_lo,
-	                           c2_hi, c2_lo,
-	                           c3_hi, c3_lo,
-	                           c4_hi, c4_lo);
-	    var T1_lo = sum64_5_lo(c0_hi, c0_lo,
-	                           c1_hi, c1_lo,
-	                           c2_hi, c2_lo,
-	                           c3_hi, c3_lo,
-	                           c4_hi, c4_lo);
-
-	    var c0_hi = s0_512_hi(ah, al);
-	    var c0_lo = s0_512_lo(ah, al);
-	    var c1_hi = maj64_hi(ah, al, bh, bl, ch, cl);
-	    var c1_lo = maj64_lo(ah, al, bh, bl, ch, cl);
-
-	    var T2_hi = sum64_hi(c0_hi, c0_lo, c1_hi, c1_lo);
-	    var T2_lo = sum64_lo(c0_hi, c0_lo, c1_hi, c1_lo);
-
-	    hh = gh;
-	    hl = gl;
-
-	    gh = fh;
-	    gl = fl;
-
-	    fh = eh;
-	    fl = el;
-
-	    eh = sum64_hi(dh, dl, T1_hi, T1_lo);
-	    el = sum64_lo(dl, dl, T1_hi, T1_lo);
-
-	    dh = ch;
-	    dl = cl;
-
-	    ch = bh;
-	    cl = bl;
-
-	    bh = ah;
-	    bl = al;
-
-	    ah = sum64_hi(T1_hi, T1_lo, T2_hi, T2_lo);
-	    al = sum64_lo(T1_hi, T1_lo, T2_hi, T2_lo);
-	  }
-
-	  sum64(this.h, 0, ah, al);
-	  sum64(this.h, 2, bh, bl);
-	  sum64(this.h, 4, ch, cl);
-	  sum64(this.h, 6, dh, dl);
-	  sum64(this.h, 8, eh, el);
-	  sum64(this.h, 10, fh, fl);
-	  sum64(this.h, 12, gh, gl);
-	  sum64(this.h, 14, hh, hl);
-	};
-
-	SHA512.prototype._digest = function digest(enc) {
-	  if (enc === 'hex')
-	    return utils.toHex32(this.h, 'big');
-	  else
-	    return utils.split32(this.h, 'big');
-	};
-
-	function SHA384() {
-	  if (!(this instanceof SHA384))
-	    return new SHA384();
-
-	  SHA512.call(this);
-	  this.h = [ 0xcbbb9d5d, 0xc1059ed8,
-	             0x629a292a, 0x367cd507,
-	             0x9159015a, 0x3070dd17,
-	             0x152fecd8, 0xf70e5939,
-	             0x67332667, 0xffc00b31,
-	             0x8eb44a87, 0x68581511,
-	             0xdb0c2e0d, 0x64f98fa7,
-	             0x47b5481d, 0xbefa4fa4 ];
-	}
-	utils.inherits(SHA384, SHA512);
-	exports.sha384 = SHA384;
-
-	SHA384.blockSize = 1024;
-	SHA384.outSize = 384;
-	SHA384.hmacStrength = 192;
-	SHA384.padLength = 128;
-
-	SHA384.prototype._digest = function digest(enc) {
-	  if (enc === 'hex')
-	    return utils.toHex32(this.h.slice(0, 12), 'big');
-	  else
-	    return utils.split32(this.h.slice(0, 12), 'big');
-	};
-
-	function SHA1() {
-	  if (!(this instanceof SHA1))
-	    return new SHA1();
-
-	  BlockHash.call(this);
-	  this.h = [ 0x67452301, 0xefcdab89, 0x98badcfe,
-	             0x10325476, 0xc3d2e1f0 ];
-	  this.W = new Array(80);
-	}
-
-	utils.inherits(SHA1, BlockHash);
-	exports.sha1 = SHA1;
-
-	SHA1.blockSize = 512;
-	SHA1.outSize = 160;
-	SHA1.hmacStrength = 80;
-	SHA1.padLength = 64;
-
-	SHA1.prototype._update = function _update(msg, start) {
-	  var W = this.W;
-
-	  for (var i = 0; i < 16; i++)
-	    W[i] = msg[start + i];
-
-	  for(; i < W.length; i++)
-	    W[i] = rotl32(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
-
-	  var a = this.h[0];
-	  var b = this.h[1];
-	  var c = this.h[2];
-	  var d = this.h[3];
-	  var e = this.h[4];
-
-	  for (var i = 0; i < W.length; i++) {
-	    var s = ~~(i / 20);
-	    var t = sum32_5(rotl32(a, 5), ft_1(s, b, c, d), e, W[i], sha1_K[s]);
-	    e = d;
-	    d = c;
-	    c = rotl32(b, 30);
-	    b = a;
-	    a = t;
-	  }
-
-	  this.h[0] = sum32(this.h[0], a);
-	  this.h[1] = sum32(this.h[1], b);
-	  this.h[2] = sum32(this.h[2], c);
-	  this.h[3] = sum32(this.h[3], d);
-	  this.h[4] = sum32(this.h[4], e);
-	};
-
-	SHA1.prototype._digest = function digest(enc) {
-	  if (enc === 'hex')
-	    return utils.toHex32(this.h, 'big');
-	  else
-	    return utils.split32(this.h, 'big');
-	};
-
-	function ch32(x, y, z) {
-	  return (x & y) ^ ((~x) & z);
-	}
-
-	function maj32(x, y, z) {
-	  return (x & y) ^ (x & z) ^ (y & z);
-	}
-
-	function p32(x, y, z) {
-	  return x ^ y ^ z;
-	}
-
-	function s0_256(x) {
-	  return rotr32(x, 2) ^ rotr32(x, 13) ^ rotr32(x, 22);
-	}
-
-	function s1_256(x) {
-	  return rotr32(x, 6) ^ rotr32(x, 11) ^ rotr32(x, 25);
-	}
-
-	function g0_256(x) {
-	  return rotr32(x, 7) ^ rotr32(x, 18) ^ (x >>> 3);
-	}
-
-	function g1_256(x) {
-	  return rotr32(x, 17) ^ rotr32(x, 19) ^ (x >>> 10);
-	}
-
-	function ft_1(s, x, y, z) {
-	  if (s === 0)
-	    return ch32(x, y, z);
-	  if (s === 1 || s === 3)
-	    return p32(x, y, z);
-	  if (s === 2)
-	    return maj32(x, y, z);
-	}
-
-	function ch64_hi(xh, xl, yh, yl, zh, zl) {
-	  var r = (xh & yh) ^ ((~xh) & zh);
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function ch64_lo(xh, xl, yh, yl, zh, zl) {
-	  var r = (xl & yl) ^ ((~xl) & zl);
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function maj64_hi(xh, xl, yh, yl, zh, zl) {
-	  var r = (xh & yh) ^ (xh & zh) ^ (yh & zh);
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function maj64_lo(xh, xl, yh, yl, zh, zl) {
-	  var r = (xl & yl) ^ (xl & zl) ^ (yl & zl);
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function s0_512_hi(xh, xl) {
-	  var c0_hi = rotr64_hi(xh, xl, 28);
-	  var c1_hi = rotr64_hi(xl, xh, 2);  // 34
-	  var c2_hi = rotr64_hi(xl, xh, 7);  // 39
-
-	  var r = c0_hi ^ c1_hi ^ c2_hi;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function s0_512_lo(xh, xl) {
-	  var c0_lo = rotr64_lo(xh, xl, 28);
-	  var c1_lo = rotr64_lo(xl, xh, 2);  // 34
-	  var c2_lo = rotr64_lo(xl, xh, 7);  // 39
-
-	  var r = c0_lo ^ c1_lo ^ c2_lo;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function s1_512_hi(xh, xl) {
-	  var c0_hi = rotr64_hi(xh, xl, 14);
-	  var c1_hi = rotr64_hi(xh, xl, 18);
-	  var c2_hi = rotr64_hi(xl, xh, 9);  // 41
-
-	  var r = c0_hi ^ c1_hi ^ c2_hi;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function s1_512_lo(xh, xl) {
-	  var c0_lo = rotr64_lo(xh, xl, 14);
-	  var c1_lo = rotr64_lo(xh, xl, 18);
-	  var c2_lo = rotr64_lo(xl, xh, 9);  // 41
-
-	  var r = c0_lo ^ c1_lo ^ c2_lo;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function g0_512_hi(xh, xl) {
-	  var c0_hi = rotr64_hi(xh, xl, 1);
-	  var c1_hi = rotr64_hi(xh, xl, 8);
-	  var c2_hi = shr64_hi(xh, xl, 7);
-
-	  var r = c0_hi ^ c1_hi ^ c2_hi;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function g0_512_lo(xh, xl) {
-	  var c0_lo = rotr64_lo(xh, xl, 1);
-	  var c1_lo = rotr64_lo(xh, xl, 8);
-	  var c2_lo = shr64_lo(xh, xl, 7);
-
-	  var r = c0_lo ^ c1_lo ^ c2_lo;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function g1_512_hi(xh, xl) {
-	  var c0_hi = rotr64_hi(xh, xl, 19);
-	  var c1_hi = rotr64_hi(xl, xh, 29);  // 61
-	  var c2_hi = shr64_hi(xh, xl, 6);
-
-	  var r = c0_hi ^ c1_hi ^ c2_hi;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-	function g1_512_lo(xh, xl) {
-	  var c0_lo = rotr64_lo(xh, xl, 19);
-	  var c1_lo = rotr64_lo(xl, xh, 29);  // 61
-	  var c2_lo = shr64_lo(xh, xl, 6);
-
-	  var r = c0_lo ^ c1_lo ^ c2_lo;
-	  if (r < 0)
-	    r += 0x100000000;
-	  return r;
-	}
-
-
-/***/ },
-/* 138 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hash = __webpack_require__(134);
-	var utils = hash.utils;
-
-	var rotl32 = utils.rotl32;
-	var sum32 = utils.sum32;
-	var sum32_3 = utils.sum32_3;
-	var sum32_4 = utils.sum32_4;
-	var BlockHash = hash.common.BlockHash;
-
-	function RIPEMD160() {
-	  if (!(this instanceof RIPEMD160))
-	    return new RIPEMD160();
-
-	  BlockHash.call(this);
-
-	  this.h = [ 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 ];
-	  this.endian = 'little';
-	}
-	utils.inherits(RIPEMD160, BlockHash);
-	exports.ripemd160 = RIPEMD160;
-
-	RIPEMD160.blockSize = 512;
-	RIPEMD160.outSize = 160;
-	RIPEMD160.hmacStrength = 192;
-	RIPEMD160.padLength = 64;
-
-	RIPEMD160.prototype._update = function update(msg, start) {
-	  var A = this.h[0];
-	  var B = this.h[1];
-	  var C = this.h[2];
-	  var D = this.h[3];
-	  var E = this.h[4];
-	  var Ah = A;
-	  var Bh = B;
-	  var Ch = C;
-	  var Dh = D;
-	  var Eh = E;
-	  for (var j = 0; j < 80; j++) {
-	    var T = sum32(
-	      rotl32(
-	        sum32_4(A, f(j, B, C, D), msg[r[j] + start], K(j)),
-	        s[j]),
-	      E);
-	    A = E;
-	    E = D;
-	    D = rotl32(C, 10);
-	    C = B;
-	    B = T;
-	    T = sum32(
-	      rotl32(
-	        sum32_4(Ah, f(79 - j, Bh, Ch, Dh), msg[rh[j] + start], Kh(j)),
-	        sh[j]),
-	      Eh);
-	    Ah = Eh;
-	    Eh = Dh;
-	    Dh = rotl32(Ch, 10);
-	    Ch = Bh;
-	    Bh = T;
-	  }
-	  T = sum32_3(this.h[1], C, Dh);
-	  this.h[1] = sum32_3(this.h[2], D, Eh);
-	  this.h[2] = sum32_3(this.h[3], E, Ah);
-	  this.h[3] = sum32_3(this.h[4], A, Bh);
-	  this.h[4] = sum32_3(this.h[0], B, Ch);
-	  this.h[0] = T;
-	};
-
-	RIPEMD160.prototype._digest = function digest(enc) {
-	  if (enc === 'hex')
-	    return utils.toHex32(this.h, 'little');
-	  else
-	    return utils.split32(this.h, 'little');
-	};
-
-	function f(j, x, y, z) {
-	  if (j <= 15)
-	    return x ^ y ^ z;
-	  else if (j <= 31)
-	    return (x & y) | ((~x) & z);
-	  else if (j <= 47)
-	    return (x | (~y)) ^ z;
-	  else if (j <= 63)
-	    return (x & z) | (y & (~z));
-	  else
-	    return x ^ (y | (~z));
-	}
-
-	function K(j) {
-	  if (j <= 15)
-	    return 0x00000000;
-	  else if (j <= 31)
-	    return 0x5a827999;
-	  else if (j <= 47)
-	    return 0x6ed9eba1;
-	  else if (j <= 63)
-	    return 0x8f1bbcdc;
-	  else
-	    return 0xa953fd4e;
-	}
-
-	function Kh(j) {
-	  if (j <= 15)
-	    return 0x50a28be6;
-	  else if (j <= 31)
-	    return 0x5c4dd124;
-	  else if (j <= 47)
-	    return 0x6d703ef3;
-	  else if (j <= 63)
-	    return 0x7a6d76e9;
-	  else
-	    return 0x00000000;
-	}
-
-	var r = [
-	  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-	  7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8,
-	  3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12,
-	  1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2,
-	  4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13
-	];
-
-	var rh = [
-	  5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12,
-	  6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2,
-	  15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13,
-	  8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14,
-	  12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11
-	];
-
-	var s = [
-	  11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8,
-	  7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12,
-	  11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5,
-	  11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12,
-	  9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6
-	];
-
-	var sh = [
-	  8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6,
-	  9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11,
-	  9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5,
-	  15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8,
-	  8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
-	];
-
-
-/***/ },
-/* 139 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var hmac = exports;
-
-	var hash = __webpack_require__(134);
-	var utils = hash.utils;
-	var assert = utils.assert;
-
-	function Hmac(hash, key, enc) {
-	  if (!(this instanceof Hmac))
-	    return new Hmac(hash, key, enc);
-	  this.Hash = hash;
-	  this.blockSize = hash.blockSize / 8;
-	  this.outSize = hash.outSize / 8;
-	  this.inner = null;
-	  this.outer = null;
-
-	  this._init(utils.toArray(key, enc));
-	}
-	module.exports = Hmac;
-
-	Hmac.prototype._init = function init(key) {
-	  // Shorten key, if needed
-	  if (key.length > this.blockSize)
-	    key = new this.Hash().update(key).digest();
-	  assert(key.length <= this.blockSize);
-
-	  // Add padding to key
-	  for (var i = key.length; i < this.blockSize; i++)
-	    key.push(0);
-
-	  for (var i = 0; i < key.length; i++)
-	    key[i] ^= 0x36;
-	  this.inner = new this.Hash().update(key);
-
-	  // 0x36 ^ 0x5c = 0x6a
-	  for (var i = 0; i < key.length; i++)
-	    key[i] ^= 0x6a;
-	  this.outer = new this.Hash().update(key);
-	};
-
-	Hmac.prototype.update = function update(msg, enc) {
-	  this.inner.update(msg, enc);
-	  return this;
-	};
-
-	Hmac.prototype.digest = function digest(enc) {
-	  this.outer.update(this.inner.digest());
-	  return this.outer.digest(enc);
-	};
-
-
-/***/ },
-/* 140 */
+/* 133 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var curve = exports;
 
-	curve.base = __webpack_require__(141);
-	curve.short = __webpack_require__(142);
-	curve.mont = __webpack_require__(143);
-	curve.edwards = __webpack_require__(144);
+	curve.base = __webpack_require__(134);
+	curve.short = __webpack_require__(135);
+	curve.mont = __webpack_require__(136);
+	curve.edwards = __webpack_require__(137);
 
 
 /***/ },
-/* 141 */
+/* 134 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var BN = __webpack_require__(119);
-	var elliptic = __webpack_require__(130);
+	var BN = __webpack_require__(118);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 	var getNAF = utils.getNAF;
 	var getJSF = utils.getJSF;
@@ -23481,15 +22114,15 @@ var EToken =
 
 
 /***/ },
-/* 142 */
+/* 135 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var curve = __webpack_require__(140);
-	var elliptic = __webpack_require__(130);
-	var BN = __webpack_require__(119);
-	var inherits = __webpack_require__(19);
+	var curve = __webpack_require__(133);
+	var elliptic = __webpack_require__(129);
+	var BN = __webpack_require__(118);
+	var inherits = __webpack_require__(20);
 	var Base = curve.base;
 
 	var assert = elliptic.utils.assert;
@@ -24425,17 +23058,17 @@ var EToken =
 
 
 /***/ },
-/* 143 */
+/* 136 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var curve = __webpack_require__(140);
-	var BN = __webpack_require__(119);
-	var inherits = __webpack_require__(19);
+	var curve = __webpack_require__(133);
+	var BN = __webpack_require__(118);
+	var inherits = __webpack_require__(20);
 	var Base = curve.base;
 
-	var elliptic = __webpack_require__(130);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 
 	function MontCurve(conf) {
@@ -24611,15 +23244,15 @@ var EToken =
 
 
 /***/ },
-/* 144 */
+/* 137 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var curve = __webpack_require__(140);
-	var elliptic = __webpack_require__(130);
-	var BN = __webpack_require__(119);
-	var inherits = __webpack_require__(19);
+	var curve = __webpack_require__(133);
+	var elliptic = __webpack_require__(129);
+	var BN = __webpack_require__(118);
+	var inherits = __webpack_require__(20);
 	var Base = curve.base;
 
 	var assert = elliptic.utils.assert;
@@ -25050,15 +23683,15 @@ var EToken =
 
 
 /***/ },
-/* 145 */
+/* 138 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var curves = exports;
 
-	var hash = __webpack_require__(134);
-	var elliptic = __webpack_require__(130);
+	var hash = __webpack_require__(139);
+	var elliptic = __webpack_require__(129);
 
 	var assert = elliptic.utils.assert;
 
@@ -25192,7 +23825,7 @@ var EToken =
 	  prime: 'p25519',
 	  p: '7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed',
 	  a: '76d06',
-	  b: '0',
+	  b: '1',
 	  n: '1000000000000000 0000000000000000 14def9dea2f79cd6 5812631a5cf5d3ed',
 	  hash: hash.sha256,
 	  gRed: false,
@@ -25222,7 +23855,7 @@ var EToken =
 
 	var pre;
 	try {
-	  pre = __webpack_require__(146);
+	  pre = __webpack_require__(145);
 	} catch (e) {
 	  pre = undefined;
 	}
@@ -25261,7 +23894,1162 @@ var EToken =
 
 
 /***/ },
-/* 146 */
+/* 139 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hash = exports;
+
+	hash.utils = __webpack_require__(140);
+	hash.common = __webpack_require__(141);
+	hash.sha = __webpack_require__(142);
+	hash.ripemd = __webpack_require__(143);
+	hash.hmac = __webpack_require__(144);
+
+	// Proxy hash functions to the main object
+	hash.sha1 = hash.sha.sha1;
+	hash.sha256 = hash.sha.sha256;
+	hash.sha224 = hash.sha.sha224;
+	hash.sha384 = hash.sha.sha384;
+	hash.sha512 = hash.sha.sha512;
+	hash.ripemd160 = hash.ripemd.ripemd160;
+
+
+/***/ },
+/* 140 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var utils = exports;
+	var inherits = __webpack_require__(20);
+
+	function toArray(msg, enc) {
+	  if (Array.isArray(msg))
+	    return msg.slice();
+	  if (!msg)
+	    return [];
+	  var res = [];
+	  if (typeof msg === 'string') {
+	    if (!enc) {
+	      for (var i = 0; i < msg.length; i++) {
+	        var c = msg.charCodeAt(i);
+	        var hi = c >> 8;
+	        var lo = c & 0xff;
+	        if (hi)
+	          res.push(hi, lo);
+	        else
+	          res.push(lo);
+	      }
+	    } else if (enc === 'hex') {
+	      msg = msg.replace(/[^a-z0-9]+/ig, '');
+	      if (msg.length % 2 !== 0)
+	        msg = '0' + msg;
+	      for (var i = 0; i < msg.length; i += 2)
+	        res.push(parseInt(msg[i] + msg[i + 1], 16));
+	    }
+	  } else {
+	    for (var i = 0; i < msg.length; i++)
+	      res[i] = msg[i] | 0;
+	  }
+	  return res;
+	}
+	utils.toArray = toArray;
+
+	function toHex(msg) {
+	  var res = '';
+	  for (var i = 0; i < msg.length; i++)
+	    res += zero2(msg[i].toString(16));
+	  return res;
+	}
+	utils.toHex = toHex;
+
+	function htonl(w) {
+	  var res = (w >>> 24) |
+	            ((w >>> 8) & 0xff00) |
+	            ((w << 8) & 0xff0000) |
+	            ((w & 0xff) << 24);
+	  return res >>> 0;
+	}
+	utils.htonl = htonl;
+
+	function toHex32(msg, endian) {
+	  var res = '';
+	  for (var i = 0; i < msg.length; i++) {
+	    var w = msg[i];
+	    if (endian === 'little')
+	      w = htonl(w);
+	    res += zero8(w.toString(16));
+	  }
+	  return res;
+	}
+	utils.toHex32 = toHex32;
+
+	function zero2(word) {
+	  if (word.length === 1)
+	    return '0' + word;
+	  else
+	    return word;
+	}
+	utils.zero2 = zero2;
+
+	function zero8(word) {
+	  if (word.length === 7)
+	    return '0' + word;
+	  else if (word.length === 6)
+	    return '00' + word;
+	  else if (word.length === 5)
+	    return '000' + word;
+	  else if (word.length === 4)
+	    return '0000' + word;
+	  else if (word.length === 3)
+	    return '00000' + word;
+	  else if (word.length === 2)
+	    return '000000' + word;
+	  else if (word.length === 1)
+	    return '0000000' + word;
+	  else
+	    return word;
+	}
+	utils.zero8 = zero8;
+
+	function join32(msg, start, end, endian) {
+	  var len = end - start;
+	  assert(len % 4 === 0);
+	  var res = new Array(len / 4);
+	  for (var i = 0, k = start; i < res.length; i++, k += 4) {
+	    var w;
+	    if (endian === 'big')
+	      w = (msg[k] << 24) | (msg[k + 1] << 16) | (msg[k + 2] << 8) | msg[k + 3];
+	    else
+	      w = (msg[k + 3] << 24) | (msg[k + 2] << 16) | (msg[k + 1] << 8) | msg[k];
+	    res[i] = w >>> 0;
+	  }
+	  return res;
+	}
+	utils.join32 = join32;
+
+	function split32(msg, endian) {
+	  var res = new Array(msg.length * 4);
+	  for (var i = 0, k = 0; i < msg.length; i++, k += 4) {
+	    var m = msg[i];
+	    if (endian === 'big') {
+	      res[k] = m >>> 24;
+	      res[k + 1] = (m >>> 16) & 0xff;
+	      res[k + 2] = (m >>> 8) & 0xff;
+	      res[k + 3] = m & 0xff;
+	    } else {
+	      res[k + 3] = m >>> 24;
+	      res[k + 2] = (m >>> 16) & 0xff;
+	      res[k + 1] = (m >>> 8) & 0xff;
+	      res[k] = m & 0xff;
+	    }
+	  }
+	  return res;
+	}
+	utils.split32 = split32;
+
+	function rotr32(w, b) {
+	  return (w >>> b) | (w << (32 - b));
+	}
+	utils.rotr32 = rotr32;
+
+	function rotl32(w, b) {
+	  return (w << b) | (w >>> (32 - b));
+	}
+	utils.rotl32 = rotl32;
+
+	function sum32(a, b) {
+	  return (a + b) >>> 0;
+	}
+	utils.sum32 = sum32;
+
+	function sum32_3(a, b, c) {
+	  return (a + b + c) >>> 0;
+	}
+	utils.sum32_3 = sum32_3;
+
+	function sum32_4(a, b, c, d) {
+	  return (a + b + c + d) >>> 0;
+	}
+	utils.sum32_4 = sum32_4;
+
+	function sum32_5(a, b, c, d, e) {
+	  return (a + b + c + d + e) >>> 0;
+	}
+	utils.sum32_5 = sum32_5;
+
+	function assert(cond, msg) {
+	  if (!cond)
+	    throw new Error(msg || 'Assertion failed');
+	}
+	utils.assert = assert;
+
+	utils.inherits = inherits;
+
+	function sum64(buf, pos, ah, al) {
+	  var bh = buf[pos];
+	  var bl = buf[pos + 1];
+
+	  var lo = (al + bl) >>> 0;
+	  var hi = (lo < al ? 1 : 0) + ah + bh;
+	  buf[pos] = hi >>> 0;
+	  buf[pos + 1] = lo;
+	}
+	exports.sum64 = sum64;
+
+	function sum64_hi(ah, al, bh, bl) {
+	  var lo = (al + bl) >>> 0;
+	  var hi = (lo < al ? 1 : 0) + ah + bh;
+	  return hi >>> 0;
+	};
+	exports.sum64_hi = sum64_hi;
+
+	function sum64_lo(ah, al, bh, bl) {
+	  var lo = al + bl;
+	  return lo >>> 0;
+	};
+	exports.sum64_lo = sum64_lo;
+
+	function sum64_4_hi(ah, al, bh, bl, ch, cl, dh, dl) {
+	  var carry = 0;
+	  var lo = al;
+	  lo = (lo + bl) >>> 0;
+	  carry += lo < al ? 1 : 0;
+	  lo = (lo + cl) >>> 0;
+	  carry += lo < cl ? 1 : 0;
+	  lo = (lo + dl) >>> 0;
+	  carry += lo < dl ? 1 : 0;
+
+	  var hi = ah + bh + ch + dh + carry;
+	  return hi >>> 0;
+	};
+	exports.sum64_4_hi = sum64_4_hi;
+
+	function sum64_4_lo(ah, al, bh, bl, ch, cl, dh, dl) {
+	  var lo = al + bl + cl + dl;
+	  return lo >>> 0;
+	};
+	exports.sum64_4_lo = sum64_4_lo;
+
+	function sum64_5_hi(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
+	  var carry = 0;
+	  var lo = al;
+	  lo = (lo + bl) >>> 0;
+	  carry += lo < al ? 1 : 0;
+	  lo = (lo + cl) >>> 0;
+	  carry += lo < cl ? 1 : 0;
+	  lo = (lo + dl) >>> 0;
+	  carry += lo < dl ? 1 : 0;
+	  lo = (lo + el) >>> 0;
+	  carry += lo < el ? 1 : 0;
+
+	  var hi = ah + bh + ch + dh + eh + carry;
+	  return hi >>> 0;
+	};
+	exports.sum64_5_hi = sum64_5_hi;
+
+	function sum64_5_lo(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
+	  var lo = al + bl + cl + dl + el;
+
+	  return lo >>> 0;
+	};
+	exports.sum64_5_lo = sum64_5_lo;
+
+	function rotr64_hi(ah, al, num) {
+	  var r = (al << (32 - num)) | (ah >>> num);
+	  return r >>> 0;
+	};
+	exports.rotr64_hi = rotr64_hi;
+
+	function rotr64_lo(ah, al, num) {
+	  var r = (ah << (32 - num)) | (al >>> num);
+	  return r >>> 0;
+	};
+	exports.rotr64_lo = rotr64_lo;
+
+	function shr64_hi(ah, al, num) {
+	  return ah >>> num;
+	};
+	exports.shr64_hi = shr64_hi;
+
+	function shr64_lo(ah, al, num) {
+	  var r = (ah << (32 - num)) | (al >>> num);
+	  return r >>> 0;
+	};
+	exports.shr64_lo = shr64_lo;
+
+
+/***/ },
+/* 141 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hash = __webpack_require__(139);
+	var utils = hash.utils;
+	var assert = utils.assert;
+
+	function BlockHash() {
+	  this.pending = null;
+	  this.pendingTotal = 0;
+	  this.blockSize = this.constructor.blockSize;
+	  this.outSize = this.constructor.outSize;
+	  this.hmacStrength = this.constructor.hmacStrength;
+	  this.padLength = this.constructor.padLength / 8;
+	  this.endian = 'big';
+
+	  this._delta8 = this.blockSize / 8;
+	  this._delta32 = this.blockSize / 32;
+	}
+	exports.BlockHash = BlockHash;
+
+	BlockHash.prototype.update = function update(msg, enc) {
+	  // Convert message to array, pad it, and join into 32bit blocks
+	  msg = utils.toArray(msg, enc);
+	  if (!this.pending)
+	    this.pending = msg;
+	  else
+	    this.pending = this.pending.concat(msg);
+	  this.pendingTotal += msg.length;
+
+	  // Enough data, try updating
+	  if (this.pending.length >= this._delta8) {
+	    msg = this.pending;
+
+	    // Process pending data in blocks
+	    var r = msg.length % this._delta8;
+	    this.pending = msg.slice(msg.length - r, msg.length);
+	    if (this.pending.length === 0)
+	      this.pending = null;
+
+	    msg = utils.join32(msg, 0, msg.length - r, this.endian);
+	    for (var i = 0; i < msg.length; i += this._delta32)
+	      this._update(msg, i, i + this._delta32);
+	  }
+
+	  return this;
+	};
+
+	BlockHash.prototype.digest = function digest(enc) {
+	  this.update(this._pad());
+	  assert(this.pending === null);
+
+	  return this._digest(enc);
+	};
+
+	BlockHash.prototype._pad = function pad() {
+	  var len = this.pendingTotal;
+	  var bytes = this._delta8;
+	  var k = bytes - ((len + this.padLength) % bytes);
+	  var res = new Array(k + this.padLength);
+	  res[0] = 0x80;
+	  for (var i = 1; i < k; i++)
+	    res[i] = 0;
+
+	  // Append length
+	  len <<= 3;
+	  if (this.endian === 'big') {
+	    for (var t = 8; t < this.padLength; t++)
+	      res[i++] = 0;
+
+	    res[i++] = 0;
+	    res[i++] = 0;
+	    res[i++] = 0;
+	    res[i++] = 0;
+	    res[i++] = (len >>> 24) & 0xff;
+	    res[i++] = (len >>> 16) & 0xff;
+	    res[i++] = (len >>> 8) & 0xff;
+	    res[i++] = len & 0xff;
+	  } else {
+	    res[i++] = len & 0xff;
+	    res[i++] = (len >>> 8) & 0xff;
+	    res[i++] = (len >>> 16) & 0xff;
+	    res[i++] = (len >>> 24) & 0xff;
+	    res[i++] = 0;
+	    res[i++] = 0;
+	    res[i++] = 0;
+	    res[i++] = 0;
+
+	    for (var t = 8; t < this.padLength; t++)
+	      res[i++] = 0;
+	  }
+
+	  return res;
+	};
+
+
+/***/ },
+/* 142 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hash = __webpack_require__(139);
+	var utils = hash.utils;
+	var assert = utils.assert;
+
+	var rotr32 = utils.rotr32;
+	var rotl32 = utils.rotl32;
+	var sum32 = utils.sum32;
+	var sum32_4 = utils.sum32_4;
+	var sum32_5 = utils.sum32_5;
+	var rotr64_hi = utils.rotr64_hi;
+	var rotr64_lo = utils.rotr64_lo;
+	var shr64_hi = utils.shr64_hi;
+	var shr64_lo = utils.shr64_lo;
+	var sum64 = utils.sum64;
+	var sum64_hi = utils.sum64_hi;
+	var sum64_lo = utils.sum64_lo;
+	var sum64_4_hi = utils.sum64_4_hi;
+	var sum64_4_lo = utils.sum64_4_lo;
+	var sum64_5_hi = utils.sum64_5_hi;
+	var sum64_5_lo = utils.sum64_5_lo;
+	var BlockHash = hash.common.BlockHash;
+
+	var sha256_K = [
+	  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+	  0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+	  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+	  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+	  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+	  0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+	  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+	  0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+	  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+	  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+	  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+	  0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+	  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+	  0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+	  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+	  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+	];
+
+	var sha512_K = [
+	  0x428a2f98, 0xd728ae22, 0x71374491, 0x23ef65cd,
+	  0xb5c0fbcf, 0xec4d3b2f, 0xe9b5dba5, 0x8189dbbc,
+	  0x3956c25b, 0xf348b538, 0x59f111f1, 0xb605d019,
+	  0x923f82a4, 0xaf194f9b, 0xab1c5ed5, 0xda6d8118,
+	  0xd807aa98, 0xa3030242, 0x12835b01, 0x45706fbe,
+	  0x243185be, 0x4ee4b28c, 0x550c7dc3, 0xd5ffb4e2,
+	  0x72be5d74, 0xf27b896f, 0x80deb1fe, 0x3b1696b1,
+	  0x9bdc06a7, 0x25c71235, 0xc19bf174, 0xcf692694,
+	  0xe49b69c1, 0x9ef14ad2, 0xefbe4786, 0x384f25e3,
+	  0x0fc19dc6, 0x8b8cd5b5, 0x240ca1cc, 0x77ac9c65,
+	  0x2de92c6f, 0x592b0275, 0x4a7484aa, 0x6ea6e483,
+	  0x5cb0a9dc, 0xbd41fbd4, 0x76f988da, 0x831153b5,
+	  0x983e5152, 0xee66dfab, 0xa831c66d, 0x2db43210,
+	  0xb00327c8, 0x98fb213f, 0xbf597fc7, 0xbeef0ee4,
+	  0xc6e00bf3, 0x3da88fc2, 0xd5a79147, 0x930aa725,
+	  0x06ca6351, 0xe003826f, 0x14292967, 0x0a0e6e70,
+	  0x27b70a85, 0x46d22ffc, 0x2e1b2138, 0x5c26c926,
+	  0x4d2c6dfc, 0x5ac42aed, 0x53380d13, 0x9d95b3df,
+	  0x650a7354, 0x8baf63de, 0x766a0abb, 0x3c77b2a8,
+	  0x81c2c92e, 0x47edaee6, 0x92722c85, 0x1482353b,
+	  0xa2bfe8a1, 0x4cf10364, 0xa81a664b, 0xbc423001,
+	  0xc24b8b70, 0xd0f89791, 0xc76c51a3, 0x0654be30,
+	  0xd192e819, 0xd6ef5218, 0xd6990624, 0x5565a910,
+	  0xf40e3585, 0x5771202a, 0x106aa070, 0x32bbd1b8,
+	  0x19a4c116, 0xb8d2d0c8, 0x1e376c08, 0x5141ab53,
+	  0x2748774c, 0xdf8eeb99, 0x34b0bcb5, 0xe19b48a8,
+	  0x391c0cb3, 0xc5c95a63, 0x4ed8aa4a, 0xe3418acb,
+	  0x5b9cca4f, 0x7763e373, 0x682e6ff3, 0xd6b2b8a3,
+	  0x748f82ee, 0x5defb2fc, 0x78a5636f, 0x43172f60,
+	  0x84c87814, 0xa1f0ab72, 0x8cc70208, 0x1a6439ec,
+	  0x90befffa, 0x23631e28, 0xa4506ceb, 0xde82bde9,
+	  0xbef9a3f7, 0xb2c67915, 0xc67178f2, 0xe372532b,
+	  0xca273ece, 0xea26619c, 0xd186b8c7, 0x21c0c207,
+	  0xeada7dd6, 0xcde0eb1e, 0xf57d4f7f, 0xee6ed178,
+	  0x06f067aa, 0x72176fba, 0x0a637dc5, 0xa2c898a6,
+	  0x113f9804, 0xbef90dae, 0x1b710b35, 0x131c471b,
+	  0x28db77f5, 0x23047d84, 0x32caab7b, 0x40c72493,
+	  0x3c9ebe0a, 0x15c9bebc, 0x431d67c4, 0x9c100d4c,
+	  0x4cc5d4be, 0xcb3e42b6, 0x597f299c, 0xfc657e2a,
+	  0x5fcb6fab, 0x3ad6faec, 0x6c44198c, 0x4a475817
+	];
+
+	var sha1_K = [
+	  0x5A827999, 0x6ED9EBA1,
+	  0x8F1BBCDC, 0xCA62C1D6
+	];
+
+	function SHA256() {
+	  if (!(this instanceof SHA256))
+	    return new SHA256();
+
+	  BlockHash.call(this);
+	  this.h = [ 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+	             0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 ];
+	  this.k = sha256_K;
+	  this.W = new Array(64);
+	}
+	utils.inherits(SHA256, BlockHash);
+	exports.sha256 = SHA256;
+
+	SHA256.blockSize = 512;
+	SHA256.outSize = 256;
+	SHA256.hmacStrength = 192;
+	SHA256.padLength = 64;
+
+	SHA256.prototype._update = function _update(msg, start) {
+	  var W = this.W;
+
+	  for (var i = 0; i < 16; i++)
+	    W[i] = msg[start + i];
+	  for (; i < W.length; i++)
+	    W[i] = sum32_4(g1_256(W[i - 2]), W[i - 7], g0_256(W[i - 15]), W[i - 16]);
+
+	  var a = this.h[0];
+	  var b = this.h[1];
+	  var c = this.h[2];
+	  var d = this.h[3];
+	  var e = this.h[4];
+	  var f = this.h[5];
+	  var g = this.h[6];
+	  var h = this.h[7];
+
+	  assert(this.k.length === W.length);
+	  for (var i = 0; i < W.length; i++) {
+	    var T1 = sum32_5(h, s1_256(e), ch32(e, f, g), this.k[i], W[i]);
+	    var T2 = sum32(s0_256(a), maj32(a, b, c));
+	    h = g;
+	    g = f;
+	    f = e;
+	    e = sum32(d, T1);
+	    d = c;
+	    c = b;
+	    b = a;
+	    a = sum32(T1, T2);
+	  }
+
+	  this.h[0] = sum32(this.h[0], a);
+	  this.h[1] = sum32(this.h[1], b);
+	  this.h[2] = sum32(this.h[2], c);
+	  this.h[3] = sum32(this.h[3], d);
+	  this.h[4] = sum32(this.h[4], e);
+	  this.h[5] = sum32(this.h[5], f);
+	  this.h[6] = sum32(this.h[6], g);
+	  this.h[7] = sum32(this.h[7], h);
+	};
+
+	SHA256.prototype._digest = function digest(enc) {
+	  if (enc === 'hex')
+	    return utils.toHex32(this.h, 'big');
+	  else
+	    return utils.split32(this.h, 'big');
+	};
+
+	function SHA224() {
+	  if (!(this instanceof SHA224))
+	    return new SHA224();
+
+	  SHA256.call(this);
+	  this.h = [ 0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
+	             0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4 ];
+	}
+	utils.inherits(SHA224, SHA256);
+	exports.sha224 = SHA224;
+
+	SHA224.blockSize = 512;
+	SHA224.outSize = 224;
+	SHA224.hmacStrength = 192;
+	SHA224.padLength = 64;
+
+	SHA224.prototype._digest = function digest(enc) {
+	  // Just truncate output
+	  if (enc === 'hex')
+	    return utils.toHex32(this.h.slice(0, 7), 'big');
+	  else
+	    return utils.split32(this.h.slice(0, 7), 'big');
+	};
+
+	function SHA512() {
+	  if (!(this instanceof SHA512))
+	    return new SHA512();
+
+	  BlockHash.call(this);
+	  this.h = [ 0x6a09e667, 0xf3bcc908,
+	             0xbb67ae85, 0x84caa73b,
+	             0x3c6ef372, 0xfe94f82b,
+	             0xa54ff53a, 0x5f1d36f1,
+	             0x510e527f, 0xade682d1,
+	             0x9b05688c, 0x2b3e6c1f,
+	             0x1f83d9ab, 0xfb41bd6b,
+	             0x5be0cd19, 0x137e2179 ];
+	  this.k = sha512_K;
+	  this.W = new Array(160);
+	}
+	utils.inherits(SHA512, BlockHash);
+	exports.sha512 = SHA512;
+
+	SHA512.blockSize = 1024;
+	SHA512.outSize = 512;
+	SHA512.hmacStrength = 192;
+	SHA512.padLength = 128;
+
+	SHA512.prototype._prepareBlock = function _prepareBlock(msg, start) {
+	  var W = this.W;
+
+	  // 32 x 32bit words
+	  for (var i = 0; i < 32; i++)
+	    W[i] = msg[start + i];
+	  for (; i < W.length; i += 2) {
+	    var c0_hi = g1_512_hi(W[i - 4], W[i - 3]);  // i - 2
+	    var c0_lo = g1_512_lo(W[i - 4], W[i - 3]);
+	    var c1_hi = W[i - 14];  // i - 7
+	    var c1_lo = W[i - 13];
+	    var c2_hi = g0_512_hi(W[i - 30], W[i - 29]);  // i - 15
+	    var c2_lo = g0_512_lo(W[i - 30], W[i - 29]);
+	    var c3_hi = W[i - 32];  // i - 16
+	    var c3_lo = W[i - 31];
+
+	    W[i] = sum64_4_hi(c0_hi, c0_lo,
+	                      c1_hi, c1_lo,
+	                      c2_hi, c2_lo,
+	                      c3_hi, c3_lo);
+	    W[i + 1] = sum64_4_lo(c0_hi, c0_lo,
+	                          c1_hi, c1_lo,
+	                          c2_hi, c2_lo,
+	                          c3_hi, c3_lo);
+	  }
+	};
+
+	SHA512.prototype._update = function _update(msg, start) {
+	  this._prepareBlock(msg, start);
+
+	  var W = this.W;
+
+	  var ah = this.h[0];
+	  var al = this.h[1];
+	  var bh = this.h[2];
+	  var bl = this.h[3];
+	  var ch = this.h[4];
+	  var cl = this.h[5];
+	  var dh = this.h[6];
+	  var dl = this.h[7];
+	  var eh = this.h[8];
+	  var el = this.h[9];
+	  var fh = this.h[10];
+	  var fl = this.h[11];
+	  var gh = this.h[12];
+	  var gl = this.h[13];
+	  var hh = this.h[14];
+	  var hl = this.h[15];
+
+	  assert(this.k.length === W.length);
+	  for (var i = 0; i < W.length; i += 2) {
+	    var c0_hi = hh;
+	    var c0_lo = hl;
+	    var c1_hi = s1_512_hi(eh, el);
+	    var c1_lo = s1_512_lo(eh, el);
+	    var c2_hi = ch64_hi(eh, el, fh, fl, gh, gl);
+	    var c2_lo = ch64_lo(eh, el, fh, fl, gh, gl);
+	    var c3_hi = this.k[i];
+	    var c3_lo = this.k[i + 1];
+	    var c4_hi = W[i];
+	    var c4_lo = W[i + 1];
+
+	    var T1_hi = sum64_5_hi(c0_hi, c0_lo,
+	                           c1_hi, c1_lo,
+	                           c2_hi, c2_lo,
+	                           c3_hi, c3_lo,
+	                           c4_hi, c4_lo);
+	    var T1_lo = sum64_5_lo(c0_hi, c0_lo,
+	                           c1_hi, c1_lo,
+	                           c2_hi, c2_lo,
+	                           c3_hi, c3_lo,
+	                           c4_hi, c4_lo);
+
+	    var c0_hi = s0_512_hi(ah, al);
+	    var c0_lo = s0_512_lo(ah, al);
+	    var c1_hi = maj64_hi(ah, al, bh, bl, ch, cl);
+	    var c1_lo = maj64_lo(ah, al, bh, bl, ch, cl);
+
+	    var T2_hi = sum64_hi(c0_hi, c0_lo, c1_hi, c1_lo);
+	    var T2_lo = sum64_lo(c0_hi, c0_lo, c1_hi, c1_lo);
+
+	    hh = gh;
+	    hl = gl;
+
+	    gh = fh;
+	    gl = fl;
+
+	    fh = eh;
+	    fl = el;
+
+	    eh = sum64_hi(dh, dl, T1_hi, T1_lo);
+	    el = sum64_lo(dl, dl, T1_hi, T1_lo);
+
+	    dh = ch;
+	    dl = cl;
+
+	    ch = bh;
+	    cl = bl;
+
+	    bh = ah;
+	    bl = al;
+
+	    ah = sum64_hi(T1_hi, T1_lo, T2_hi, T2_lo);
+	    al = sum64_lo(T1_hi, T1_lo, T2_hi, T2_lo);
+	  }
+
+	  sum64(this.h, 0, ah, al);
+	  sum64(this.h, 2, bh, bl);
+	  sum64(this.h, 4, ch, cl);
+	  sum64(this.h, 6, dh, dl);
+	  sum64(this.h, 8, eh, el);
+	  sum64(this.h, 10, fh, fl);
+	  sum64(this.h, 12, gh, gl);
+	  sum64(this.h, 14, hh, hl);
+	};
+
+	SHA512.prototype._digest = function digest(enc) {
+	  if (enc === 'hex')
+	    return utils.toHex32(this.h, 'big');
+	  else
+	    return utils.split32(this.h, 'big');
+	};
+
+	function SHA384() {
+	  if (!(this instanceof SHA384))
+	    return new SHA384();
+
+	  SHA512.call(this);
+	  this.h = [ 0xcbbb9d5d, 0xc1059ed8,
+	             0x629a292a, 0x367cd507,
+	             0x9159015a, 0x3070dd17,
+	             0x152fecd8, 0xf70e5939,
+	             0x67332667, 0xffc00b31,
+	             0x8eb44a87, 0x68581511,
+	             0xdb0c2e0d, 0x64f98fa7,
+	             0x47b5481d, 0xbefa4fa4 ];
+	}
+	utils.inherits(SHA384, SHA512);
+	exports.sha384 = SHA384;
+
+	SHA384.blockSize = 1024;
+	SHA384.outSize = 384;
+	SHA384.hmacStrength = 192;
+	SHA384.padLength = 128;
+
+	SHA384.prototype._digest = function digest(enc) {
+	  if (enc === 'hex')
+	    return utils.toHex32(this.h.slice(0, 12), 'big');
+	  else
+	    return utils.split32(this.h.slice(0, 12), 'big');
+	};
+
+	function SHA1() {
+	  if (!(this instanceof SHA1))
+	    return new SHA1();
+
+	  BlockHash.call(this);
+	  this.h = [ 0x67452301, 0xefcdab89, 0x98badcfe,
+	             0x10325476, 0xc3d2e1f0 ];
+	  this.W = new Array(80);
+	}
+
+	utils.inherits(SHA1, BlockHash);
+	exports.sha1 = SHA1;
+
+	SHA1.blockSize = 512;
+	SHA1.outSize = 160;
+	SHA1.hmacStrength = 80;
+	SHA1.padLength = 64;
+
+	SHA1.prototype._update = function _update(msg, start) {
+	  var W = this.W;
+
+	  for (var i = 0; i < 16; i++)
+	    W[i] = msg[start + i];
+
+	  for(; i < W.length; i++)
+	    W[i] = rotl32(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
+
+	  var a = this.h[0];
+	  var b = this.h[1];
+	  var c = this.h[2];
+	  var d = this.h[3];
+	  var e = this.h[4];
+
+	  for (var i = 0; i < W.length; i++) {
+	    var s = ~~(i / 20);
+	    var t = sum32_5(rotl32(a, 5), ft_1(s, b, c, d), e, W[i], sha1_K[s]);
+	    e = d;
+	    d = c;
+	    c = rotl32(b, 30);
+	    b = a;
+	    a = t;
+	  }
+
+	  this.h[0] = sum32(this.h[0], a);
+	  this.h[1] = sum32(this.h[1], b);
+	  this.h[2] = sum32(this.h[2], c);
+	  this.h[3] = sum32(this.h[3], d);
+	  this.h[4] = sum32(this.h[4], e);
+	};
+
+	SHA1.prototype._digest = function digest(enc) {
+	  if (enc === 'hex')
+	    return utils.toHex32(this.h, 'big');
+	  else
+	    return utils.split32(this.h, 'big');
+	};
+
+	function ch32(x, y, z) {
+	  return (x & y) ^ ((~x) & z);
+	}
+
+	function maj32(x, y, z) {
+	  return (x & y) ^ (x & z) ^ (y & z);
+	}
+
+	function p32(x, y, z) {
+	  return x ^ y ^ z;
+	}
+
+	function s0_256(x) {
+	  return rotr32(x, 2) ^ rotr32(x, 13) ^ rotr32(x, 22);
+	}
+
+	function s1_256(x) {
+	  return rotr32(x, 6) ^ rotr32(x, 11) ^ rotr32(x, 25);
+	}
+
+	function g0_256(x) {
+	  return rotr32(x, 7) ^ rotr32(x, 18) ^ (x >>> 3);
+	}
+
+	function g1_256(x) {
+	  return rotr32(x, 17) ^ rotr32(x, 19) ^ (x >>> 10);
+	}
+
+	function ft_1(s, x, y, z) {
+	  if (s === 0)
+	    return ch32(x, y, z);
+	  if (s === 1 || s === 3)
+	    return p32(x, y, z);
+	  if (s === 2)
+	    return maj32(x, y, z);
+	}
+
+	function ch64_hi(xh, xl, yh, yl, zh, zl) {
+	  var r = (xh & yh) ^ ((~xh) & zh);
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function ch64_lo(xh, xl, yh, yl, zh, zl) {
+	  var r = (xl & yl) ^ ((~xl) & zl);
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function maj64_hi(xh, xl, yh, yl, zh, zl) {
+	  var r = (xh & yh) ^ (xh & zh) ^ (yh & zh);
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function maj64_lo(xh, xl, yh, yl, zh, zl) {
+	  var r = (xl & yl) ^ (xl & zl) ^ (yl & zl);
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function s0_512_hi(xh, xl) {
+	  var c0_hi = rotr64_hi(xh, xl, 28);
+	  var c1_hi = rotr64_hi(xl, xh, 2);  // 34
+	  var c2_hi = rotr64_hi(xl, xh, 7);  // 39
+
+	  var r = c0_hi ^ c1_hi ^ c2_hi;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function s0_512_lo(xh, xl) {
+	  var c0_lo = rotr64_lo(xh, xl, 28);
+	  var c1_lo = rotr64_lo(xl, xh, 2);  // 34
+	  var c2_lo = rotr64_lo(xl, xh, 7);  // 39
+
+	  var r = c0_lo ^ c1_lo ^ c2_lo;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function s1_512_hi(xh, xl) {
+	  var c0_hi = rotr64_hi(xh, xl, 14);
+	  var c1_hi = rotr64_hi(xh, xl, 18);
+	  var c2_hi = rotr64_hi(xl, xh, 9);  // 41
+
+	  var r = c0_hi ^ c1_hi ^ c2_hi;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function s1_512_lo(xh, xl) {
+	  var c0_lo = rotr64_lo(xh, xl, 14);
+	  var c1_lo = rotr64_lo(xh, xl, 18);
+	  var c2_lo = rotr64_lo(xl, xh, 9);  // 41
+
+	  var r = c0_lo ^ c1_lo ^ c2_lo;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function g0_512_hi(xh, xl) {
+	  var c0_hi = rotr64_hi(xh, xl, 1);
+	  var c1_hi = rotr64_hi(xh, xl, 8);
+	  var c2_hi = shr64_hi(xh, xl, 7);
+
+	  var r = c0_hi ^ c1_hi ^ c2_hi;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function g0_512_lo(xh, xl) {
+	  var c0_lo = rotr64_lo(xh, xl, 1);
+	  var c1_lo = rotr64_lo(xh, xl, 8);
+	  var c2_lo = shr64_lo(xh, xl, 7);
+
+	  var r = c0_lo ^ c1_lo ^ c2_lo;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function g1_512_hi(xh, xl) {
+	  var c0_hi = rotr64_hi(xh, xl, 19);
+	  var c1_hi = rotr64_hi(xl, xh, 29);  // 61
+	  var c2_hi = shr64_hi(xh, xl, 6);
+
+	  var r = c0_hi ^ c1_hi ^ c2_hi;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+	function g1_512_lo(xh, xl) {
+	  var c0_lo = rotr64_lo(xh, xl, 19);
+	  var c1_lo = rotr64_lo(xl, xh, 29);  // 61
+	  var c2_lo = shr64_lo(xh, xl, 6);
+
+	  var r = c0_lo ^ c1_lo ^ c2_lo;
+	  if (r < 0)
+	    r += 0x100000000;
+	  return r;
+	}
+
+
+/***/ },
+/* 143 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hash = __webpack_require__(139);
+	var utils = hash.utils;
+
+	var rotl32 = utils.rotl32;
+	var sum32 = utils.sum32;
+	var sum32_3 = utils.sum32_3;
+	var sum32_4 = utils.sum32_4;
+	var BlockHash = hash.common.BlockHash;
+
+	function RIPEMD160() {
+	  if (!(this instanceof RIPEMD160))
+	    return new RIPEMD160();
+
+	  BlockHash.call(this);
+
+	  this.h = [ 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 ];
+	  this.endian = 'little';
+	}
+	utils.inherits(RIPEMD160, BlockHash);
+	exports.ripemd160 = RIPEMD160;
+
+	RIPEMD160.blockSize = 512;
+	RIPEMD160.outSize = 160;
+	RIPEMD160.hmacStrength = 192;
+	RIPEMD160.padLength = 64;
+
+	RIPEMD160.prototype._update = function update(msg, start) {
+	  var A = this.h[0];
+	  var B = this.h[1];
+	  var C = this.h[2];
+	  var D = this.h[3];
+	  var E = this.h[4];
+	  var Ah = A;
+	  var Bh = B;
+	  var Ch = C;
+	  var Dh = D;
+	  var Eh = E;
+	  for (var j = 0; j < 80; j++) {
+	    var T = sum32(
+	      rotl32(
+	        sum32_4(A, f(j, B, C, D), msg[r[j] + start], K(j)),
+	        s[j]),
+	      E);
+	    A = E;
+	    E = D;
+	    D = rotl32(C, 10);
+	    C = B;
+	    B = T;
+	    T = sum32(
+	      rotl32(
+	        sum32_4(Ah, f(79 - j, Bh, Ch, Dh), msg[rh[j] + start], Kh(j)),
+	        sh[j]),
+	      Eh);
+	    Ah = Eh;
+	    Eh = Dh;
+	    Dh = rotl32(Ch, 10);
+	    Ch = Bh;
+	    Bh = T;
+	  }
+	  T = sum32_3(this.h[1], C, Dh);
+	  this.h[1] = sum32_3(this.h[2], D, Eh);
+	  this.h[2] = sum32_3(this.h[3], E, Ah);
+	  this.h[3] = sum32_3(this.h[4], A, Bh);
+	  this.h[4] = sum32_3(this.h[0], B, Ch);
+	  this.h[0] = T;
+	};
+
+	RIPEMD160.prototype._digest = function digest(enc) {
+	  if (enc === 'hex')
+	    return utils.toHex32(this.h, 'little');
+	  else
+	    return utils.split32(this.h, 'little');
+	};
+
+	function f(j, x, y, z) {
+	  if (j <= 15)
+	    return x ^ y ^ z;
+	  else if (j <= 31)
+	    return (x & y) | ((~x) & z);
+	  else if (j <= 47)
+	    return (x | (~y)) ^ z;
+	  else if (j <= 63)
+	    return (x & z) | (y & (~z));
+	  else
+	    return x ^ (y | (~z));
+	}
+
+	function K(j) {
+	  if (j <= 15)
+	    return 0x00000000;
+	  else if (j <= 31)
+	    return 0x5a827999;
+	  else if (j <= 47)
+	    return 0x6ed9eba1;
+	  else if (j <= 63)
+	    return 0x8f1bbcdc;
+	  else
+	    return 0xa953fd4e;
+	}
+
+	function Kh(j) {
+	  if (j <= 15)
+	    return 0x50a28be6;
+	  else if (j <= 31)
+	    return 0x5c4dd124;
+	  else if (j <= 47)
+	    return 0x6d703ef3;
+	  else if (j <= 63)
+	    return 0x7a6d76e9;
+	  else
+	    return 0x00000000;
+	}
+
+	var r = [
+	  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+	  7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8,
+	  3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12,
+	  1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2,
+	  4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13
+	];
+
+	var rh = [
+	  5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12,
+	  6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2,
+	  15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13,
+	  8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14,
+	  12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11
+	];
+
+	var s = [
+	  11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8,
+	  7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12,
+	  11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5,
+	  11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12,
+	  9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6
+	];
+
+	var sh = [
+	  8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6,
+	  9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11,
+	  9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5,
+	  15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8,
+	  8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
+	];
+
+
+/***/ },
+/* 144 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var hmac = exports;
+
+	var hash = __webpack_require__(139);
+	var utils = hash.utils;
+	var assert = utils.assert;
+
+	function Hmac(hash, key, enc) {
+	  if (!(this instanceof Hmac))
+	    return new Hmac(hash, key, enc);
+	  this.Hash = hash;
+	  this.blockSize = hash.blockSize / 8;
+	  this.outSize = hash.outSize / 8;
+	  this.inner = null;
+	  this.outer = null;
+
+	  this._init(utils.toArray(key, enc));
+	}
+	module.exports = Hmac;
+
+	Hmac.prototype._init = function init(key) {
+	  // Shorten key, if needed
+	  if (key.length > this.blockSize)
+	    key = new this.Hash().update(key).digest();
+	  assert(key.length <= this.blockSize);
+
+	  // Add padding to key
+	  for (var i = key.length; i < this.blockSize; i++)
+	    key.push(0);
+
+	  for (var i = 0; i < key.length; i++)
+	    key[i] ^= 0x36;
+	  this.inner = new this.Hash().update(key);
+
+	  // 0x36 ^ 0x5c = 0x6a
+	  for (var i = 0; i < key.length; i++)
+	    key[i] ^= 0x6a;
+	  this.outer = new this.Hash().update(key);
+	};
+
+	Hmac.prototype.update = function update(msg, enc) {
+	  this.inner.update(msg, enc);
+	  return this;
+	};
+
+	Hmac.prototype.digest = function digest(enc) {
+	  this.outer.update(this.inner.digest());
+	  return this.outer.digest(enc);
+	};
+
+
+/***/ },
+/* 145 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -26047,13 +25835,14 @@ var EToken =
 
 
 /***/ },
-/* 147 */
+/* 146 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var BN = __webpack_require__(119);
-	var elliptic = __webpack_require__(130);
+	var BN = __webpack_require__(118);
+	var HmacDRBG = __webpack_require__(147);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 	var assert = utils.assert;
 
@@ -26106,10 +25895,12 @@ var EToken =
 	    options = {};
 
 	  // Instantiate Hmac_DRBG
-	  var drbg = new elliptic.hmacDRBG({
+	  var drbg = new HmacDRBG({
 	    hash: this.hash,
 	    pers: options.pers,
+	    persEnc: options.persEnc || 'utf8',
 	    entropy: options.entropy || elliptic.rand(this.hash.hmacStrength),
+	    entropyEnc: options.entropy && options.entropyEnc || 'utf8',
 	    nonce: this.n.toArray()
 	  });
 
@@ -26154,12 +25945,12 @@ var EToken =
 	  var nonce = msg.toArray('be', bytes);
 
 	  // Instantiate Hmac_DRBG
-	  var drbg = new elliptic.hmacDRBG({
+	  var drbg = new HmacDRBG({
 	    hash: this.hash,
 	    entropy: bkey,
 	    nonce: nonce,
 	    pers: options.pers,
-	    persEnc: options.persEnc
+	    persEnc: options.persEnc || 'utf8'
 	  });
 
 	  // Number of bytes to generate
@@ -26290,12 +26081,134 @@ var EToken =
 
 
 /***/ },
+/* 147 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var hash = __webpack_require__(139);
+	var utils = __webpack_require__(132);
+	var assert = __webpack_require__(111);
+
+	function HmacDRBG(options) {
+	  if (!(this instanceof HmacDRBG))
+	    return new HmacDRBG(options);
+	  this.hash = options.hash;
+	  this.predResist = !!options.predResist;
+
+	  this.outLen = this.hash.outSize;
+	  this.minEntropy = options.minEntropy || this.hash.hmacStrength;
+
+	  this.reseed = null;
+	  this.reseedInterval = null;
+	  this.K = null;
+	  this.V = null;
+
+	  var entropy = utils.toArray(options.entropy, options.entropyEnc || 'hex');
+	  var nonce = utils.toArray(options.nonce, options.nonceEnc || 'hex');
+	  var pers = utils.toArray(options.pers, options.persEnc || 'hex');
+	  assert(entropy.length >= (this.minEntropy / 8),
+	         'Not enough entropy. Minimum is: ' + this.minEntropy + ' bits');
+	  this._init(entropy, nonce, pers);
+	}
+	module.exports = HmacDRBG;
+
+	HmacDRBG.prototype._init = function init(entropy, nonce, pers) {
+	  var seed = entropy.concat(nonce).concat(pers);
+
+	  this.K = new Array(this.outLen / 8);
+	  this.V = new Array(this.outLen / 8);
+	  for (var i = 0; i < this.V.length; i++) {
+	    this.K[i] = 0x00;
+	    this.V[i] = 0x01;
+	  }
+
+	  this._update(seed);
+	  this.reseed = 1;
+	  this.reseedInterval = 0x1000000000000;  // 2^48
+	};
+
+	HmacDRBG.prototype._hmac = function hmac() {
+	  return new hash.hmac(this.hash, this.K);
+	};
+
+	HmacDRBG.prototype._update = function update(seed) {
+	  var kmac = this._hmac()
+	                 .update(this.V)
+	                 .update([ 0x00 ]);
+	  if (seed)
+	    kmac = kmac.update(seed);
+	  this.K = kmac.digest();
+	  this.V = this._hmac().update(this.V).digest();
+	  if (!seed)
+	    return;
+
+	  this.K = this._hmac()
+	               .update(this.V)
+	               .update([ 0x01 ])
+	               .update(seed)
+	               .digest();
+	  this.V = this._hmac().update(this.V).digest();
+	};
+
+	HmacDRBG.prototype.reseed = function reseed(entropy, entropyEnc, add, addEnc) {
+	  // Optional entropy enc
+	  if (typeof entropyEnc !== 'string') {
+	    addEnc = add;
+	    add = entropyEnc;
+	    entropyEnc = null;
+	  }
+
+	  entropy = utils.toArray(entropy, entropyEnc);
+	  add = utils.toArray(add, addEnc);
+
+	  assert(entropy.length >= (this.minEntropy / 8),
+	         'Not enough entropy. Minimum is: ' + this.minEntropy + ' bits');
+
+	  this._update(entropy.concat(add || []));
+	  this.reseed = 1;
+	};
+
+	HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
+	  if (this.reseed > this.reseedInterval)
+	    throw new Error('Reseed is required');
+
+	  // Optional encoding
+	  if (typeof enc !== 'string') {
+	    addEnc = add;
+	    add = enc;
+	    enc = null;
+	  }
+
+	  // Optional additional data
+	  if (add) {
+	    add = utils.toArray(add, addEnc || 'hex');
+	    this._update(add);
+	  }
+
+	  var temp = [];
+	  while (temp.length < len) {
+	    this.V = this._hmac().update(this.V).digest();
+	    temp = temp.concat(this.V);
+	  }
+
+	  var res = temp.slice(0, len);
+	  this._update(add);
+	  this.reseed++;
+	  return utils.encode(res, enc);
+	};
+
+
+/***/ },
 /* 148 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var BN = __webpack_require__(119);
+	var BN = __webpack_require__(118);
+	var elliptic = __webpack_require__(129);
+	var utils = elliptic.utils;
+	var assert = utils.assert;
 
 	function KeyPair(ec, options) {
 	  this.ec = ec;
@@ -26376,6 +26289,15 @@ var EToken =
 
 	KeyPair.prototype._importPublic = function _importPublic(key, enc) {
 	  if (key.x || key.y) {
+	    // Montgomery points only have an `x` coordinate.
+	    // Weierstrass/Edwards points on the other hand have both `x` and
+	    // `y` coordinates.
+	    if (this.ec.curve.type === 'mont') {
+	      assert(key.x, 'Need x coordinate');
+	    } else if (this.ec.curve.type === 'short' ||
+	               this.ec.curve.type === 'edwards') {
+	      assert(key.x && key.y, 'Need both x and y coordinate');
+	    }
 	    this.pub = this.ec.curve.point(key.x, key.y);
 	    return;
 	  }
@@ -26408,9 +26330,9 @@ var EToken =
 
 	'use strict';
 
-	var BN = __webpack_require__(119);
+	var BN = __webpack_require__(118);
 
-	var elliptic = __webpack_require__(130);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 	var assert = utils.assert;
 
@@ -26549,8 +26471,8 @@ var EToken =
 
 	'use strict';
 
-	var hash = __webpack_require__(134);
-	var elliptic = __webpack_require__(130);
+	var hash = __webpack_require__(139);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 	var assert = utils.assert;
 	var parseBytes = utils.parseBytes;
@@ -26673,7 +26595,7 @@ var EToken =
 
 	'use strict';
 
-	var elliptic = __webpack_require__(130);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 	var assert = utils.assert;
 	var parseBytes = utils.parseBytes;
@@ -26775,8 +26697,8 @@ var EToken =
 
 	'use strict';
 
-	var BN = __webpack_require__(119);
-	var elliptic = __webpack_require__(130);
+	var BN = __webpack_require__(118);
+	var elliptic = __webpack_require__(129);
 	var utils = elliptic.utils;
 	var assert = utils.assert;
 	var cachedProperty = utils.cachedProperty;
@@ -26848,8 +26770,8 @@ var EToken =
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var asn1 = __webpack_require__(154)
 	var aesid = __webpack_require__(171)
 	var fixProc = __webpack_require__(172)
-	var ciphers = __webpack_require__(92)
-	var compat = __webpack_require__(88)
+	var ciphers = __webpack_require__(91)
+	var compat = __webpack_require__(87)
 	module.exports = parseKeys
 
 	function parseKeys (buffer) {
@@ -27078,7 +27000,7 @@ var EToken =
 
 	var asn1 = exports;
 
-	asn1.bignum = __webpack_require__(119);
+	asn1.bignum = __webpack_require__(118);
 
 	asn1.define = __webpack_require__(156).define;
 	asn1.base = __webpack_require__(159);
@@ -27092,7 +27014,7 @@ var EToken =
 /***/ function(module, exports, __webpack_require__) {
 
 	var asn1 = __webpack_require__(155);
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 
 	var api = exports;
 
@@ -27329,7 +27251,7 @@ var EToken =
 /* 160 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 
 	function Reporter(options) {
 	  this._reporterState = {
@@ -27456,7 +27378,7 @@ var EToken =
 /* 161 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 	var Reporter = __webpack_require__(159).Reporter;
 	var Buffer = __webpack_require__(1).Buffer;
 
@@ -27581,7 +27503,7 @@ var EToken =
 	var Reporter = __webpack_require__(159).Reporter;
 	var EncoderBuffer = __webpack_require__(159).EncoderBuffer;
 	var DecoderBuffer = __webpack_require__(159).DecoderBuffer;
-	var assert = __webpack_require__(112);
+	var assert = __webpack_require__(111);
 
 	// Supported tags
 	var tags = [
@@ -28301,7 +28223,7 @@ var EToken =
 /* 166 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 
 	var asn1 = __webpack_require__(155);
 	var base = asn1.base;
@@ -28611,7 +28533,7 @@ var EToken =
 
 	  // Long form
 	  var num = len & 0x7f;
-	  if (num >= 4)
+	  if (num > 4)
 	    return buf.error('length octect is too long');
 
 	  len = 0;
@@ -28631,7 +28553,7 @@ var EToken =
 /* 167 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 	var Buffer = __webpack_require__(1).Buffer;
 
 	var DERDecoder = __webpack_require__(166);
@@ -28696,7 +28618,7 @@ var EToken =
 /* 169 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 	var Buffer = __webpack_require__(1).Buffer;
 
 	var asn1 = __webpack_require__(155);
@@ -28997,7 +28919,7 @@ var EToken =
 /* 170 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var inherits = __webpack_require__(19);
+	var inherits = __webpack_require__(20);
 
 	var DEREncoder = __webpack_require__(169);
 
@@ -29047,8 +28969,8 @@ var EToken =
 	var findProc = /Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\r?\n\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n/m
 	var startRegex = /^-----BEGIN (.*) KEY-----\r?\n/m
 	var fullRegex = /^-----BEGIN (.*) KEY-----\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n-----END \1 KEY-----$/m
-	var evp = __webpack_require__(91)
-	var ciphers = __webpack_require__(92)
+	var evp = __webpack_require__(90)
+	var ciphers = __webpack_require__(91)
 	module.exports = function (okey, password) {
 	  var key = okey.toString()
 	  var match = key.match(findProc)
@@ -29081,11 +29003,11 @@ var EToken =
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {// much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
-	var curves = __webpack_require__(129)
-	var elliptic = __webpack_require__(130)
+	var curves = __webpack_require__(128)
+	var elliptic = __webpack_require__(129)
 	var parseKeys = __webpack_require__(153)
 
-	var BN = __webpack_require__(119)
+	var BN = __webpack_require__(118)
 	var EC = elliptic.ec
 
 	function verify (sig, hash, key, signType) {
@@ -29190,8 +29112,8 @@ var EToken =
 /* 174 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var elliptic = __webpack_require__(130);
-	var BN = __webpack_require__(119);
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var elliptic = __webpack_require__(129);
+	var BN = __webpack_require__(118);
 
 	module.exports = function createECDH(curve) {
 		return new ECDH(curve);
@@ -29335,13 +29257,13 @@ var EToken =
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var parseKeys = __webpack_require__(153);
-	var randomBytes = __webpack_require__(80);
-	var createHash = __webpack_require__(18);
+	var randomBytes = __webpack_require__(79);
+	var createHash = __webpack_require__(19);
 	var mgf = __webpack_require__(177);
 	var xor = __webpack_require__(178);
-	var bn = __webpack_require__(119);
+	var bn = __webpack_require__(118);
 	var withPublic = __webpack_require__(179);
-	var crt = __webpack_require__(128);
+	var crt = __webpack_require__(127);
 
 	var constants = {
 	  RSA_PKCS1_OAEP_PADDING: 4,
@@ -29435,7 +29357,7 @@ var EToken =
 /* 177 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var createHash = __webpack_require__(18);
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var createHash = __webpack_require__(19);
 	module.exports = function (seed, len) {
 	  var t = new Buffer('');
 	  var  i = 0, c;
@@ -29470,7 +29392,7 @@ var EToken =
 /* 179 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {var bn = __webpack_require__(119);
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var bn = __webpack_require__(118);
 	function withPublic(paddedMsg, key) {
 	  return new Buffer(paddedMsg
 	    .toRed(bn.mont(key.modulus))
@@ -29489,9 +29411,9 @@ var EToken =
 	/* WEBPACK VAR INJECTION */(function(Buffer) {var parseKeys = __webpack_require__(153);
 	var mgf = __webpack_require__(177);
 	var xor = __webpack_require__(178);
-	var bn = __webpack_require__(119);
-	var crt = __webpack_require__(128);
-	var createHash = __webpack_require__(18);
+	var bn = __webpack_require__(118);
+	var crt = __webpack_require__(127);
+	var createHash = __webpack_require__(19);
 	var withPublic = __webpack_require__(179);
 	module.exports = function privateDecrypt(private_key, enc, reverse) {
 	  var padding;
@@ -29602,7 +29524,7 @@ var EToken =
 
 	'use strict';
 
-	var crypto = __webpack_require__(86)
+	var crypto = __webpack_require__(85)
 	    ,uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 	    ;
 
@@ -29692,7 +29614,7 @@ var EToken =
 	/**
 	 * This section defines the required libraries
 	 */
-	var crypto = __webpack_require__(86),
+	var crypto = __webpack_require__(85),
 	    bitcoin = __webpack_require__(9),
 	    Ambisafe = __webpack_require__(8);
 
@@ -32677,78 +32599,82 @@ var EToken =
 /* 186 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {const SHA3 = __webpack_require__(187)
-	const secp256k1 = __webpack_require__(190)
-	const assert = __webpack_require__(11)
-	const rlp = __webpack_require__(197)
-	const BN = __webpack_require__(119)
-	const crypto = __webpack_require__(86)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+	var SHA3 = __webpack_require__(187);
+	var secp256k1 = __webpack_require__(190);
+	var assert = __webpack_require__(11);
+	var rlp = __webpack_require__(197);
+	var BN = __webpack_require__(118);
+	var crypto = __webpack_require__(85);
 
 	/**
 	 * the max integer that this VM can handle (a ```BN```)
 	 * @var {BN} MAX_INTEGER
 	 */
-	exports.MAX_INTEGER = new BN('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16)
+	exports.MAX_INTEGER = new BN('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16);
 
 	/**
 	 * 2^256 (a ```BN```)
 	 * @var {BN} TWO_POW256
 	 */
-	exports.TWO_POW256 = new BN('10000000000000000000000000000000000000000000000000000000000000000', 16)
+	exports.TWO_POW256 = new BN('10000000000000000000000000000000000000000000000000000000000000000', 16);
 
 	/**
 	 * SHA3-256 hash of null (a ```String```)
 	 * @var {String} SHA3_NULL_S
 	 */
-	exports.SHA3_NULL_S = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+	exports.SHA3_NULL_S = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470';
 
 	/**
 	 * SHA3-256 hash of null (a ```Buffer```)
 	 * @var {Buffer} SHA3_NULL
 	 */
-	exports.SHA3_NULL = new Buffer(exports.SHA3_NULL_S, 'hex')
+	exports.SHA3_NULL = new Buffer(exports.SHA3_NULL_S, 'hex');
 
 	/**
 	 * SHA3-256 of an RLP of an empty array (a ```String```)
 	 * @var {String} SHA3_RLP_ARRAY_S
 	 */
-	exports.SHA3_RLP_ARRAY_S = '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347'
+	exports.SHA3_RLP_ARRAY_S = '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347';
 
 	/**
 	 * SHA3-256 of an RLP of an empty array (a ```Buffer```)
 	 * @var {Buffer} SHA3_RLP_ARRAY
 	 */
-	exports.SHA3_RLP_ARRAY = new Buffer(exports.SHA3_RLP_ARRAY_S, 'hex')
+	exports.SHA3_RLP_ARRAY = new Buffer(exports.SHA3_RLP_ARRAY_S, 'hex');
 
 	/**
 	 * SHA3-256 hash of the RLP of null  (a ```String```)
 	 * @var {String} SHA3_RLP_S
 	 */
-	exports.SHA3_RLP_S = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'
+	exports.SHA3_RLP_S = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421';
 
 	/**
 	 * SHA3-256 hash of the RLP of null (a ```Buffer```)
 	 * @var {Buffer} SHA3_RLP
 	 */
-	exports.SHA3_RLP = new Buffer(exports.SHA3_RLP_S, 'hex')
+	exports.SHA3_RLP = new Buffer(exports.SHA3_RLP_S, 'hex');
 
 	/**
 	 * [`BN`](https://github.com/indutny/bn.js)
 	 * @var {Function}
 	 */
-	exports.BN = BN
+	exports.BN = BN;
 
 	/**
 	 * [`rlp`](https://github.com/ethereumjs/rlp)
 	 * @var {Function}
 	 */
-	exports.rlp = rlp
+	exports.rlp = rlp;
 
 	/**
 	 * [`secp256k1`](https://github.com/cryptocoinjs/secp256k1-node/)
 	 * @var {Object}
 	 */
-	exports.secp256k1 = secp256k1
+	exports.secp256k1 = secp256k1;
 
 	/**
 	 * Returns a buffer filled with 0s
@@ -32757,10 +32683,10 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.zeros = function (bytes) {
-	  var buf = new Buffer(bytes)
-	  buf.fill(0)
-	  return buf
-	}
+	  var buf = new Buffer(bytes);
+	  buf.fill(0);
+	  return buf;
+	};
 
 	/**
 	 * Left Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
@@ -32772,22 +32698,22 @@ var EToken =
 	 * @return {Buffer|Array}
 	 */
 	exports.setLengthLeft = exports.setLength = function (msg, length, right) {
-	  var buf = exports.zeros(length)
-	  msg = exports.toBuffer(msg)
+	  var buf = exports.zeros(length);
+	  msg = exports.toBuffer(msg);
 	  if (right) {
 	    if (msg.length < length) {
-	      msg.copy(buf)
-	      return buf
+	      msg.copy(buf);
+	      return buf;
 	    }
-	    return msg.slice(0, length)
+	    return msg.slice(0, length);
 	  } else {
 	    if (msg.length < length) {
-	      msg.copy(buf, length - msg.length)
-	      return buf
+	      msg.copy(buf, length - msg.length);
+	      return buf;
 	    }
-	    return msg.slice(-length)
+	    return msg.slice(-length);
 	  }
-	}
+	};
 
 	/**
 	 * Right Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
@@ -32798,8 +32724,8 @@ var EToken =
 	 * @return {Buffer|Array}
 	 */
 	exports.setLengthRight = function (msg, length) {
-	  return exports.setLength(msg, length, true)
-	}
+	  return exports.setLength(msg, length, true);
+	};
 
 	/**
 	 * Trims leading zeros from a `Buffer` or an `Array`
@@ -32808,14 +32734,14 @@ var EToken =
 	 * @return {Buffer|Array|String}
 	 */
 	exports.unpad = exports.stripZeros = function (a) {
-	  a = exports.stripHexPrefix(a)
-	  var first = a[0]
+	  a = exports.stripHexPrefix(a);
+	  var first = a[0];
 	  while (a.length > 0 && first.toString() === '0') {
-	    a = a.slice(1)
-	    first = a[0]
+	    a = a.slice(1);
+	    first = a[0];
 	  }
-	  return a
-	}
+	  return a;
+	};
 	/**
 	 * Attempts to turn a value into a `Buffer`. As input it supports `Buffer`, `String`, `Number`, null/undefined, `BN` and other objects with a `toArray()` method.
 	 * @method toBuffer
@@ -32824,26 +32750,26 @@ var EToken =
 	exports.toBuffer = function (v) {
 	  if (!Buffer.isBuffer(v)) {
 	    if (Array.isArray(v)) {
-	      v = new Buffer(v)
+	      v = new Buffer(v);
 	    } else if (typeof v === 'string') {
 	      if (exports.isHexPrefixed(v)) {
-	        v = new Buffer(exports.padToEven(exports.stripHexPrefix(v)), 'hex')
+	        v = new Buffer(exports.padToEven(exports.stripHexPrefix(v)), 'hex');
 	      } else {
-	        v = new Buffer(v)
+	        v = new Buffer(v);
 	      }
 	    } else if (typeof v === 'number') {
-	      v = exports.intToBuffer(v)
+	      v = exports.intToBuffer(v);
 	    } else if (v === null || v === undefined) {
-	      v = new Buffer([])
+	      v = new Buffer([]);
 	    } else if (v.toArray) {
 	      // converts a BN to a Buffer
-	      v = new Buffer(v.toArray())
+	      v = new Buffer(v.toArray());
 	    } else {
-	      throw new Error('invalid type')
+	      throw new Error('invalid type');
 	    }
 	  }
-	  return v
-	}
+	  return v;
+	};
 
 	/**
 	 * Converts a `Number` into a hex `String`
@@ -32852,15 +32778,15 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.intToHex = function (i) {
-	  assert(i % 1 === 0, 'number is not a integer')
-	  assert(i >= 0, 'number must be positive')
-	  var hex = i.toString(16)
+	  assert(i % 1 === 0, 'number is not a integer');
+	  assert(i >= 0, 'number must be positive');
+	  var hex = i.toString(16);
 	  if (hex.length % 2) {
-	    hex = '0' + hex
+	    hex = '0' + hex;
 	  }
 
-	  return '0x' + hex
-	}
+	  return '0x' + hex;
+	};
 
 	/**
 	 * Converts an `Number` to a `Buffer`
@@ -32869,9 +32795,9 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.intToBuffer = function (i) {
-	  var hex = exports.intToHex(i)
-	  return new Buffer(hex.slice(2), 'hex')
-	}
+	  var hex = exports.intToHex(i);
+	  return new Buffer(hex.slice(2), 'hex');
+	};
 
 	/**
 	 * Converts a `Buffer` to a `Number`
@@ -32880,8 +32806,8 @@ var EToken =
 	 * @return {Number}
 	 */
 	exports.bufferToInt = function (buf) {
-	  return parseInt(exports.bufferToHex(buf), 16)
-	}
+	  return parseInt(exports.bufferToHex(buf), 16);
+	};
 
 	/**
 	 * Converts a `Buffer` into a hex `String`
@@ -32890,13 +32816,13 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.bufferToHex = function (buf) {
-	  buf = exports.toBuffer(buf)
+	  buf = exports.toBuffer(buf);
 	  if (buf.length === 0) {
-	    return 0
+	    return 0;
 	  }
 
-	  return '0x' + buf.toString('hex')
-	}
+	  return '0x' + buf.toString('hex');
+	};
 
 	/**
 	 * Interprets a `Buffer` as a signed integer and returns a `BN`. Assumes 256-bit numbers.
@@ -32905,8 +32831,8 @@ var EToken =
 	 * @return {BN}
 	 */
 	exports.fromSigned = function (num) {
-	  return new BN(num).fromTwos(256)
-	}
+	  return new BN(num).fromTwos(256);
+	};
 
 	/**
 	 * Converts a `BN` to an unsigned integer and returns it as a `Buffer`. Assumes 256-bit numbers.
@@ -32915,8 +32841,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.toUnsigned = function (num) {
-	  return new Buffer(num.toTwos(256).toArray())
-	}
+	  return new Buffer(num.toTwos(256).toArray());
+	};
 
 	/**
 	 * Creates SHA-3 hash of the input
@@ -32926,15 +32852,15 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.sha3 = function (a, bytes) {
-	  a = exports.toBuffer(a)
-	  if (!bytes) bytes = 256
+	  a = exports.toBuffer(a);
+	  if (!bytes) bytes = 256;
 
-	  var h = new SHA3(bytes)
+	  var h = new SHA3(bytes);
 	  if (a) {
-	    h.update(a)
+	    h.update(a);
 	  }
-	  return new Buffer(h.digest('hex'), 'hex')
-	}
+	  return new Buffer(h.digest('hex'), 'hex');
+	};
 
 	/**
 	 * Creates SHA256 hash of the input
@@ -32943,9 +32869,9 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.sha256 = function (a) {
-	  a = exports.toBuffer(a)
-	  return crypto.createHash('SHA256').update(a).digest()
-	}
+	  a = exports.toBuffer(a);
+	  return crypto.createHash('SHA256').update(a).digest();
+	};
 
 	/**
 	 * Creates RIPEMD160 hash of the input
@@ -32955,14 +32881,14 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.ripemd160 = function (a, padded) {
-	  a = exports.toBuffer(a)
-	  var hash = crypto.createHash('rmd160').update(a).digest()
+	  a = exports.toBuffer(a);
+	  var hash = crypto.createHash('rmd160').update(a).digest();
 	  if (padded === true) {
-	    return exports.setLength(hash, 32)
+	    return exports.setLength(hash, 32);
 	  } else {
-	    return hash
+	    return hash;
 	  }
-	}
+	};
 
 	/**
 	 * Creates SHA-3 hash of the RLP encoded version of the input
@@ -32971,8 +32897,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.rlphash = function (a) {
-	  return exports.sha3(rlp.encode(a))
-	}
+	  return exports.sha3(rlp.encode(a));
+	};
 
 	/**
 	 * Checks if the private key satisfies the rules of the curve secp256k1.
@@ -32981,8 +32907,8 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isValidPrivate = function (privateKey) {
-	  return secp256k1.privateKeyVerify(privateKey)
-	}
+	  return secp256k1.privateKeyVerify(privateKey);
+	};
 
 	/**
 	 * Returns the ethereum address of a given public key.
@@ -32993,14 +32919,14 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.pubToAddress = exports.publicToAddress = function (pubKey, sanitize) {
-	  pubKey = exports.toBuffer(pubKey)
-	  if (sanitize && (pubKey.length !== 64)) {
-	    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1)
+	  pubKey = exports.toBuffer(pubKey);
+	  if (sanitize && pubKey.length !== 64) {
+	    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
 	  }
-	  assert(pubKey.length === 64)
+	  assert(pubKey.length === 64);
 	  // Only take the lower 160bits of the hash
-	  return exports.sha3(pubKey).slice(-20)
-	}
+	  return exports.sha3(pubKey).slice(-20);
+	};
 
 	/**
 	 * Returns the ethereum public key of a given private key
@@ -33009,10 +32935,10 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	var privateToPublic = exports.privateToPublic = function (privateKey) {
-	  privateKey = exports.toBuffer(privateKey)
+	  privateKey = exports.toBuffer(privateKey);
 	  // skip the type flag and use the X, Y points
-	  return secp256k1.publicKeyConvert(secp256k1.publicKeyCreate(privateKey), false).slice(1)
-	}
+	  return secp256k1.publicKeyConvert(secp256k1.publicKeyCreate(privateKey), false).slice(1);
+	};
 
 	/**
 	 * Returns the ethereum address of a given private key
@@ -33021,8 +32947,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.privateToAddress = function (privateKey) {
-	  return exports.publicToAddress(privateToPublic(privateKey))
-	}
+	  return exports.publicToAddress(privateToPublic(privateKey));
+	};
 
 	/**
 	 * Checks if the address is a valid. Accepts checksummed addresses too
@@ -33031,8 +32957,9 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isValidAddress = function (address) {
-	  return /^0x[0-9a-fA-F]{40}$/i.test(address)
-	}
+	  return (/^0x[0-9a-fA-F]{40}$/i.test(address)
+	  );
+	};
 
 	/**
 	 * Returns a checksummed address
@@ -33041,20 +32968,20 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.toChecksumAddress = function (address) {
-	  address = exports.stripHexPrefix(address).toLowerCase()
-	  var hash = exports.sha3(address).toString('hex')
-	  var ret = '0x'
+	  address = exports.stripHexPrefix(address).toLowerCase();
+	  var hash = exports.sha3(address).toString('hex');
+	  var ret = '0x';
 
 	  for (var i = 0; i < address.length; i++) {
 	    if (parseInt(hash[i], 16) >= 8) {
-	      ret += address[i].toUpperCase()
+	      ret += address[i].toUpperCase();
 	    } else {
-	      ret += address[i]
+	      ret += address[i];
 	    }
 	  }
 
-	  return ret
-	}
+	  return ret;
+	};
 
 	/**
 	 * Checks if the address is a valid checksummed address
@@ -33063,8 +32990,8 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isValidChecksumAddress = function (address) {
-	  return exports.isValidAddress(address) && (exports.toChecksumAddress(address) === address)
-	}
+	  return exports.isValidAddress(address) && exports.toChecksumAddress(address) === address;
+	};
 
 	/**
 	 * Generates an address of a newly created contract
@@ -33074,20 +33001,20 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.generateAddress = function (from, nonce) {
-	  from = exports.toBuffer(from)
-	  nonce = new BN(nonce)
+	  from = exports.toBuffer(from);
+	  nonce = new BN(nonce);
 
 	  if (nonce.isZero()) {
 	    // in RLP we want to encode null in the case of zero nonce
 	    // read the RLP documentation for an answer if you dare
-	    nonce = null
+	    nonce = null;
 	  } else {
-	    nonce = new Buffer(nonce.toArray())
+	    nonce = new Buffer(nonce.toArray());
 	  }
 
 	  // Only take the lower 160bits of the hash
-	  return exports.rlphash([from, nonce]).slice(-20)
-	}
+	  return exports.rlphash([from, nonce]).slice(-20);
+	};
 
 	/**
 	 * Returns true if the supplied address belongs to a precompiled account
@@ -33096,9 +33023,9 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isPrecompiled = function (address) {
-	  var a = exports.unpad(address)
-	  return a.length === 1 && a[0] > 0 && a[0] < 5
-	}
+	  var a = exports.unpad(address);
+	  return a.length === 1 && a[0] > 0 && a[0] < 5;
+	};
 
 	/**
 	 * Returns a `Boolean` on whether or not the a `String` starts with "0x"
@@ -33107,8 +33034,8 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isHexPrefixed = function (str) {
-	  return str.slice(0, 2) === '0x'
-	}
+	  return str.slice(0, 2) === '0x';
+	};
 
 	/**
 	 * Removes "0x" from a given `String`
@@ -33118,10 +33045,10 @@ var EToken =
 	 */
 	exports.stripHexPrefix = function (str) {
 	  if (typeof str !== 'string') {
-	    return str
+	    return str;
 	  }
-	  return exports.isHexPrefixed(str) ? str.slice(2) : str
-	}
+	  return exports.isHexPrefixed(str) ? str.slice(2) : str;
+	};
 
 	/**
 	 * Adds "0x" to a given `String` if it does not already start with "0x"
@@ -33131,11 +33058,11 @@ var EToken =
 	 */
 	exports.addHexPrefix = function (str) {
 	  if (typeof str !== 'string') {
-	    return str
+	    return str;
 	  }
 
-	  return exports.isHexPrefixed(str) ? str : '0x' + str
-	}
+	  return exports.isHexPrefixed(str) ? str : '0x' + str;
+	};
 
 	/**
 	 * Pads a `String` to have an even length
@@ -33144,9 +33071,9 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.padToEven = function (a) {
-	  if (a.length % 2) a = '0' + a
-	  return a
-	}
+	  if (a.length % 2) a = '0' + a;
+	  return a;
+	};
 
 	/**
 	 * ECDSA sign
@@ -33156,14 +33083,14 @@ var EToken =
 	 * @return {Object}
 	 */
 	exports.ecsign = function (msgHash, privateKey) {
-	  var sig = secp256k1.sign(msgHash, privateKey)
+	  var sig = secp256k1.sign(msgHash, privateKey);
 
-	  var ret = {}
-	  ret.r = sig.signature.slice(0, 32)
-	  ret.s = sig.signature.slice(32, 64)
-	  ret.v = sig.recovery + 27
-	  return ret
-	}
+	  var ret = {};
+	  ret.r = sig.signature.slice(0, 32);
+	  ret.s = sig.signature.slice(32, 64);
+	  ret.v = sig.recovery + 27;
+	  return ret;
+	};
 
 	/**
 	 * ECDSA public key recovery from signature
@@ -33175,14 +33102,14 @@ var EToken =
 	 * @return {Buffer} publicKey
 	 */
 	exports.ecrecover = function (msgHash, v, r, s) {
-	  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64)
-	  var recovery = exports.bufferToInt(v) - 27
+	  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64);
+	  var recovery = exports.bufferToInt(v) - 27;
 	  if (recovery !== 0 && recovery !== 1) {
-	    throw new Error('Invalid signature v value')
+	    throw new Error('Invalid signature v value');
 	  }
-	  var senderPubKey = secp256k1.recover(msgHash, signature, recovery)
-	  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1)
-	}
+	  var senderPubKey = secp256k1.recover(msgHash, signature, recovery);
+	  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1);
+	};
 
 	/**
 	 * Converts a `Buffer` or `Array` to JSON
@@ -33192,15 +33119,15 @@ var EToken =
 	 */
 	exports.baToJSON = function (ba) {
 	  if (Buffer.isBuffer(ba)) {
-	    return '0x' + ba.toString('hex')
+	    return '0x' + ba.toString('hex');
 	  } else if (ba instanceof Array) {
-	    var array = []
+	    var array = [];
 	    for (var i = 0; i < ba.length; i++) {
-	      array.push(exports.baToJSON(ba[i]))
+	      array.push(exports.baToJSON(ba[i]));
 	    }
-	    return array
+	    return array;
 	  }
-	}
+	};
 
 	/**
 	 * Defines properties on a `Object`. It make the assumption that underlying data is binary.
@@ -33214,45 +33141,45 @@ var EToken =
 	 * @param {*} data data to be validated against the definitions
 	 */
 	exports.defineProperties = function (self, fields, data) {
-	  self.raw = []
-	  self._fields = []
+	  self.raw = [];
+	  self._fields = [];
 
 	  // attach the `toJSON`
 	  self.toJSON = function (label) {
 	    if (label) {
-	      var obj = {}
+	      var obj = {};
 	      self._fields.forEach(function (field) {
-	        obj[field] = '0x' + self[field].toString('hex')
-	      })
-	      return obj
+	        obj[field] = '0x' + self[field].toString('hex');
+	      });
+	      return obj;
 	    }
-	    return exports.baToJSON(this.raw)
-	  }
+	    return exports.baToJSON(this.raw);
+	  };
 
-	  self.serialize = function serialize () {
-	    return rlp.encode(self.raw)
-	  }
+	  self.serialize = function serialize() {
+	    return rlp.encode(self.raw);
+	  };
 
 	  fields.forEach(function (field, i) {
-	    self._fields.push(field.name)
-	    function getter () {
-	      return self.raw[i]
+	    self._fields.push(field.name);
+	    function getter() {
+	      return self.raw[i];
 	    }
-	    function setter (v) {
-	      v = exports.toBuffer(v)
+	    function setter(v) {
+	      v = exports.toBuffer(v);
 
 	      if (v.toString('hex') === '00' && !field.allowZero) {
-	        v = new Buffer([])
+	        v = new Buffer([]);
 	      }
 
 	      if (field.allowLess && field.length) {
-	        v = exports.stripZeros(v)
-	        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes')
+	        v = exports.stripZeros(v);
+	        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes');
 	      } else if (!(field.allowZero && v.length === 0) && field.length) {
-	        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length)
+	        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length);
 	      }
 
-	      self.raw[i] = v
+	      self.raw[i] = v;
 	    }
 
 	    Object.defineProperty(self, field.name, {
@@ -33260,10 +33187,10 @@ var EToken =
 	      configurable: true,
 	      get: getter,
 	      set: setter
-	    })
+	    });
 
 	    if (field.default) {
-	      self[field.name] = field.default
+	      self[field.name] = field.default;
 	    }
 
 	    // attach alias
@@ -33273,41 +33200,40 @@ var EToken =
 	        configurable: true,
 	        set: setter,
 	        get: getter
-	      })
+	      });
 	    }
-	  })
+	  });
 
 	  // if the constuctor is passed data
 	  if (data) {
 	    if (typeof data === 'string') {
-	      data = new Buffer(exports.stripHexPrefix(data), 'hex')
+	      data = new Buffer(exports.stripHexPrefix(data), 'hex');
 	    }
 
 	    if (Buffer.isBuffer(data)) {
-	      data = rlp.decode(data)
+	      data = rlp.decode(data);
 	    }
 
 	    if (Array.isArray(data)) {
 	      if (data.length > self._fields.length) {
-	        throw (new Error('wrong number of fields in data'))
+	        throw new Error('wrong number of fields in data');
 	      }
 
 	      // make sure all the items are buffers
 	      data.forEach(function (d, i) {
-	        self[self._fields[i]] = exports.toBuffer(d)
-	      })
-	    } else if (typeof data === 'object') {
+	        self[self._fields[i]] = exports.toBuffer(d);
+	      });
+	    } else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 	      for (var prop in data) {
 	        if (self._fields.indexOf(prop) !== -1) {
-	          self[prop] = data[prop]
+	          self[prop] = data[prop];
 	        }
 	      }
 	    } else {
-	      throw new Error('invalid data')
+	      throw new Error('invalid data');
 	    }
 	  }
-	}
-
+	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
@@ -33321,41 +33247,31 @@ var EToken =
 /* 188 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {const Sha3 = __webpack_require__(189)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
 
-	const hashLengths = [ 224, 256, 384, 512 ]
+	var Sha3 = __webpack_require__(189);
 
-	var hash = function (bitcount) {
-	  if (bitcount !== undefined && hashLengths.indexOf(bitcount) == -1)
-	    throw new Error('Unsupported hash length')
-	  this.content = []
-	  this.bitcount = bitcount ? 'keccak_' + bitcount : 'keccak_512'
-	}
+	var hashLengths = [224, 256, 384, 512];
+
+	var hash = function hash(bitcount) {
+	  if (bitcount !== undefined && hashLengths.indexOf(bitcount) == -1) throw new Error('Unsupported hash length');
+	  this.content = [];
+	  this.bitcount = bitcount ? 'keccak_' + bitcount : 'keccak_512';
+	};
 
 	hash.prototype.update = function (i) {
-	  if (Buffer.isBuffer(i))
-	    this.content.push(i)
-	  else if (typeof i === 'string')
-	    this.content.push(new Buffer(i))
-	  else
-	    throw new Error('Unsupported argument to update')
-	  return this
-	}
+	  if (Buffer.isBuffer(i)) this.content.push(i);else if (typeof i === 'string') this.content.push(new Buffer(i));else throw new Error('Unsupported argument to update');
+	  return this;
+	};
 
 	hash.prototype.digest = function (encoding) {
-	  var result = Sha3[this.bitcount](Buffer.concat(this.content))
-	  if (encoding === 'hex')
-	    return result
-	  else if (encoding === 'binary' || encoding === undefined)
-	    return new Buffer(result, 'hex').toString('binary')
-	  else
-	    throw new Error('Unsupported encoding for digest: ' + encoding)
-	}
+	  var result = Sha3[this.bitcount](Buffer.concat(this.content));
+	  if (encoding === 'hex') return result;else if (encoding === 'binary' || encoding === undefined) return new Buffer(result, 'hex').toString('binary');else throw new Error('Unsupported encoding for digest: ' + encoding);
+	};
 
 	module.exports = {
 	  SHA3Hash: hash
-	}
-
+	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
@@ -34461,9 +34377,9 @@ var EToken =
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict'
-	var createHash = __webpack_require__(18)
-	var BN = __webpack_require__(119)
-	var EC = __webpack_require__(130).ec
+	var createHash = __webpack_require__(19)
+	var BN = __webpack_require__(118)
+	var EC = __webpack_require__(129).ec
 
 	var messages = __webpack_require__(195)
 
@@ -34714,7 +34630,9 @@ var EToken =
 /* 197 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {const assert = __webpack_require__(11)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
+
+	var assert = __webpack_require__(11);
 	/**
 	 * RLP Encoding based on: https://github.com/ethereum/wiki/wiki/%5BEnglish%5D-RLP
 	 * This function takes in a data, convert it to buffer if not, and a length for recursion
@@ -34724,38 +34642,38 @@ var EToken =
 	 **/
 	exports.encode = function (input) {
 	  if (input instanceof Array) {
-	    var output = []
+	    var output = [];
 	    for (var i = 0; i < input.length; i++) {
-	      output.push(exports.encode(input[i]))
+	      output.push(exports.encode(input[i]));
 	    }
-	    var buf = Buffer.concat(output)
-	    return Buffer.concat([encodeLength(buf.length, 192), buf])
+	    var buf = Buffer.concat(output);
+	    return Buffer.concat([encodeLength(buf.length, 192), buf]);
 	  } else {
-	    input = toBuffer(input)
+	    input = toBuffer(input);
 	    if (input.length === 1 && input[0] < 128) {
-	      return input
+	      return input;
 	    } else {
-	      return Buffer.concat([encodeLength(input.length, 128), input])
+	      return Buffer.concat([encodeLength(input.length, 128), input]);
 	    }
 	  }
-	}
+	};
 
-	function safeParseInt (v, base) {
+	function safeParseInt(v, base) {
 	  if (v.slice(0, 2) === '00') {
-	    throw (new Error('invalid RLP: extra zeros'))
+	    throw new Error('invalid RLP: extra zeros');
 	  }
 
-	  return parseInt(v, base)
+	  return parseInt(v, base);
 	}
 
-	function encodeLength (len, offset) {
+	function encodeLength(len, offset) {
 	  if (len < 56) {
-	    return new Buffer([len + offset])
+	    return new Buffer([len + offset]);
 	  } else {
-	    var hexLength = intToHex(len)
-	    var lLength = hexLength.length / 2
-	    var firstByte = intToHex(offset + 55 + lLength)
-	    return new Buffer(firstByte + hexLength, 'hex')
+	    var hexLength = intToHex(len);
+	    var lLength = hexLength.length / 2;
+	    var firstByte = intToHex(offset + 55 + lLength);
+	    return new Buffer(firstByte + hexLength, 'hex');
 	  }
 	}
 
@@ -34766,184 +34684,183 @@ var EToken =
 	 **/
 	exports.decode = function (input, stream) {
 	  if (!input || input.length === 0) {
-	    return new Buffer([])
+	    return new Buffer([]);
 	  }
 
-	  input = toBuffer(input)
-	  var decoded = _decode(input)
+	  input = toBuffer(input);
+	  var decoded = _decode(input);
 
 	  if (stream) {
-	    return decoded
+	    return decoded;
 	  }
 
-	  assert.equal(decoded.remainder.length, 0, 'invalid remainder')
-	  return decoded.data
-	}
+	  assert.equal(decoded.remainder.length, 0, 'invalid remainder');
+	  return decoded.data;
+	};
 
 	exports.getLength = function (input) {
 	  if (!input || input.length === 0) {
-	    return new Buffer([])
+	    return new Buffer([]);
 	  }
 
-	  input = toBuffer(input)
-	  var firstByte = input[0]
+	  input = toBuffer(input);
+	  var firstByte = input[0];
 	  if (firstByte <= 0x7f) {
-	    return input.length
+	    return input.length;
 	  } else if (firstByte <= 0xb7) {
-	    return firstByte - 0x7f
+	    return firstByte - 0x7f;
 	  } else if (firstByte <= 0xbf) {
-	    return firstByte - 0xb6
+	    return firstByte - 0xb6;
 	  } else if (firstByte <= 0xf7) {
 	    // a list between  0-55 bytes long
-	    return firstByte - 0xbf
+	    return firstByte - 0xbf;
 	  } else {
 	    // a list  over 55 bytes long
-	    var llength = firstByte - 0xf6
-	    var length = safeParseInt(input.slice(1, llength).toString('hex'), 16)
-	    return llength + length
+	    var llength = firstByte - 0xf6;
+	    var length = safeParseInt(input.slice(1, llength).toString('hex'), 16);
+	    return llength + length;
 	  }
-	}
+	};
 
-	function _decode (input) {
-	  var length, llength, data, innerRemainder, d
-	  var decoded = []
-	  var firstByte = input[0]
+	function _decode(input) {
+	  var length, llength, data, innerRemainder, d;
+	  var decoded = [];
+	  var firstByte = input[0];
 
 	  if (firstByte <= 0x7f) {
 	    // a single byte whose value is in the [0x00, 0x7f] range, that byte is its own RLP encoding.
 	    return {
 	      data: input.slice(0, 1),
 	      remainder: input.slice(1)
-	    }
+	    };
 	  } else if (firstByte <= 0xb7) {
 	    // string is 0-55 bytes long. A single byte with value 0x80 plus the length of the string followed by the string
 	    // The range of the first byte is [0x80, 0xb7]
-	    length = firstByte - 0x7f
+	    length = firstByte - 0x7f;
 
 	    // set 0x80 null to 0
 	    if (firstByte === 0x80) {
-	      data = new Buffer([])
+	      data = new Buffer([]);
 	    } else {
-	      data = input.slice(1, length)
+	      data = input.slice(1, length);
 	    }
 
 	    if (length === 2 && data[0] < 0x80) {
-	      throw new Error('invalid rlp encoding: byte must be less 0x80')
+	      throw new Error('invalid rlp encoding: byte must be less 0x80');
 	    }
 
 	    return {
 	      data: data,
 	      remainder: input.slice(length)
-	    }
+	    };
 	  } else if (firstByte <= 0xbf) {
-	    llength = firstByte - 0xb6
-	    length = safeParseInt(input.slice(1, llength).toString('hex'), 16)
-	    data = input.slice(llength, length + llength)
+	    llength = firstByte - 0xb6;
+	    length = safeParseInt(input.slice(1, llength).toString('hex'), 16);
+	    data = input.slice(llength, length + llength);
 	    if (data.length < length) {
-	      throw (new Error('invalid RLP'))
+	      throw new Error('invalid RLP');
 	    }
 
 	    return {
 	      data: data,
 	      remainder: input.slice(length + llength)
-	    }
+	    };
 	  } else if (firstByte <= 0xf7) {
 	    // a list between  0-55 bytes long
-	    length = firstByte - 0xbf
-	    innerRemainder = input.slice(1, length)
+	    length = firstByte - 0xbf;
+	    innerRemainder = input.slice(1, length);
 	    while (innerRemainder.length) {
-	      d = _decode(innerRemainder)
-	      decoded.push(d.data)
-	      innerRemainder = d.remainder
+	      d = _decode(innerRemainder);
+	      decoded.push(d.data);
+	      innerRemainder = d.remainder;
 	    }
 
 	    return {
 	      data: decoded,
 	      remainder: input.slice(length)
-	    }
+	    };
 	  } else {
 	    // a list  over 55 bytes long
-	    llength = firstByte - 0xf6
-	    length = safeParseInt(input.slice(1, llength).toString('hex'), 16)
-	    var totalLength = llength + length
+	    llength = firstByte - 0xf6;
+	    length = safeParseInt(input.slice(1, llength).toString('hex'), 16);
+	    var totalLength = llength + length;
 	    if (totalLength > input.length) {
-	      throw new Error('invalid rlp: total length is larger than the data')
+	      throw new Error('invalid rlp: total length is larger than the data');
 	    }
 
-	    innerRemainder = input.slice(llength, totalLength)
+	    innerRemainder = input.slice(llength, totalLength);
 	    if (innerRemainder.length === 0) {
-	      throw new Error('invalid rlp, List has a invalid length')
+	      throw new Error('invalid rlp, List has a invalid length');
 	    }
 
 	    while (innerRemainder.length) {
-	      d = _decode(innerRemainder)
-	      decoded.push(d.data)
-	      innerRemainder = d.remainder
+	      d = _decode(innerRemainder);
+	      decoded.push(d.data);
+	      innerRemainder = d.remainder;
 	    }
 	    return {
 	      data: decoded,
 	      remainder: input.slice(totalLength)
-	    }
+	    };
 	  }
 	}
 
-	function isHexPrefixed (str) {
-	  return str.slice(0, 2) === '0x'
+	function isHexPrefixed(str) {
+	  return str.slice(0, 2) === '0x';
 	}
 
 	// Removes 0x from a given String
-	function stripHexPrefix (str) {
+	function stripHexPrefix(str) {
 	  if (typeof str !== 'string') {
-	    return str
+	    return str;
 	  }
-	  return isHexPrefixed(str) ? str.slice(2) : str
+	  return isHexPrefixed(str) ? str.slice(2) : str;
 	}
 
-	function intToHex (i) {
-	  var hex = i.toString(16)
+	function intToHex(i) {
+	  var hex = i.toString(16);
 	  if (hex.length % 2) {
-	    hex = '0' + hex
+	    hex = '0' + hex;
 	  }
 
-	  return hex
+	  return hex;
 	}
 
-	function padToEven (a) {
-	  if (a.length % 2) a = '0' + a
-	  return a
+	function padToEven(a) {
+	  if (a.length % 2) a = '0' + a;
+	  return a;
 	}
 
-	function intToBuffer (i) {
-	  var hex = intToHex(i)
-	  return new Buffer(hex, 'hex')
+	function intToBuffer(i) {
+	  var hex = intToHex(i);
+	  return new Buffer(hex, 'hex');
 	}
 
-	function toBuffer (v) {
+	function toBuffer(v) {
 	  if (!Buffer.isBuffer(v)) {
 	    if (typeof v === 'string') {
 	      if (isHexPrefixed(v)) {
-	        v = new Buffer(padToEven(stripHexPrefix(v)), 'hex')
+	        v = new Buffer(padToEven(stripHexPrefix(v)), 'hex');
 	      } else {
-	        v = new Buffer(v)
+	        v = new Buffer(v);
 	      }
 	    } else if (typeof v === 'number') {
 	      if (!v) {
-	        v = new Buffer([])
+	        v = new Buffer([]);
 	      } else {
-	        v = intToBuffer(v)
+	        v = intToBuffer(v);
 	      }
 	    } else if (v === null || v === undefined) {
-	      v = new Buffer([])
+	      v = new Buffer([]);
 	    } else if (v.toArray) {
 	      // converts a BN to a Buffer
-	      v = new Buffer(v.toArray())
+	      v = new Buffer(v.toArray());
 	    } else {
-	      throw new Error('invalid type')
+	      throw new Error('invalid type');
 	    }
 	  }
-	  return v
+	  return v;
 	}
-
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
@@ -35087,7 +35004,7 @@ var EToken =
 	var inherits = __webpack_require__(12).inherits;
 	var HookedWalletProvider = __webpack_require__(204);
 	var EthTx = __webpack_require__(208);
-	var ethUtil = __webpack_require__(213);
+	var ethUtil = __webpack_require__(220);
 
 	module.exports = HookedWalletEthTxSubprovider;
 
@@ -36739,8 +36656,12 @@ var EToken =
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
 
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 	var ethUtil = __webpack_require__(209);
-	var fees = __webpack_require__(211);
+	var fees = __webpack_require__(219);
 	var BN = ethUtil.BN;
 
 	// secp256k1n/2
@@ -36748,7 +36669,6 @@ var EToken =
 
 	/**
 	 * Creates a new transaction object
-	 * @constructor
 	 * @class {Buffer|Array} data a transaction can be initiailized with either a buffer containing the RLP serialized transaction or an array of buffers relating to each of the tx Properties, listed in order below in the exmple. Or lastly an Object containing the Properties of the transaction like in the Usage example
 	 *
 	 * For Object and Arrays each of the elements can either be a Buffer, a hex-prefixed (0x) String , Number, or an object with a toBuffer method such as Bignum
@@ -36774,299 +36694,371 @@ var EToken =
 	 * @prop {Buffer} r EC signature parameter
 	 * @prop {Buffer} s EC recovery ID
 	 */
-	var Transaction = module.exports = function (data) {
-	  // Define Properties
-	  var fields = [{
-	    name: 'nonce',
-	    length: 32,
-	    allowLess: true,
-	    default: new Buffer([])
-	  }, {
-	    name: 'gasPrice',
-	    length: 32,
-	    allowLess: true,
-	    default: new Buffer([])
-	  }, {
-	    name: 'gasLimit',
-	    alias: 'gas',
-	    length: 32,
-	    allowLess: true,
-	    default: new Buffer([])
-	  }, {
-	    name: 'to',
-	    allowZero: true,
-	    length: 20,
-	    default: new Buffer([])
-	  }, {
-	    name: 'value',
-	    length: 32,
-	    allowLess: true,
-	    default: new Buffer([])
-	  }, {
-	    name: 'data',
-	    alias: 'input',
-	    allowZero: true,
-	    default: new Buffer([])
-	  }, {
-	    name: 'v',
-	    length: 1,
-	    default: new Buffer([0x1c])
-	  }, {
-	    name: 'r',
-	    length: 32,
-	    allowLess: true,
-	    default: new Buffer([])
-	  }, {
-	    name: 's',
-	    length: 32,
-	    allowLess: true,
-	    default: new Buffer([])
-	  }];
+	module.exports = function () {
+	  function Transaction(data) {
+	    _classCallCheck(this, Transaction);
+
+	    data = data || {};
+	    // Define Properties
+	    var fields = [{
+	      name: 'nonce',
+	      length: 32,
+	      allowLess: true,
+	      default: new Buffer([])
+	    }, {
+	      name: 'gasPrice',
+	      length: 32,
+	      allowLess: true,
+	      default: new Buffer([])
+	    }, {
+	      name: 'gasLimit',
+	      alias: 'gas',
+	      length: 32,
+	      allowLess: true,
+	      default: new Buffer([])
+	    }, {
+	      name: 'to',
+	      allowZero: true,
+	      length: 20,
+	      default: new Buffer([])
+	    }, {
+	      name: 'value',
+	      length: 32,
+	      allowLess: true,
+	      default: new Buffer([])
+	    }, {
+	      name: 'data',
+	      alias: 'input',
+	      allowZero: true,
+	      default: new Buffer([])
+	    }, {
+	      name: 'v',
+	      length: 1,
+	      default: new Buffer([0x1c])
+	    }, {
+	      name: 'r',
+	      length: 32,
+	      allowLess: true,
+	      default: new Buffer([])
+	    }, {
+	      name: 's',
+	      length: 32,
+	      allowLess: true,
+	      default: new Buffer([])
+	    }];
+
+	    /**
+	     * Returns the rlp encoding of the transaction
+	     * @method serialize
+	     * @return {Buffer}
+	     */
+	    // attached serialize
+	    ethUtil.defineProperties(this, fields, data);
+
+	    /**
+	     * @prop {Buffer} from (read only) sender address of this transaction, mathematically derived from other parameters.
+	     */
+	    Object.defineProperty(this, 'from', {
+	      enumerable: true,
+	      configurable: true,
+	      get: this.getSenderAddress.bind(this)
+	    });
+
+	    // calculate chainId from signature
+	    var sigV = ethUtil.bufferToInt(this.v);
+	    var chainId = Math.floor((sigV - 35) / 2);
+	    if (chainId < 0) chainId = 0;
+
+	    // set chainId
+	    this._chainId = chainId || data.chainId || 0;
+	    this._homestead = true;
+	  }
 
 	  /**
-	   * Returns the rlp encoding of the transaction
-	   * @method serialize
-	   * @return {Buffer}
+	   * If the tx's `to` is to the creation address
+	   * @return {Boolean}
 	   */
-	  // attached serialize
-	  ethUtil.defineProperties(this, fields, data);
 
-	  /**
-	   * @prop {Buffer} from (read only) sender address of this transaction, mathematically derived from other parameters.
-	   */
-	  Object.defineProperty(this, 'from', {
-	    enumerable: true,
-	    configurable: true,
-	    get: this.getSenderAddress.bind(this)
-	  });
 
-	  this._homestead = true;
-	};
+	  _createClass(Transaction, [{
+	    key: 'toCreationAddress',
+	    value: function toCreationAddress() {
+	      return this.to.toString('hex') === '';
+	    }
 
-	/**
-	 * If the tx's `to` is to the creation address
-	 * @method toCreationAddress
-	 * @return {Boolean}
-	 */
-	Transaction.prototype.toCreationAddress = function () {
-	  return this.to.toString('hex') === '';
-	};
+	    /**
+	     * Computes a sha3-256 hash of the serialized tx
+	     * @param {Boolean} [includeSignature=true] whether or not to inculde the signature
+	     * @return {Buffer}
+	     */
 
-	/**
-	 * Computes a sha3-256 hash of the serialized tx
-	 * @method hash
-	 * @param {Boolean} [signature=true] whether or not to inculde the signature
-	 * @return {Buffer}
-	 */
-	Transaction.prototype.hash = function (signature) {
-	  var toHash = void 0;
+	  }, {
+	    key: 'hash',
+	    value: function hash(includeSignature) {
+	      if (includeSignature === undefined) includeSignature = true;
 
-	  if (typeof signature === 'undefined') {
-	    signature = true;
-	  }
+	      // EIP155 spec:
+	      // when computing the hash of a transaction for purposes of signing or recovering,
+	      // instead of hashing only the first six elements (ie. nonce, gasprice, startgas, to, value, data),
+	      // hash nine elements, with v replaced by CHAIN_ID, r = 0 and s = 0
 
-	  toHash = signature ? this.raw : this.raw.slice(0, 6);
+	      var items = void 0;
+	      if (includeSignature) {
+	        items = this.raw;
+	      } else {
+	        if (this._chainId > 0) {
+	          var raw = this.raw.slice();
+	          this.v = this._chainId;
+	          this.r = 0;
+	          this.s = 0;
+	          items = this.raw;
+	          this.raw = raw;
+	        } else {
+	          items = this.raw.slice(0, 6);
+	        }
+	      }
 
-	  // create hash
-	  return ethUtil.rlphash(toHash);
-	};
+	      // create hash
+	      return ethUtil.rlphash(items);
+	    }
 
-	/**
-	 * returns the sender's address
-	 * @method getSenderAddress
-	 * @return {Buffer}
-	 */
-	Transaction.prototype.getSenderAddress = function () {
-	  if (this._from) {
-	    return this._from;
-	  }
-	  var pubkey = this.getSenderPublicKey();
-	  this._from = ethUtil.publicToAddress(pubkey);
-	  return this._from;
-	};
+	    /**
+	     * returns the public key of the sender
+	     * @return {Buffer}
+	     */
 
-	/**
-	 * returns the public key of the sender
-	 * @method getSenderPublicKey
-	 * @return {Buffer}
-	 */
-	Transaction.prototype.getSenderPublicKey = function () {
-	  if (!this._senderPubKey || !this._senderPubKey.length) {
-	    this.verifySignature();
-	  }
+	  }, {
+	    key: 'getChainId',
+	    value: function getChainId() {
+	      return this._chainId;
+	    }
 
-	  return this._senderPubKey;
-	};
+	    /**
+	     * returns the sender's address
+	     * @return {Buffer}
+	     */
 
-	/**
-	 * Determines if the signature is valid
-	 * @method verifySignature
-	 * @return {Boolean}
-	 */
-	Transaction.prototype.verifySignature = function () {
-	  var msgHash = this.hash(false);
+	  }, {
+	    key: 'getSenderAddress',
+	    value: function getSenderAddress() {
+	      if (this._from) {
+	        return this._from;
+	      }
+	      var pubkey = this.getSenderPublicKey();
+	      this._from = ethUtil.publicToAddress(pubkey);
+	      return this._from;
+	    }
 
-	  // All transaction signatures whose s-value is greater than secp256k1n/2 are considered invalid.
-	  if (this._homestead && new BN(this.s).cmp(N_DIV_2) === 1) {
-	    return false;
-	  }
+	    /**
+	     * returns the public key of the sender
+	     * @return {Buffer}
+	     */
 
-	  try {
-	    this._senderPubKey = ethUtil.ecrecover(msgHash, this.v, this.r, this.s);
-	  } catch (e) {
-	    return false;
-	  }
+	  }, {
+	    key: 'getSenderPublicKey',
+	    value: function getSenderPublicKey() {
+	      if (!this._senderPubKey || !this._senderPubKey.length) {
+	        if (!this.verifySignature()) throw new Error('Invalid Signature');
+	      }
+	      return this._senderPubKey;
+	    }
 
-	  return !!this._senderPubKey;
-	};
+	    /**
+	     * Determines if the signature is valid
+	     * @return {Boolean}
+	     */
 
-	/**
-	 * sign a transaction with a given a private key
-	 * @method sign
-	 * @param {Buffer} privateKey
-	 */
-	Transaction.prototype.sign = function (privateKey) {
-	  var msgHash = this.hash(false);
-	  var sig = ethUtil.ecsign(msgHash, privateKey);
-	  Object.assign(this, sig);
-	};
+	  }, {
+	    key: 'verifySignature',
+	    value: function verifySignature() {
+	      var msgHash = this.hash(false);
+	      // All transaction signatures whose s-value is greater than secp256k1n/2 are considered invalid.
+	      if (this._homestead && new BN(this.s).cmp(N_DIV_2) === 1) {
+	        return false;
+	      }
 
-	/**
-	 * The amount of gas paid for the data in this tx
-	 * @method getDataFee
-	 * @return {BN}
-	 */
-	Transaction.prototype.getDataFee = function () {
-	  var data = this.raw[5];
-	  var cost = new BN(0);
-	  for (var i = 0; i < data.length; i++) {
-	    data[i] === 0 ? cost.iaddn(fees.txDataZeroGas.v) : cost.iaddn(fees.txDataNonZeroGas.v);
-	  }
-	  return cost;
-	};
+	      try {
+	        var v = ethUtil.bufferToInt(this.v);
+	        if (this._chainId > 0) {
+	          v -= this._chainId * 2 + 8;
+	        }
+	        this._senderPubKey = ethUtil.ecrecover(msgHash, v, this.r, this.s);
+	      } catch (e) {
+	        return false;
+	      }
 
-	/**
-	 * the minimum amount of gas the tx must have (DataFee + TxFee + Creation Fee)
-	 * @method getBaseFee
-	 * @return {BN}
-	 */
-	Transaction.prototype.getBaseFee = function () {
-	  var fee = this.getDataFee().iaddn(fees.txGas.v);
-	  if (this._homestead && this.toCreationAddress()) {
-	    fee.iaddn(fees.txCreation.v);
-	  }
-	  return fee;
-	};
+	      return !!this._senderPubKey;
+	    }
 
-	/**
-	 * the up front amount that an account must have for this transaction to be valid
-	 * @method getUpfrontCost
-	 * @return {BN}
-	 */
-	Transaction.prototype.getUpfrontCost = function () {
-	  return new BN(this.gasLimit).imul(new BN(this.gasPrice)).iadd(new BN(this.value));
-	};
+	    /**
+	     * sign a transaction with a given a private key
+	     * @param {Buffer} privateKey
+	     */
 
-	/**
-	 * validates the signature and checks to see if it has enough gas
-	 * @method validate
-	 * @param {Boolean} [stringError=false] whether to return a string with a dscription of why the validation failed or return a Bloolean
-	 * @return {Boolean|String}
-	 */
-	Transaction.prototype.validate = function (stringError) {
-	  var errors = [];
-	  if (!this.verifySignature()) {
-	    errors.push('Invalid Signature');
-	  }
+	  }, {
+	    key: 'sign',
+	    value: function sign(privateKey) {
+	      var msgHash = this.hash(false);
+	      var sig = ethUtil.ecsign(msgHash, privateKey);
+	      if (this._chainId > 0) {
+	        sig.v += this._chainId * 2 + 8;
+	      }
+	      Object.assign(this, sig);
+	    }
 
-	  if (this.getBaseFee().cmp(new BN(this.gasLimit)) > 0) {
-	    errors.push(['gas limit is to low. Need at least ' + this.getBaseFee()]);
-	  }
+	    /**
+	     * The amount of gas paid for the data in this tx
+	     * @return {BN}
+	     */
 
-	  if (stringError === undefined || stringError === false) {
-	    return errors.length === 0;
-	  } else {
-	    return errors.join(' ');
-	  }
-	};
+	  }, {
+	    key: 'getDataFee',
+	    value: function getDataFee() {
+	      var data = this.raw[5];
+	      var cost = new BN(0);
+	      for (var i = 0; i < data.length; i++) {
+	        data[i] === 0 ? cost.iaddn(fees.txDataZeroGas.v) : cost.iaddn(fees.txDataNonZeroGas.v);
+	      }
+	      return cost;
+	    }
+
+	    /**
+	     * the minimum amount of gas the tx must have (DataFee + TxFee + Creation Fee)
+	     * @return {BN}
+	     */
+
+	  }, {
+	    key: 'getBaseFee',
+	    value: function getBaseFee() {
+	      var fee = this.getDataFee().iaddn(fees.txGas.v);
+	      if (this._homestead && this.toCreationAddress()) {
+	        fee.iaddn(fees.txCreation.v);
+	      }
+	      return fee;
+	    }
+
+	    /**
+	     * the up front amount that an account must have for this transaction to be valid
+	     * @return {BN}
+	     */
+
+	  }, {
+	    key: 'getUpfrontCost',
+	    value: function getUpfrontCost() {
+	      return new BN(this.gasLimit).imul(new BN(this.gasPrice)).iadd(new BN(this.value));
+	    }
+
+	    /**
+	     * validates the signature and checks to see if it has enough gas
+	     * @param {Boolean} [stringError=false] whether to return a string with a dscription of why the validation failed or return a Bloolean
+	     * @return {Boolean|String}
+	     */
+
+	  }, {
+	    key: 'validate',
+	    value: function validate(stringError) {
+	      var errors = [];
+	      if (!this.verifySignature()) {
+	        errors.push('Invalid Signature');
+	      }
+
+	      if (this.getBaseFee().cmp(new BN(this.gasLimit)) > 0) {
+	        errors.push(['gas limit is to low. Need at least ' + this.getBaseFee()]);
+	      }
+
+	      if (stringError === undefined || stringError === false) {
+	        return errors.length === 0;
+	      } else {
+	        return errors.join(' ');
+	      }
+	    }
+	  }]);
+
+	  return Transaction;
+	}();
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
 /* 209 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {const SHA3 = __webpack_require__(210)
-	const secp256k1 = __webpack_require__(190)
-	const assert = __webpack_require__(11)
-	const rlp = __webpack_require__(197)
-	const BN = __webpack_require__(119)
-	const createHash = __webpack_require__(18)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+	var createKeccakHash = __webpack_require__(210);
+	var secp256k1 = __webpack_require__(190);
+	var assert = __webpack_require__(11);
+	var rlp = __webpack_require__(197);
+	var BN = __webpack_require__(118);
+	var createHash = __webpack_require__(19);
+	Object.assign(exports, __webpack_require__(216));
 
 	/**
 	 * the max integer that this VM can handle (a ```BN```)
 	 * @var {BN} MAX_INTEGER
 	 */
-	exports.MAX_INTEGER = new BN('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16)
+	exports.MAX_INTEGER = new BN('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16);
 
 	/**
 	 * 2^256 (a ```BN```)
 	 * @var {BN} TWO_POW256
 	 */
-	exports.TWO_POW256 = new BN('10000000000000000000000000000000000000000000000000000000000000000', 16)
+	exports.TWO_POW256 = new BN('10000000000000000000000000000000000000000000000000000000000000000', 16);
 
 	/**
 	 * SHA3-256 hash of null (a ```String```)
 	 * @var {String} SHA3_NULL_S
 	 */
-	exports.SHA3_NULL_S = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+	exports.SHA3_NULL_S = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470';
 
 	/**
 	 * SHA3-256 hash of null (a ```Buffer```)
 	 * @var {Buffer} SHA3_NULL
 	 */
-	exports.SHA3_NULL = new Buffer(exports.SHA3_NULL_S, 'hex')
+	exports.SHA3_NULL = Buffer.from(exports.SHA3_NULL_S, 'hex');
 
 	/**
 	 * SHA3-256 of an RLP of an empty array (a ```String```)
 	 * @var {String} SHA3_RLP_ARRAY_S
 	 */
-	exports.SHA3_RLP_ARRAY_S = '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347'
+	exports.SHA3_RLP_ARRAY_S = '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347';
 
 	/**
 	 * SHA3-256 of an RLP of an empty array (a ```Buffer```)
 	 * @var {Buffer} SHA3_RLP_ARRAY
 	 */
-	exports.SHA3_RLP_ARRAY = new Buffer(exports.SHA3_RLP_ARRAY_S, 'hex')
+	exports.SHA3_RLP_ARRAY = Buffer.from(exports.SHA3_RLP_ARRAY_S, 'hex');
 
 	/**
 	 * SHA3-256 hash of the RLP of null  (a ```String```)
 	 * @var {String} SHA3_RLP_S
 	 */
-	exports.SHA3_RLP_S = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'
+	exports.SHA3_RLP_S = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421';
 
 	/**
 	 * SHA3-256 hash of the RLP of null (a ```Buffer```)
 	 * @var {Buffer} SHA3_RLP
 	 */
-	exports.SHA3_RLP = new Buffer(exports.SHA3_RLP_S, 'hex')
+	exports.SHA3_RLP = Buffer.from(exports.SHA3_RLP_S, 'hex');
 
 	/**
 	 * [`BN`](https://github.com/indutny/bn.js)
 	 * @var {Function}
 	 */
-	exports.BN = BN
+	exports.BN = BN;
 
 	/**
 	 * [`rlp`](https://github.com/ethereumjs/rlp)
 	 * @var {Function}
 	 */
-	exports.rlp = rlp
+	exports.rlp = rlp;
 
 	/**
 	 * [`secp256k1`](https://github.com/cryptocoinjs/secp256k1-node/)
 	 * @var {Object}
 	 */
-	exports.secp256k1 = secp256k1
+	exports.secp256k1 = secp256k1;
 
 	/**
 	 * Returns a buffer filled with 0s
@@ -37075,10 +37067,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.zeros = function (bytes) {
-	  var buf = new Buffer(bytes)
-	  buf.fill(0)
-	  return buf
-	}
+	  return Buffer.allocUnsafe(bytes).fill(0);
+	};
 
 	/**
 	 * Left Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
@@ -37090,222 +37080,174 @@ var EToken =
 	 * @return {Buffer|Array}
 	 */
 	exports.setLengthLeft = exports.setLength = function (msg, length, right) {
-	  var buf = exports.zeros(length)
-	  msg = exports.toBuffer(msg)
+	  var buf = exports.zeros(length);
+	  msg = exports.toBuffer(msg);
 	  if (right) {
 	    if (msg.length < length) {
-	      msg.copy(buf)
-	      return buf
+	      msg.copy(buf);
+	      return buf;
 	    }
-	    return msg.slice(0, length)
+	    return msg.slice(0, length);
 	  } else {
 	    if (msg.length < length) {
-	      msg.copy(buf, length - msg.length)
-	      return buf
+	      msg.copy(buf, length - msg.length);
+	      return buf;
 	    }
-	    return msg.slice(-length)
+	    return msg.slice(-length);
 	  }
-	}
+	};
 
 	/**
 	 * Right Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
 	 * Or it truncates the beginning if it exceeds.
-	 * @method lsetLength
 	 * @param {Buffer|Array} msg the value to pad
 	 * @param {Number} length the number of bytes the output should be
 	 * @return {Buffer|Array}
 	 */
 	exports.setLengthRight = function (msg, length) {
-	  return exports.setLength(msg, length, true)
-	}
+	  return exports.setLength(msg, length, true);
+	};
 
 	/**
 	 * Trims leading zeros from a `Buffer` or an `Array`
-	 * @method unpad
 	 * @param {Buffer|Array|String} a
 	 * @return {Buffer|Array|String}
 	 */
 	exports.unpad = exports.stripZeros = function (a) {
-	  a = exports.stripHexPrefix(a)
-	  var first = a[0]
+	  a = exports.stripHexPrefix(a);
+	  var first = a[0];
 	  while (a.length > 0 && first.toString() === '0') {
-	    a = a.slice(1)
-	    first = a[0]
+	    a = a.slice(1);
+	    first = a[0];
 	  }
-	  return a
-	}
+	  return a;
+	};
 	/**
 	 * Attempts to turn a value into a `Buffer`. As input it supports `Buffer`, `String`, `Number`, null/undefined, `BN` and other objects with a `toArray()` method.
-	 * @method toBuffer
 	 * @param {*} v the value
 	 */
 	exports.toBuffer = function (v) {
 	  if (!Buffer.isBuffer(v)) {
 	    if (Array.isArray(v)) {
-	      v = new Buffer(v)
+	      v = Buffer.from(v);
 	    } else if (typeof v === 'string') {
 	      if (exports.isHexPrefixed(v)) {
-	        v = new Buffer(exports.padToEven(exports.stripHexPrefix(v)), 'hex')
+	        v = Buffer.from(exports.padToEven(exports.stripHexPrefix(v)), 'hex');
 	      } else {
-	        v = new Buffer(v)
+	        v = Buffer.from(v);
 	      }
 	    } else if (typeof v === 'number') {
-	      v = exports.intToBuffer(v)
+	      v = exports.intToBuffer(v);
 	    } else if (v === null || v === undefined) {
-	      v = new Buffer([])
+	      v = Buffer.allocUnsafe(0);
 	    } else if (v.toArray) {
 	      // converts a BN to a Buffer
-	      v = new Buffer(v.toArray())
+	      v = Buffer.from(v.toArray());
 	    } else {
-	      throw new Error('invalid type')
+	      throw new Error('invalid type');
 	    }
 	  }
-	  return v
-	}
-
-	/**
-	 * Converts a `Number` into a hex `String`
-	 * @method intToHex
-	 * @param {Number} i
-	 * @return {String}
-	 */
-	exports.intToHex = function (i) {
-	  assert(i % 1 === 0, 'number is not a integer')
-	  assert(i >= 0, 'number must be positive')
-	  var hex = i.toString(16)
-	  if (hex.length % 2) {
-	    hex = '0' + hex
-	  }
-
-	  return '0x' + hex
-	}
-
-	/**
-	 * Converts an `Number` to a `Buffer`
-	 * @method intToBuffer
-	 * @param {Number} i
-	 * @return {Buffer}
-	 */
-	exports.intToBuffer = function (i) {
-	  var hex = exports.intToHex(i)
-	  return new Buffer(hex.slice(2), 'hex')
-	}
+	  return v;
+	};
 
 	/**
 	 * Converts a `Buffer` to a `Number`
-	 * @method bufferToInt
 	 * @param {Buffer} buf
 	 * @return {Number}
+	 * @throws If the input number exceeds 53 bits.
 	 */
 	exports.bufferToInt = function (buf) {
-	  return parseInt(exports.bufferToHex(buf), 16)
-	}
+	  return new BN(exports.toBuffer(buf)).toNumber();
+	};
 
 	/**
 	 * Converts a `Buffer` into a hex `String`
-	 * @method bufferToHex
 	 * @param {Buffer} buf
 	 * @return {String}
 	 */
 	exports.bufferToHex = function (buf) {
-	  buf = exports.toBuffer(buf)
-	  if (buf.length === 0) {
-	    return 0
-	  }
-
-	  return '0x' + buf.toString('hex')
-	}
+	  buf = exports.toBuffer(buf);
+	  return '0x' + buf.toString('hex');
+	};
 
 	/**
 	 * Interprets a `Buffer` as a signed integer and returns a `BN`. Assumes 256-bit numbers.
-	 * @method fromSigned
 	 * @param {Buffer} num
 	 * @return {BN}
 	 */
 	exports.fromSigned = function (num) {
-	  return new BN(num).fromTwos(256)
-	}
+	  return new BN(num).fromTwos(256);
+	};
 
 	/**
 	 * Converts a `BN` to an unsigned integer and returns it as a `Buffer`. Assumes 256-bit numbers.
-	 * @method toUnsigned
 	 * @param {BN} num
 	 * @return {Buffer}
 	 */
 	exports.toUnsigned = function (num) {
-	  return new Buffer(num.toTwos(256).toArray())
-	}
+	  return Buffer.from(num.toTwos(256).toArray());
+	};
 
 	/**
 	 * Creates SHA-3 hash of the input
-	 * @method sha3
 	 * @param {Buffer|Array|String|Number} a the input data
-	 * @param {Number} [bytes=256] the SHA width
+	 * @param {Number} [bits=256] the SHA width
 	 * @return {Buffer}
 	 */
-	exports.sha3 = function (a, bytes) {
-	  a = exports.toBuffer(a)
-	  if (!bytes) bytes = 256
+	exports.sha3 = function (a, bits) {
+	  a = exports.toBuffer(a);
+	  if (!bits) bits = 256;
 
-	  var h = new SHA3(bytes)
-	  if (a) {
-	    h.update(a)
-	  }
-	  return new Buffer(h.digest('hex'), 'hex')
-	}
+	  return createKeccakHash('keccak' + bits).update(a).digest();
+	};
 
 	/**
 	 * Creates SHA256 hash of the input
-	 * @method sha256
 	 * @param {Buffer|Array|String|Number} a the input data
 	 * @return {Buffer}
 	 */
 	exports.sha256 = function (a) {
-	  a = exports.toBuffer(a)
-	  return createHash('sha256').update(a).digest()
-	}
+	  a = exports.toBuffer(a);
+	  return createHash('sha256').update(a).digest();
+	};
 
 	/**
 	 * Creates RIPEMD160 hash of the input
-	 * @method ripemd160
 	 * @param {Buffer|Array|String|Number} a the input data
 	 * @param {Boolean} padded whether it should be padded to 256 bits or not
 	 * @return {Buffer}
 	 */
 	exports.ripemd160 = function (a, padded) {
-	  a = exports.toBuffer(a)
-	  var hash = createHash('rmd160').update(a).digest()
+	  a = exports.toBuffer(a);
+	  var hash = createHash('rmd160').update(a).digest();
 	  if (padded === true) {
-	    return exports.setLength(hash, 32)
+	    return exports.setLength(hash, 32);
 	  } else {
-	    return hash
+	    return hash;
 	  }
-	}
+	};
 
 	/**
 	 * Creates SHA-3 hash of the RLP encoded version of the input
-	 * @method rlphash
 	 * @param {Buffer|Array|String|Number} a the input data
 	 * @return {Buffer}
 	 */
 	exports.rlphash = function (a) {
-	  return exports.sha3(rlp.encode(a))
-	}
+	  return exports.sha3(rlp.encode(a));
+	};
 
 	/**
 	 * Checks if the private key satisfies the rules of the curve secp256k1.
-	 * @method isValidPrivate
 	 * @param {Buffer} privateKey
 	 * @return {Boolean}
 	 */
 	exports.isValidPrivate = function (privateKey) {
-	  return secp256k1.privateKeyVerify(privateKey)
-	}
+	  return secp256k1.privateKeyVerify(privateKey);
+	};
 
 	/**
 	 * Checks if the public key satisfies the rules of the curve secp256k1
 	 * and the requirements of Ethereum.
-	 * @method isValidPublic
 	 * @param {Buffer} publicKey The two points of an uncompressed key, unless sanitize is enabled
 	 * @param {Boolean} [sanitize=false] Accept public keys in other formats
 	 * @return {Boolean}
@@ -37313,287 +37255,298 @@ var EToken =
 	exports.isValidPublic = function (publicKey, sanitize) {
 	  if (publicKey.length === 64) {
 	    // Convert to SEC1 for secp256k1
-	    return secp256k1.publicKeyVerify(Buffer.concat([ new Buffer([4]), publicKey ]))
+	    return secp256k1.publicKeyVerify(Buffer.concat([Buffer.from([4]), publicKey]));
 	  }
 
 	  if (!sanitize) {
-	    return false
+	    return false;
 	  }
 
-	  return secp256k1.publicKeyVerify(publicKey)
-	}
+	  return secp256k1.publicKeyVerify(publicKey);
+	};
 
 	/**
 	 * Returns the ethereum address of a given public key.
 	 * Accepts "Ethereum public keys" and SEC1 encoded keys.
-	 * @method publicToAddress
 	 * @param {Buffer} pubKey The two points of an uncompressed key, unless sanitize is enabled
 	 * @param {Boolean} [sanitize=false] Accept public keys in other formats
 	 * @return {Buffer}
 	 */
 	exports.pubToAddress = exports.publicToAddress = function (pubKey, sanitize) {
-	  pubKey = exports.toBuffer(pubKey)
-	  if (sanitize && (pubKey.length !== 64)) {
-	    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1)
+	  pubKey = exports.toBuffer(pubKey);
+	  if (sanitize && pubKey.length !== 64) {
+	    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
 	  }
-	  assert(pubKey.length === 64)
+	  assert(pubKey.length === 64);
 	  // Only take the lower 160bits of the hash
-	  return exports.sha3(pubKey).slice(-20)
-	}
+	  return exports.sha3(pubKey).slice(-20);
+	};
 
 	/**
 	 * Returns the ethereum public key of a given private key
-	 * @method privateToPublic
 	 * @param {Buffer} privateKey A private key must be 256 bits wide
 	 * @return {Buffer}
 	 */
 	var privateToPublic = exports.privateToPublic = function (privateKey) {
-	  privateKey = exports.toBuffer(privateKey)
+	  privateKey = exports.toBuffer(privateKey);
 	  // skip the type flag and use the X, Y points
-	  return secp256k1.publicKeyCreate(privateKey, false).slice(1)
-	}
+	  return secp256k1.publicKeyCreate(privateKey, false).slice(1);
+	};
 
 	/**
 	 * Converts a public key to the Ethereum format.
-	 * @method importPublic
 	 * @param {Buffer} publicKey
 	 * @return {Buffer}
 	 */
 	exports.importPublic = function (publicKey) {
-	  publicKey = exports.toBuffer(publicKey)
+	  publicKey = exports.toBuffer(publicKey);
 	  if (publicKey.length !== 64) {
-	    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1)
+	    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1);
 	  }
-	  return publicKey
-	}
+	  return publicKey;
+	};
 
 	/**
 	 * ECDSA sign
-	 * @method ecsign
 	 * @param {Buffer} msgHash
 	 * @param {Buffer} privateKey
 	 * @return {Object}
 	 */
 	exports.ecsign = function (msgHash, privateKey) {
-	  var sig = secp256k1.sign(msgHash, privateKey)
+	  var sig = secp256k1.sign(msgHash, privateKey);
 
-	  var ret = {}
-	  ret.r = sig.signature.slice(0, 32)
-	  ret.s = sig.signature.slice(32, 64)
-	  ret.v = sig.recovery + 27
-	  return ret
-	}
+	  var ret = {};
+	  ret.r = sig.signature.slice(0, 32);
+	  ret.s = sig.signature.slice(32, 64);
+	  ret.v = sig.recovery + 27;
+	  return ret;
+	};
+
+	/**
+	 * Returns the keccak-256 hash of `message`, prefixed with the header used by the `eth_sign` RPC call.
+	 * The output of this function can be fed into `ecsign` to produce the same signature as the `eth_sign`
+	 * call for a given `message`, or fed to `ecrecover` along with a signature to recover the public key
+	 * used to produce the signature.
+	 * @param message
+	 * @returns {Buffer} hash
+	 */
+	exports.hashPersonalMessage = function (message) {
+	  var prefix = exports.toBuffer('\x19Ethereum Signed Message:\n' + message.length.toString());
+	  return exports.sha3(Buffer.concat([prefix, message]));
+	};
 
 	/**
 	 * ECDSA public key recovery from signature
-	 * @method ecrecover
 	 * @param {Buffer} msgHash
-	 * @param {Buffer} v
+	 * @param {Number} v
 	 * @param {Buffer} r
 	 * @param {Buffer} s
 	 * @return {Buffer} publicKey
 	 */
 	exports.ecrecover = function (msgHash, v, r, s) {
-	  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64)
-	  var recovery = exports.bufferToInt(v) - 27
+	  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64);
+	  var recovery = v - 27;
 	  if (recovery !== 0 && recovery !== 1) {
-	    throw new Error('Invalid signature v value')
+	    throw new Error('Invalid signature v value');
 	  }
-	  var senderPubKey = secp256k1.recover(msgHash, signature, recovery)
-	  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1)
-	}
+	  var senderPubKey = secp256k1.recover(msgHash, signature, recovery);
+	  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1);
+	};
 
 	/**
 	 * Convert signature parameters into the format of `eth_sign` RPC method
-	 * @method toRpcSig
 	 * @param {Number} v
 	 * @param {Buffer} r
 	 * @param {Buffer} s
 	 * @return {String} sig
 	 */
 	exports.toRpcSig = function (v, r, s) {
+	  // NOTE: with potential introduction of chainId this might need to be updated
+	  if (v !== 27 && v !== 28) {
+	    throw new Error('Invalid recovery id');
+	  }
+
 	  // geth (and the RPC eth_sign method) uses the 65 byte format used by Bitcoin
 	  // FIXME: this might change in the future - https://github.com/ethereum/go-ethereum/issues/2053
-	  return exports.bufferToHex(Buffer.concat([ r, s, exports.toBuffer(v - 27) ]))
-	}
+	  return exports.bufferToHex(Buffer.concat([exports.setLengthLeft(r, 32), exports.setLengthLeft(s, 32), exports.toBuffer(v - 27)]));
+	};
 
 	/**
 	 * Convert signature format of the `eth_sign` RPC method to signature parameters
-	 * @method fromRpcSig
+	 * NOTE: all because of a bug in geth: https://github.com/ethereum/go-ethereum/issues/2053
 	 * @param {String} sig
 	 * @return {Object}
 	 */
 	exports.fromRpcSig = function (sig) {
-	  sig = exports.toBuffer(sig)
+	  sig = exports.toBuffer(sig);
 
-	  var v = sig[64]
+	  // NOTE: with potential introduction of chainId this might need to be updated
+	  if (sig.length !== 65) {
+	    throw new Error('Invalid signature length');
+	  }
+
+	  var v = sig[64];
 	  // support both versions of `eth_sign` responses
 	  if (v < 27) {
-	    v += 27
+	    v += 27;
 	  }
 
 	  return {
 	    v: v,
 	    r: sig.slice(0, 32),
 	    s: sig.slice(32, 64)
-	  }
-	}
+	  };
+	};
 
 	/**
 	 * Returns the ethereum address of a given private key
-	 * @method privateToAddress
 	 * @param {Buffer} privateKey A private key must be 256 bits wide
 	 * @return {Buffer}
 	 */
 	exports.privateToAddress = function (privateKey) {
-	  return exports.publicToAddress(privateToPublic(privateKey))
-	}
+	  return exports.publicToAddress(privateToPublic(privateKey));
+	};
 
 	/**
 	 * Checks if the address is a valid. Accepts checksummed addresses too
-	 * @method isValidAddress
 	 * @param {String} address
 	 * @return {Boolean}
 	 */
 	exports.isValidAddress = function (address) {
-	  return /^0x[0-9a-fA-F]{40}$/i.test(address)
-	}
+	  return (/^0x[0-9a-fA-F]{40}$/i.test(address)
+	  );
+	};
 
 	/**
 	 * Returns a checksummed address
-	 * @method toChecksumAddress
 	 * @param {String} address
 	 * @return {String}
 	 */
 	exports.toChecksumAddress = function (address) {
-	  address = exports.stripHexPrefix(address).toLowerCase()
-	  var hash = exports.sha3(address).toString('hex')
-	  var ret = '0x'
+	  address = exports.stripHexPrefix(address).toLowerCase();
+	  var hash = exports.sha3(address).toString('hex');
+	  var ret = '0x';
 
 	  for (var i = 0; i < address.length; i++) {
 	    if (parseInt(hash[i], 16) >= 8) {
-	      ret += address[i].toUpperCase()
+	      ret += address[i].toUpperCase();
 	    } else {
-	      ret += address[i]
+	      ret += address[i];
 	    }
 	  }
 
-	  return ret
-	}
+	  return ret;
+	};
 
 	/**
 	 * Checks if the address is a valid checksummed address
-	 * @method isValidChecksumAddress
 	 * @param {Buffer} address
 	 * @return {Boolean}
 	 */
 	exports.isValidChecksumAddress = function (address) {
-	  return exports.isValidAddress(address) && (exports.toChecksumAddress(address) === address)
-	}
+	  return exports.isValidAddress(address) && exports.toChecksumAddress(address) === address;
+	};
 
 	/**
 	 * Generates an address of a newly created contract
-	 * @method generateAddress
 	 * @param {Buffer} from the address which is creating this new address
 	 * @param {Buffer} nonce the nonce of the from account
 	 * @return {Buffer}
 	 */
 	exports.generateAddress = function (from, nonce) {
-	  from = exports.toBuffer(from)
-	  nonce = new BN(nonce)
+	  from = exports.toBuffer(from);
+	  nonce = new BN(nonce);
 
 	  if (nonce.isZero()) {
 	    // in RLP we want to encode null in the case of zero nonce
 	    // read the RLP documentation for an answer if you dare
-	    nonce = null
+	    nonce = null;
 	  } else {
-	    nonce = new Buffer(nonce.toArray())
+	    nonce = Buffer.from(nonce.toArray());
 	  }
 
 	  // Only take the lower 160bits of the hash
-	  return exports.rlphash([from, nonce]).slice(-20)
-	}
+	  return exports.rlphash([from, nonce]).slice(-20);
+	};
 
 	/**
 	 * Returns true if the supplied address belongs to a precompiled account
-	 * @method isPrecompiled
 	 * @param {Buffer|String} address
 	 * @return {Boolean}
 	 */
 	exports.isPrecompiled = function (address) {
-	  var a = exports.unpad(address)
-	  return a.length === 1 && a[0] > 0 && a[0] < 5
-	}
-
-	/**
-	 * Returns a `Boolean` on whether or not the a `String` starts with "0x"
-	 * @method isHexPrefixed
-	 * @param {String} str
-	 * @return {Boolean}
-	 */
-	exports.isHexPrefixed = function (str) {
-	  return str.slice(0, 2) === '0x'
-	}
-
-	/**
-	 * Removes "0x" from a given `String`
-	 * @method stripHexPrefix
-	 * @param {String} str
-	 * @return {String}
-	 */
-	exports.stripHexPrefix = function (str) {
-	  if (typeof str !== 'string') {
-	    return str
-	  }
-	  return exports.isHexPrefixed(str) ? str.slice(2) : str
-	}
+	  var a = exports.unpad(address);
+	  return a.length === 1 && a[0] > 0 && a[0] < 5;
+	};
 
 	/**
 	 * Adds "0x" to a given `String` if it does not already start with "0x"
-	 * @method addHexPrefix
 	 * @param {String} str
 	 * @return {String}
 	 */
 	exports.addHexPrefix = function (str) {
 	  if (typeof str !== 'string') {
-	    return str
+	    return str;
 	  }
 
-	  return exports.isHexPrefixed(str) ? str : '0x' + str
-	}
+	  return exports.isHexPrefixed(str) ? str : '0x' + str;
+	};
 
 	/**
-	 * Pads a `String` to have an even length
-	 * @method padToEven
-	 * @param {String} a
-	 * @return {String}
+	 * Validate ECDSA signature
+	 * @method isValidSignature
+	 * @param {Buffer} v
+	 * @param {Buffer} r
+	 * @param {Buffer} s
+	 * @param {Boolean} [homestead=true]
+	 * @return {Boolean}
 	 */
-	exports.padToEven = function (a) {
-	  if (a.length % 2) a = '0' + a
-	  return a
-	}
+
+	exports.isValidSignature = function (v, r, s, homestead) {
+	  var SECP256K1_N_DIV_2 = new BN('7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0', 16);
+	  var SECP256K1_N = new BN('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 16);
+
+	  if (r.length !== 32 || s.length !== 32) {
+	    return false;
+	  }
+
+	  if (v !== 27 && v !== 28) {
+	    return false;
+	  }
+
+	  r = new BN(r);
+	  s = new BN(s);
+
+	  if (r.isZero() || r.gt(SECP256K1_N) || s.isZero() || s.gt(SECP256K1_N)) {
+	    return false;
+	  }
+
+	  if (homestead === false && new BN(s).cmp(SECP256K1_N_DIV_2) === 1) {
+	    return false;
+	  }
+
+	  return true;
+	};
 
 	/**
 	 * Converts a `Buffer` or `Array` to JSON
-	 * @method BAToJSON
 	 * @param {Buffer|Array} ba
 	 * @return {Array|String|null}
 	 */
 	exports.baToJSON = function (ba) {
 	  if (Buffer.isBuffer(ba)) {
-	    return '0x' + ba.toString('hex')
+	    return '0x' + ba.toString('hex');
 	  } else if (ba instanceof Array) {
-	    var array = []
+	    var array = [];
 	    for (var i = 0; i < ba.length; i++) {
-	      array.push(exports.baToJSON(ba[i]))
+	      array.push(exports.baToJSON(ba[i]));
 	    }
-	    return array
+	    return array;
 	  }
-	}
+	};
 
 	/**
 	 * Defines properties on a `Object`. It make the assumption that underlying data is binary.
-	 * @method defineProperties
 	 * @param {Object} self the `Object` to define properties on
 	 * @param {Array} fields an array fields to define. Fields can contain:
 	 * * `name` - the name of the properties
@@ -37603,45 +37556,45 @@ var EToken =
 	 * @param {*} data data to be validated against the definitions
 	 */
 	exports.defineProperties = function (self, fields, data) {
-	  self.raw = []
-	  self._fields = []
+	  self.raw = [];
+	  self._fields = [];
 
 	  // attach the `toJSON`
 	  self.toJSON = function (label) {
 	    if (label) {
-	      var obj = {}
+	      var obj = {};
 	      self._fields.forEach(function (field) {
-	        obj[field] = '0x' + self[field].toString('hex')
-	      })
-	      return obj
+	        obj[field] = '0x' + self[field].toString('hex');
+	      });
+	      return obj;
 	    }
-	    return exports.baToJSON(this.raw)
-	  }
+	    return exports.baToJSON(this.raw);
+	  };
 
-	  self.serialize = function serialize () {
-	    return rlp.encode(self.raw)
-	  }
+	  self.serialize = function serialize() {
+	    return rlp.encode(self.raw);
+	  };
 
 	  fields.forEach(function (field, i) {
-	    self._fields.push(field.name)
-	    function getter () {
-	      return self.raw[i]
+	    self._fields.push(field.name);
+	    function getter() {
+	      return self.raw[i];
 	    }
-	    function setter (v) {
-	      v = exports.toBuffer(v)
+	    function setter(v) {
+	      v = exports.toBuffer(v);
 
 	      if (v.toString('hex') === '00' && !field.allowZero) {
-	        v = new Buffer([])
+	        v = Buffer.allocUnsafe(0);
 	      }
 
 	      if (field.allowLess && field.length) {
-	        v = exports.stripZeros(v)
-	        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes')
+	        v = exports.stripZeros(v);
+	        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes');
 	      } else if (!(field.allowZero && v.length === 0) && field.length) {
-	        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length)
+	        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length);
 	      }
 
-	      self.raw[i] = v
+	      self.raw[i] = v;
 	    }
 
 	    Object.defineProperty(self, field.name, {
@@ -37649,10 +37602,10 @@ var EToken =
 	      configurable: true,
 	      get: getter,
 	      set: setter
-	    })
+	    });
 
 	    if (field.default) {
-	      self[field.name] = field.default
+	      self[field.name] = field.default;
 	    }
 
 	    // attach alias
@@ -37662,59 +37615,791 @@ var EToken =
 	        configurable: true,
 	        set: setter,
 	        get: getter
-	      })
+	      });
 	    }
-	  })
+	  });
 
 	  // if the constuctor is passed data
 	  if (data) {
 	    if (typeof data === 'string') {
-	      data = new Buffer(exports.stripHexPrefix(data), 'hex')
+	      data = Buffer.from(exports.stripHexPrefix(data), 'hex');
 	    }
 
 	    if (Buffer.isBuffer(data)) {
-	      data = rlp.decode(data)
+	      data = rlp.decode(data);
 	    }
 
 	    if (Array.isArray(data)) {
 	      if (data.length > self._fields.length) {
-	        throw (new Error('wrong number of fields in data'))
+	        throw new Error('wrong number of fields in data');
 	      }
 
 	      // make sure all the items are buffers
 	      data.forEach(function (d, i) {
-	        self[self._fields[i]] = exports.toBuffer(d)
-	      })
-	    } else if (typeof data === 'object') {
-	      for (var prop in data) {
-	        if (self._fields.indexOf(prop) !== -1) {
-	          self[prop] = data[prop]
-	        }
-	      }
+	        self[self._fields[i]] = exports.toBuffer(d);
+	      });
+	    } else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
+	      var keys = Object.keys(data);
+	      fields.forEach(function (field) {
+	        if (keys.indexOf(field.name) !== -1) self[field.name] = data[field.name];
+	        if (keys.indexOf(field.alias) !== -1) self[field.alias] = data[field.alias];
+	      });
 	    } else {
-	      throw new Error('invalid data')
+	      throw new Error('invalid data');
 	    }
 	  }
-	}
-
+	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
 /* 210 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(188).SHA3Hash
+	'use strict'
+	module.exports = __webpack_require__(211)(__webpack_require__(214))
 
 
 /***/ },
 /* 211 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(212)
+	'use strict'
+	var createKeccak = __webpack_require__(212)
+	var createShake = __webpack_require__(213)
+
+	module.exports = function (KeccakState) {
+	  var Keccak = createKeccak(KeccakState)
+	  var Shake = createShake(KeccakState)
+
+	  return function (algorithm, options) {
+	    var hash = typeof algorithm === 'string' ? algorithm.toLowerCase() : algorithm
+	    switch (hash) {
+	      case 'keccak224': return new Keccak(1152, 448, null, 224, options)
+	      case 'keccak256': return new Keccak(1088, 512, null, 256, options)
+	      case 'keccak384': return new Keccak(832, 768, null, 384, options)
+	      case 'keccak512': return new Keccak(576, 1024, null, 512, options)
+
+	      case 'sha3-224': return new Keccak(1152, 448, 0x06, 224, options)
+	      case 'sha3-256': return new Keccak(1088, 512, 0x06, 256, options)
+	      case 'sha3-384': return new Keccak(832, 768, 0x06, 384, options)
+	      case 'sha3-512': return new Keccak(576, 1024, 0x06, 512, options)
+
+	      case 'shake128': return new Shake(1344, 256, 0x1f, options)
+	      case 'shake256': return new Shake(1088, 512, 0x1f, options)
+
+	      default: throw new Error('Invald algorithm: ' + algorithm)
+	    }
+	  }
+	}
 
 
 /***/ },
 /* 212 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict'
+	var Transform = __webpack_require__(33).Transform
+	var inherits = __webpack_require__(20)
+
+	module.exports = function (KeccakState) {
+	  function Keccak (rate, capacity, delimitedSuffix, hashBitLength, options) {
+	    Transform.call(this, options)
+
+	    this._rate = rate
+	    this._capacity = capacity
+	    this._delimitedSuffix = delimitedSuffix
+	    this._hashBitLength = hashBitLength
+	    this._options = options
+
+	    this._state = new KeccakState()
+	    this._state.initialize(rate, capacity)
+	    this._finalized = false
+	  }
+
+	  inherits(Keccak, Transform)
+
+	  Keccak.prototype._transform = function (chunk, encoding, callback) {
+	    var error = null
+	    try {
+	      this.update(chunk, encoding)
+	    } catch (err) {
+	      error = err
+	    }
+
+	    callback(error)
+	  }
+
+	  Keccak.prototype._flush = function (callback) {
+	    var error = null
+	    try {
+	      this.push(this.digest())
+	    } catch (err) {
+	      error = err
+	    }
+
+	    callback(error)
+	  }
+
+	  Keccak.prototype.update = function (data, encoding) {
+	    if (!Buffer.isBuffer(data) && typeof data !== 'string') throw new TypeError('Data must be a string or a buffer')
+	    if (this._finalized) throw new Error('Digest already called')
+	    if (!Buffer.isBuffer(data)) data = Buffer.from(data, encoding)
+
+	    this._state.absorb(data)
+
+	    return this
+	  }
+
+	  Keccak.prototype.digest = function (encoding) {
+	    if (this._finalized) throw new Error('Digest already called')
+	    this._finalized = true
+
+	    if (this._delimitedSuffix) this._state.absorbLastFewBits(this._delimitedSuffix)
+	    var digest = this._state.squeeze(this._hashBitLength / 8)
+	    if (encoding !== undefined) digest = digest.toString(encoding)
+
+	    this._resetState()
+
+	    return digest
+	  }
+
+	  // remove result from memory
+	  Keccak.prototype._resetState = function () {
+	    this._state.initialize(this._rate, this._capacity)
+	    return this
+	  }
+
+	  // because sometimes we need hash right now and little later
+	  Keccak.prototype._clone = function () {
+	    var clone = new Keccak(this._rate, this._capacity, this._delimitedSuffix, this._hashBitLength, this._options)
+	    this._state.copy(clone._state)
+	    clone._finalized = this._finalized
+
+	    return clone
+	  }
+
+	  return Keccak
+	}
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
+
+/***/ },
+/* 213 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict'
+	var Transform = __webpack_require__(33).Transform
+	var inherits = __webpack_require__(20)
+
+	module.exports = function (KeccakState) {
+	  function Shake (rate, capacity, delimitedSuffix, options) {
+	    Transform.call(this, options)
+
+	    this._rate = rate
+	    this._capacity = capacity
+	    this._delimitedSuffix = delimitedSuffix
+	    this._options = options
+
+	    this._state = new KeccakState()
+	    this._state.initialize(rate, capacity)
+	    this._finalized = false
+	  }
+
+	  inherits(Shake, Transform)
+
+	  Shake.prototype._transform = function (chunk, encoding, callback) {
+	    var error = null
+	    try {
+	      this.update(chunk, encoding)
+	    } catch (err) {
+	      error = err
+	    }
+
+	    callback(error)
+	  }
+
+	  Shake.prototype._flush = function () {}
+
+	  Shake.prototype._read = function (size) {
+	    this.push(this.squeeze(size))
+	  }
+
+	  Shake.prototype.update = function (data, encoding) {
+	    if (!Buffer.isBuffer(data) && typeof data !== 'string') throw new TypeError('Data must be a string or a buffer')
+	    if (this._finalized) throw new Error('Squeeze already called')
+	    if (!Buffer.isBuffer(data)) data = Buffer.from(data, encoding)
+
+	    this._state.absorb(data)
+
+	    return this
+	  }
+
+	  Shake.prototype.squeeze = function (dataByteLength, encoding) {
+	    if (!this._finalized) {
+	      this._finalized = true
+	      this._state.absorbLastFewBits(this._delimitedSuffix)
+	    }
+
+	    var data = this._state.squeeze(dataByteLength)
+	    if (encoding !== undefined) data = data.toString(encoding)
+
+	    return data
+	  }
+
+	  Shake.prototype._resetState = function () {
+	    this._state.initialize(this._rate, this._capacity)
+	    return this
+	  }
+
+	  Shake.prototype._clone = function () {
+	    var clone = new Shake(this._rate, this._capacity, this._delimitedSuffix, this._options)
+	    this._state.copy(clone._state)
+	    clone._finalized = this._finalized
+
+	    return clone
+	  }
+
+	  return Shake
+	}
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
+
+/***/ },
+/* 214 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict'
+	var keccakState = __webpack_require__(215)
+
+	function Keccak () {
+	  // much faster than `new Array(50)`
+	  this.state = [
+	    0, 0, 0, 0, 0,
+	    0, 0, 0, 0, 0,
+	    0, 0, 0, 0, 0,
+	    0, 0, 0, 0, 0,
+	    0, 0, 0, 0, 0
+	  ]
+
+	  this.blockSize = null
+	  this.count = 0
+	  this.squeezing = false
+	}
+
+	Keccak.prototype.initialize = function (rate, capacity) {
+	  for (var i = 0; i < 50; ++i) this.state[i] = 0
+	  this.blockSize = rate / 8
+	  this.count = 0
+	  this.squeezing = false
+	}
+
+	Keccak.prototype.absorb = function (data) {
+	  for (var i = 0; i < data.length; ++i) {
+	    this.state[~~(this.count / 4)] ^= data[i] << (8 * (this.count % 4))
+	    this.count += 1
+	    if (this.count === this.blockSize) {
+	      keccakState.p1600(this.state)
+	      this.count = 0
+	    }
+	  }
+	}
+
+	Keccak.prototype.absorbLastFewBits = function (bits) {
+	  this.state[~~(this.count / 4)] ^= bits << (8 * (this.count % 4))
+	  if ((bits & 0x80) !== 0 && this.count === (this.blockSize - 1)) keccakState.p1600(this.state)
+	  this.state[~~((this.blockSize - 1) / 4)] ^= 0x80 << (8 * ((this.blockSize - 1) % 4))
+	  keccakState.p1600(this.state)
+	  this.count = 0
+	  this.squeezing = true
+	}
+
+	Keccak.prototype.squeeze = function (length) {
+	  if (!this.squeezing) this.absorbLastFewBits(0x01)
+
+	  var output = Buffer.allocUnsafe(length)
+	  for (var i = 0; i < length; ++i) {
+	    output[i] = (this.state[~~(this.count / 4)] >>> (8 * (this.count % 4))) & 0xff
+	    this.count += 1
+	    if (this.count === this.blockSize) {
+	      keccakState.p1600(this.state)
+	      this.count = 0
+	    }
+	  }
+
+	  return output
+	}
+
+	Keccak.prototype.copy = function (dest) {
+	  for (var i = 0; i < 50; ++i) dest.state[i] = this.state[i]
+	  dest.blockSize = this.blockSize
+	  dest.count = this.count
+	  dest.squeezing = this.squeezing
+	}
+
+	module.exports = Keccak
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
+
+/***/ },
+/* 215 */
+/***/ function(module, exports) {
+
+	'use strict'
+	var P1600_ROUND_CONSTANTS = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649, 0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648]
+
+	exports.p1600 = function (s) {
+	  for (var round = 0; round < 24; ++round) {
+	    // theta
+	    var lo0 = s[0] ^ s[10] ^ s[20] ^ s[30] ^ s[40]
+	    var hi0 = s[1] ^ s[11] ^ s[21] ^ s[31] ^ s[41]
+	    var lo1 = s[2] ^ s[12] ^ s[22] ^ s[32] ^ s[42]
+	    var hi1 = s[3] ^ s[13] ^ s[23] ^ s[33] ^ s[43]
+	    var lo2 = s[4] ^ s[14] ^ s[24] ^ s[34] ^ s[44]
+	    var hi2 = s[5] ^ s[15] ^ s[25] ^ s[35] ^ s[45]
+	    var lo3 = s[6] ^ s[16] ^ s[26] ^ s[36] ^ s[46]
+	    var hi3 = s[7] ^ s[17] ^ s[27] ^ s[37] ^ s[47]
+	    var lo4 = s[8] ^ s[18] ^ s[28] ^ s[38] ^ s[48]
+	    var hi4 = s[9] ^ s[19] ^ s[29] ^ s[39] ^ s[49]
+
+	    var lo = lo4 ^ (lo1 << 1 | hi1 >>> 31)
+	    var hi = hi4 ^ (hi1 << 1 | lo1 >>> 31)
+	    var t1slo0 = s[0] ^ lo
+	    var t1shi0 = s[1] ^ hi
+	    var t1slo5 = s[10] ^ lo
+	    var t1shi5 = s[11] ^ hi
+	    var t1slo10 = s[20] ^ lo
+	    var t1shi10 = s[21] ^ hi
+	    var t1slo15 = s[30] ^ lo
+	    var t1shi15 = s[31] ^ hi
+	    var t1slo20 = s[40] ^ lo
+	    var t1shi20 = s[41] ^ hi
+	    lo = lo0 ^ (lo2 << 1 | hi2 >>> 31)
+	    hi = hi0 ^ (hi2 << 1 | lo2 >>> 31)
+	    var t1slo1 = s[2] ^ lo
+	    var t1shi1 = s[3] ^ hi
+	    var t1slo6 = s[12] ^ lo
+	    var t1shi6 = s[13] ^ hi
+	    var t1slo11 = s[22] ^ lo
+	    var t1shi11 = s[23] ^ hi
+	    var t1slo16 = s[32] ^ lo
+	    var t1shi16 = s[33] ^ hi
+	    var t1slo21 = s[42] ^ lo
+	    var t1shi21 = s[43] ^ hi
+	    lo = lo1 ^ (lo3 << 1 | hi3 >>> 31)
+	    hi = hi1 ^ (hi3 << 1 | lo3 >>> 31)
+	    var t1slo2 = s[4] ^ lo
+	    var t1shi2 = s[5] ^ hi
+	    var t1slo7 = s[14] ^ lo
+	    var t1shi7 = s[15] ^ hi
+	    var t1slo12 = s[24] ^ lo
+	    var t1shi12 = s[25] ^ hi
+	    var t1slo17 = s[34] ^ lo
+	    var t1shi17 = s[35] ^ hi
+	    var t1slo22 = s[44] ^ lo
+	    var t1shi22 = s[45] ^ hi
+	    lo = lo2 ^ (lo4 << 1 | hi4 >>> 31)
+	    hi = hi2 ^ (hi4 << 1 | lo4 >>> 31)
+	    var t1slo3 = s[6] ^ lo
+	    var t1shi3 = s[7] ^ hi
+	    var t1slo8 = s[16] ^ lo
+	    var t1shi8 = s[17] ^ hi
+	    var t1slo13 = s[26] ^ lo
+	    var t1shi13 = s[27] ^ hi
+	    var t1slo18 = s[36] ^ lo
+	    var t1shi18 = s[37] ^ hi
+	    var t1slo23 = s[46] ^ lo
+	    var t1shi23 = s[47] ^ hi
+	    lo = lo3 ^ (lo0 << 1 | hi0 >>> 31)
+	    hi = hi3 ^ (hi0 << 1 | lo0 >>> 31)
+	    var t1slo4 = s[8] ^ lo
+	    var t1shi4 = s[9] ^ hi
+	    var t1slo9 = s[18] ^ lo
+	    var t1shi9 = s[19] ^ hi
+	    var t1slo14 = s[28] ^ lo
+	    var t1shi14 = s[29] ^ hi
+	    var t1slo19 = s[38] ^ lo
+	    var t1shi19 = s[39] ^ hi
+	    var t1slo24 = s[48] ^ lo
+	    var t1shi24 = s[49] ^ hi
+
+	    // rho & pi
+	    var t2slo0 = t1slo0
+	    var t2shi0 = t1shi0
+	    var t2slo16 = (t1shi5 << 4 | t1slo5 >>> 28)
+	    var t2shi16 = (t1slo5 << 4 | t1shi5 >>> 28)
+	    var t2slo7 = (t1slo10 << 3 | t1shi10 >>> 29)
+	    var t2shi7 = (t1shi10 << 3 | t1slo10 >>> 29)
+	    var t2slo23 = (t1shi15 << 9 | t1slo15 >>> 23)
+	    var t2shi23 = (t1slo15 << 9 | t1shi15 >>> 23)
+	    var t2slo14 = (t1slo20 << 18 | t1shi20 >>> 14)
+	    var t2shi14 = (t1shi20 << 18 | t1slo20 >>> 14)
+	    var t2slo10 = (t1slo1 << 1 | t1shi1 >>> 31)
+	    var t2shi10 = (t1shi1 << 1 | t1slo1 >>> 31)
+	    var t2slo1 = (t1shi6 << 12 | t1slo6 >>> 20)
+	    var t2shi1 = (t1slo6 << 12 | t1shi6 >>> 20)
+	    var t2slo17 = (t1slo11 << 10 | t1shi11 >>> 22)
+	    var t2shi17 = (t1shi11 << 10 | t1slo11 >>> 22)
+	    var t2slo8 = (t1shi16 << 13 | t1slo16 >>> 19)
+	    var t2shi8 = (t1slo16 << 13 | t1shi16 >>> 19)
+	    var t2slo24 = (t1slo21 << 2 | t1shi21 >>> 30)
+	    var t2shi24 = (t1shi21 << 2 | t1slo21 >>> 30)
+	    var t2slo20 = (t1shi2 << 30 | t1slo2 >>> 2)
+	    var t2shi20 = (t1slo2 << 30 | t1shi2 >>> 2)
+	    var t2slo11 = (t1slo7 << 6 | t1shi7 >>> 26)
+	    var t2shi11 = (t1shi7 << 6 | t1slo7 >>> 26)
+	    var t2slo2 = (t1shi12 << 11 | t1slo12 >>> 21)
+	    var t2shi2 = (t1slo12 << 11 | t1shi12 >>> 21)
+	    var t2slo18 = (t1slo17 << 15 | t1shi17 >>> 17)
+	    var t2shi18 = (t1shi17 << 15 | t1slo17 >>> 17)
+	    var t2slo9 = (t1shi22 << 29 | t1slo22 >>> 3)
+	    var t2shi9 = (t1slo22 << 29 | t1shi22 >>> 3)
+	    var t2slo5 = (t1slo3 << 28 | t1shi3 >>> 4)
+	    var t2shi5 = (t1shi3 << 28 | t1slo3 >>> 4)
+	    var t2slo21 = (t1shi8 << 23 | t1slo8 >>> 9)
+	    var t2shi21 = (t1slo8 << 23 | t1shi8 >>> 9)
+	    var t2slo12 = (t1slo13 << 25 | t1shi13 >>> 7)
+	    var t2shi12 = (t1shi13 << 25 | t1slo13 >>> 7)
+	    var t2slo3 = (t1slo18 << 21 | t1shi18 >>> 11)
+	    var t2shi3 = (t1shi18 << 21 | t1slo18 >>> 11)
+	    var t2slo19 = (t1shi23 << 24 | t1slo23 >>> 8)
+	    var t2shi19 = (t1slo23 << 24 | t1shi23 >>> 8)
+	    var t2slo15 = (t1slo4 << 27 | t1shi4 >>> 5)
+	    var t2shi15 = (t1shi4 << 27 | t1slo4 >>> 5)
+	    var t2slo6 = (t1slo9 << 20 | t1shi9 >>> 12)
+	    var t2shi6 = (t1shi9 << 20 | t1slo9 >>> 12)
+	    var t2slo22 = (t1shi14 << 7 | t1slo14 >>> 25)
+	    var t2shi22 = (t1slo14 << 7 | t1shi14 >>> 25)
+	    var t2slo13 = (t1slo19 << 8 | t1shi19 >>> 24)
+	    var t2shi13 = (t1shi19 << 8 | t1slo19 >>> 24)
+	    var t2slo4 = (t1slo24 << 14 | t1shi24 >>> 18)
+	    var t2shi4 = (t1shi24 << 14 | t1slo24 >>> 18)
+
+	    // chi
+	    s[0] = t2slo0 ^ (~t2slo1 & t2slo2)
+	    s[1] = t2shi0 ^ (~t2shi1 & t2shi2)
+	    s[10] = t2slo5 ^ (~t2slo6 & t2slo7)
+	    s[11] = t2shi5 ^ (~t2shi6 & t2shi7)
+	    s[20] = t2slo10 ^ (~t2slo11 & t2slo12)
+	    s[21] = t2shi10 ^ (~t2shi11 & t2shi12)
+	    s[30] = t2slo15 ^ (~t2slo16 & t2slo17)
+	    s[31] = t2shi15 ^ (~t2shi16 & t2shi17)
+	    s[40] = t2slo20 ^ (~t2slo21 & t2slo22)
+	    s[41] = t2shi20 ^ (~t2shi21 & t2shi22)
+	    s[2] = t2slo1 ^ (~t2slo2 & t2slo3)
+	    s[3] = t2shi1 ^ (~t2shi2 & t2shi3)
+	    s[12] = t2slo6 ^ (~t2slo7 & t2slo8)
+	    s[13] = t2shi6 ^ (~t2shi7 & t2shi8)
+	    s[22] = t2slo11 ^ (~t2slo12 & t2slo13)
+	    s[23] = t2shi11 ^ (~t2shi12 & t2shi13)
+	    s[32] = t2slo16 ^ (~t2slo17 & t2slo18)
+	    s[33] = t2shi16 ^ (~t2shi17 & t2shi18)
+	    s[42] = t2slo21 ^ (~t2slo22 & t2slo23)
+	    s[43] = t2shi21 ^ (~t2shi22 & t2shi23)
+	    s[4] = t2slo2 ^ (~t2slo3 & t2slo4)
+	    s[5] = t2shi2 ^ (~t2shi3 & t2shi4)
+	    s[14] = t2slo7 ^ (~t2slo8 & t2slo9)
+	    s[15] = t2shi7 ^ (~t2shi8 & t2shi9)
+	    s[24] = t2slo12 ^ (~t2slo13 & t2slo14)
+	    s[25] = t2shi12 ^ (~t2shi13 & t2shi14)
+	    s[34] = t2slo17 ^ (~t2slo18 & t2slo19)
+	    s[35] = t2shi17 ^ (~t2shi18 & t2shi19)
+	    s[44] = t2slo22 ^ (~t2slo23 & t2slo24)
+	    s[45] = t2shi22 ^ (~t2shi23 & t2shi24)
+	    s[6] = t2slo3 ^ (~t2slo4 & t2slo0)
+	    s[7] = t2shi3 ^ (~t2shi4 & t2shi0)
+	    s[16] = t2slo8 ^ (~t2slo9 & t2slo5)
+	    s[17] = t2shi8 ^ (~t2shi9 & t2shi5)
+	    s[26] = t2slo13 ^ (~t2slo14 & t2slo10)
+	    s[27] = t2shi13 ^ (~t2shi14 & t2shi10)
+	    s[36] = t2slo18 ^ (~t2slo19 & t2slo15)
+	    s[37] = t2shi18 ^ (~t2shi19 & t2shi15)
+	    s[46] = t2slo23 ^ (~t2slo24 & t2slo20)
+	    s[47] = t2shi23 ^ (~t2shi24 & t2shi20)
+	    s[8] = t2slo4 ^ (~t2slo0 & t2slo1)
+	    s[9] = t2shi4 ^ (~t2shi0 & t2shi1)
+	    s[18] = t2slo9 ^ (~t2slo5 & t2slo6)
+	    s[19] = t2shi9 ^ (~t2shi5 & t2shi6)
+	    s[28] = t2slo14 ^ (~t2slo10 & t2slo11)
+	    s[29] = t2shi14 ^ (~t2shi10 & t2shi11)
+	    s[38] = t2slo19 ^ (~t2slo15 & t2slo16)
+	    s[39] = t2shi19 ^ (~t2shi15 & t2shi16)
+	    s[48] = t2slo24 ^ (~t2slo20 & t2slo21)
+	    s[49] = t2shi24 ^ (~t2shi20 & t2shi21)
+
+	    // iota
+	    s[0] ^= P1600_ROUND_CONSTANTS[round * 2]
+	    s[1] ^= P1600_ROUND_CONSTANTS[round * 2 + 1]
+	  }
+	}
+
+
+/***/ },
+/* 216 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
+
+	var isHexPrefixed = __webpack_require__(217);
+	var stripHexPrefix = __webpack_require__(218);
+
+	/**
+	 * Pads a `String` to have an even length
+	 * @param {String} value
+	 * @return {String} output
+	 */
+	function padToEven(value) {
+	  var a = value; // eslint-disable-line
+
+	  if (typeof a !== 'string') {
+	    throw new Error('[ethjs-util] while padding to even, value must be string, is currently ' + typeof a + ', while padToEven.');
+	  }
+
+	  if (a.length % 2) {
+	    a = '0' + a;
+	  }
+
+	  return a;
+	}
+
+	/**
+	 * Converts a `Number` into a hex `String`
+	 * @param {Number} i
+	 * @return {String}
+	 */
+	function intToHex(i) {
+	  var hex = i.toString(16); // eslint-disable-line
+
+	  return '0x' + padToEven(hex);
+	}
+
+	/**
+	 * Converts an `Number` to a `Buffer`
+	 * @param {Number} i
+	 * @return {Buffer}
+	 */
+	function intToBuffer(i) {
+	  var hex = intToHex(i);
+
+	  return new Buffer(hex.slice(2), 'hex');
+	}
+
+	/**
+	 * Get the binary size of a string
+	 * @param {String} str
+	 * @return {Number}
+	 */
+	function getBinarySize(str) {
+	  if (typeof str !== 'string') {
+	    throw new Error('[ethjs-util] while getting binary size, method getBinarySize requires input \'str\' to be type String, got \'' + typeof str + '\'.');
+	  }
+
+	  return Buffer.byteLength(str, 'utf8');
+	}
+
+	/**
+	 * Returns TRUE if the first specified array contains all elements
+	 * from the second one. FALSE otherwise.
+	 *
+	 * @param {array} superset
+	 * @param {array} subset
+	 *
+	 * @returns {boolean}
+	 */
+	function arrayContainsArray(superset, subset, some) {
+	  if (Array.isArray(superset) !== true) {
+	    throw new Error('[ethjs-util] method arrayContainsArray requires input \'superset\' to be an array got type \'' + typeof superset + '\'');
+	  }
+	  if (Array.isArray(subset) !== true) {
+	    throw new Error('[ethjs-util] method arrayContainsArray requires input \'subset\' to be an array got type \'' + typeof subset + '\'');
+	  }
+
+	  return subset[Boolean(some) && 'some' || 'every'](function (value) {
+	    return superset.indexOf(value) >= 0;
+	  });
+	}
+
+	/**
+	 * Should be called to get utf8 from it's hex representation
+	 *
+	 * @method toUtf8
+	 * @param {String} string in hex
+	 * @returns {String} ascii string representation of hex value
+	 */
+	function toUtf8(hex) {
+	  var bufferValue = new Buffer(padToEven(stripHexPrefix(hex).replace(/^0+|0+$/g, '')), 'hex');
+
+	  return bufferValue.toString('utf8');
+	}
+
+	/**
+	 * Should be called to get ascii from it's hex representation
+	 *
+	 * @method toAscii
+	 * @param {String} string in hex
+	 * @returns {String} ascii string representation of hex value
+	 */
+	function toAscii(hex) {
+	  var str = ''; // eslint-disable-line
+	  var i = 0,
+	      l = hex.length; // eslint-disable-line
+
+	  if (hex.substring(0, 2) === '0x') {
+	    i = 2;
+	  }
+
+	  for (; i < l; i += 2) {
+	    var code = parseInt(hex.substr(i, 2), 16);
+	    str += String.fromCharCode(code);
+	  }
+
+	  return str;
+	}
+
+	/**
+	 * Should be called to get hex representation (prefixed by 0x) of utf8 string
+	 *
+	 * @method fromUtf8
+	 * @param {String} string
+	 * @param {Number} optional padding
+	 * @returns {String} hex representation of input string
+	 */
+	function fromUtf8(stringValue) {
+	  var str = new Buffer(stringValue, 'utf8');
+
+	  return '0x' + padToEven(str.toString('hex')).replace(/^0+|0+$/g, '');
+	}
+
+	/**
+	 * Should be called to get hex representation (prefixed by 0x) of ascii string
+	 *
+	 * @method fromAscii
+	 * @param {String} string
+	 * @param {Number} optional padding
+	 * @returns {String} hex representation of input string
+	 */
+	function fromAscii(stringValue) {
+	  var hex = ''; // eslint-disable-line
+	  for (var i = 0; i < stringValue.length; i++) {
+	    // eslint-disable-line
+	    var code = stringValue.charCodeAt(i);
+	    var n = code.toString(16);
+	    hex += n.length < 2 ? '0' + n : n;
+	  }
+
+	  return '0x' + hex;
+	}
+
+	/**
+	 * getKeys([{a: 1, b: 2}, {a: 3, b: 4}], 'a') => [1, 3]
+	 *
+	 * @method getKeys get specific key from inner object array of objects
+	 * @param {String} params
+	 * @param {String} key
+	 * @param {Boolean} allowEmpty
+	 * @returns {Array} output just a simple array of output keys
+	 */
+	function getKeys(params, key, allowEmpty) {
+	  if (!Array.isArray(params)) {
+	    throw new Error('[ethjs-util] method getKeys expecting type Array as \'params\' input, got \'' + typeof params + '\'');
+	  }
+	  if (typeof key !== 'string') {
+	    throw new Error('[ethjs-util] method getKeys expecting type String for input \'key\' got \'' + typeof key + '\'.');
+	  }
+
+	  var result = []; // eslint-disable-line
+
+	  for (var i = 0; i < params.length; i++) {
+	    // eslint-disable-line
+	    var value = params[i][key]; // eslint-disable-line
+	    if (allowEmpty && !value) {
+	      value = '';
+	    } else if (typeof value !== 'string') {
+	      throw new Error('invalid abi');
+	    }
+	    result.push(value);
+	  }
+
+	  return result;
+	}
+
+	/**
+	 * Is the string a hex string.
+	 *
+	 * @method check if string is hex string of specific length
+	 * @param {String} value
+	 * @param {Number} length
+	 * @returns {Boolean} output the string is a hex string
+	 */
+	function isHexString(value, length) {
+	  if (typeof value !== 'string' || !value.match(/^0x[0-9A-Fa-f]*$/)) {
+	    return false;
+	  }
+
+	  if (length && value.length !== 2 + 2 * length) {
+	    return false;
+	  }
+
+	  return true;
+	}
+
+	module.exports = {
+	  arrayContainsArray: arrayContainsArray,
+	  intToBuffer: intToBuffer,
+	  getBinarySize: getBinarySize,
+	  isHexPrefixed: isHexPrefixed,
+	  stripHexPrefix: stripHexPrefix,
+	  padToEven: padToEven,
+	  intToHex: intToHex,
+	  fromAscii: fromAscii,
+	  fromUtf8: fromUtf8,
+	  toAscii: toAscii,
+	  toUtf8: toUtf8,
+	  getKeys: getKeys,
+	  isHexString: isHexString
+	};
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
+
+/***/ },
+/* 217 */
+/***/ function(module, exports) {
+
+	/**
+	 * Returns a `Boolean` on whether or not the a `String` starts with '0x'
+	 * @param {String} str the string input value
+	 * @return {Boolean} a boolean if it is or is not hex prefixed
+	 * @throws if the str input is not a string
+	 */
+	module.exports = function isHexPrefixed(str) {
+	  if (typeof str !== 'string') {
+	    throw new Error("[is-hex-prefixed] value must be type 'string', is currently type " + (typeof str) + ", while checking isHexPrefixed.");
+	  }
+
+	  return str.slice(0, 2) === '0x';
+	}
+
+
+/***/ },
+/* 218 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var isHexPrefixed = __webpack_require__(217);
+
+	/**
+	 * Removes '0x' from a given `String` is present
+	 * @param {String} str the string value
+	 * @return {String|Optional} a string by pass if necessary
+	 */
+	module.exports = function stripHexPrefix(str) {
+	  if (typeof str !== 'string') {
+	    return str;
+	  }
+
+	  return isHexPrefixed(str) ? str.slice(2) : str;
+	}
+
+
+/***/ },
+/* 219 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -37935,8 +38620,12 @@ var EToken =
 			"d": "the amount a miner gets for inculding a uncle"
 		},
 		"homeSteadForkNumber": {
-			"v": 1000000,
-			"d": "the block that the homestead fork started at"
+			"v": 1150000,
+			"d": "the block that the Homestead fork started at"
+		},
+		"homesteadRepriceForkNumber": {
+			"v": 2463000,
+			"d": "the block that the Homestead Reprice (EIP150) fork started at"
 		},
 		"timebombPeriod": {
 			"v": 100000,
@@ -37948,81 +38637,85 @@ var EToken =
 	};
 
 /***/ },
-/* 213 */
+/* 220 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {const SHA3 = __webpack_require__(214)
-	const secp256k1 = __webpack_require__(190)
-	const assert = __webpack_require__(11)
-	const rlp = __webpack_require__(197)
-	const BN = __webpack_require__(119)
-	const createHash = __webpack_require__(18)
+	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+	var SHA3 = __webpack_require__(221);
+	var secp256k1 = __webpack_require__(190);
+	var assert = __webpack_require__(11);
+	var rlp = __webpack_require__(197);
+	var BN = __webpack_require__(118);
+	var createHash = __webpack_require__(19);
 
 	/**
 	 * the max integer that this VM can handle (a ```BN```)
 	 * @var {BN} MAX_INTEGER
 	 */
-	exports.MAX_INTEGER = new BN('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16)
+	exports.MAX_INTEGER = new BN('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 16);
 
 	/**
 	 * 2^256 (a ```BN```)
 	 * @var {BN} TWO_POW256
 	 */
-	exports.TWO_POW256 = new BN('10000000000000000000000000000000000000000000000000000000000000000', 16)
+	exports.TWO_POW256 = new BN('10000000000000000000000000000000000000000000000000000000000000000', 16);
 
 	/**
 	 * SHA3-256 hash of null (a ```String```)
 	 * @var {String} SHA3_NULL_S
 	 */
-	exports.SHA3_NULL_S = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+	exports.SHA3_NULL_S = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470';
 
 	/**
 	 * SHA3-256 hash of null (a ```Buffer```)
 	 * @var {Buffer} SHA3_NULL
 	 */
-	exports.SHA3_NULL = new Buffer(exports.SHA3_NULL_S, 'hex')
+	exports.SHA3_NULL = new Buffer(exports.SHA3_NULL_S, 'hex');
 
 	/**
 	 * SHA3-256 of an RLP of an empty array (a ```String```)
 	 * @var {String} SHA3_RLP_ARRAY_S
 	 */
-	exports.SHA3_RLP_ARRAY_S = '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347'
+	exports.SHA3_RLP_ARRAY_S = '1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347';
 
 	/**
 	 * SHA3-256 of an RLP of an empty array (a ```Buffer```)
 	 * @var {Buffer} SHA3_RLP_ARRAY
 	 */
-	exports.SHA3_RLP_ARRAY = new Buffer(exports.SHA3_RLP_ARRAY_S, 'hex')
+	exports.SHA3_RLP_ARRAY = new Buffer(exports.SHA3_RLP_ARRAY_S, 'hex');
 
 	/**
 	 * SHA3-256 hash of the RLP of null  (a ```String```)
 	 * @var {String} SHA3_RLP_S
 	 */
-	exports.SHA3_RLP_S = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'
+	exports.SHA3_RLP_S = '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421';
 
 	/**
 	 * SHA3-256 hash of the RLP of null (a ```Buffer```)
 	 * @var {Buffer} SHA3_RLP
 	 */
-	exports.SHA3_RLP = new Buffer(exports.SHA3_RLP_S, 'hex')
+	exports.SHA3_RLP = new Buffer(exports.SHA3_RLP_S, 'hex');
 
 	/**
 	 * [`BN`](https://github.com/indutny/bn.js)
 	 * @var {Function}
 	 */
-	exports.BN = BN
+	exports.BN = BN;
 
 	/**
 	 * [`rlp`](https://github.com/ethereumjs/rlp)
 	 * @var {Function}
 	 */
-	exports.rlp = rlp
+	exports.rlp = rlp;
 
 	/**
 	 * [`secp256k1`](https://github.com/cryptocoinjs/secp256k1-node/)
 	 * @var {Object}
 	 */
-	exports.secp256k1 = secp256k1
+	exports.secp256k1 = secp256k1;
 
 	/**
 	 * Returns a buffer filled with 0s
@@ -38031,10 +38724,10 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.zeros = function (bytes) {
-	  var buf = new Buffer(bytes)
-	  buf.fill(0)
-	  return buf
-	}
+	  var buf = new Buffer(bytes);
+	  buf.fill(0);
+	  return buf;
+	};
 
 	/**
 	 * Left Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
@@ -38046,22 +38739,22 @@ var EToken =
 	 * @return {Buffer|Array}
 	 */
 	exports.setLengthLeft = exports.setLength = function (msg, length, right) {
-	  var buf = exports.zeros(length)
-	  msg = exports.toBuffer(msg)
+	  var buf = exports.zeros(length);
+	  msg = exports.toBuffer(msg);
 	  if (right) {
 	    if (msg.length < length) {
-	      msg.copy(buf)
-	      return buf
+	      msg.copy(buf);
+	      return buf;
 	    }
-	    return msg.slice(0, length)
+	    return msg.slice(0, length);
 	  } else {
 	    if (msg.length < length) {
-	      msg.copy(buf, length - msg.length)
-	      return buf
+	      msg.copy(buf, length - msg.length);
+	      return buf;
 	    }
-	    return msg.slice(-length)
+	    return msg.slice(-length);
 	  }
-	}
+	};
 
 	/**
 	 * Right Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
@@ -38072,8 +38765,8 @@ var EToken =
 	 * @return {Buffer|Array}
 	 */
 	exports.setLengthRight = function (msg, length) {
-	  return exports.setLength(msg, length, true)
-	}
+	  return exports.setLength(msg, length, true);
+	};
 
 	/**
 	 * Trims leading zeros from a `Buffer` or an `Array`
@@ -38082,14 +38775,14 @@ var EToken =
 	 * @return {Buffer|Array|String}
 	 */
 	exports.unpad = exports.stripZeros = function (a) {
-	  a = exports.stripHexPrefix(a)
-	  var first = a[0]
+	  a = exports.stripHexPrefix(a);
+	  var first = a[0];
 	  while (a.length > 0 && first.toString() === '0') {
-	    a = a.slice(1)
-	    first = a[0]
+	    a = a.slice(1);
+	    first = a[0];
 	  }
-	  return a
-	}
+	  return a;
+	};
 	/**
 	 * Attempts to turn a value into a `Buffer`. As input it supports `Buffer`, `String`, `Number`, null/undefined, `BN` and other objects with a `toArray()` method.
 	 * @method toBuffer
@@ -38098,26 +38791,26 @@ var EToken =
 	exports.toBuffer = function (v) {
 	  if (!Buffer.isBuffer(v)) {
 	    if (Array.isArray(v)) {
-	      v = new Buffer(v)
+	      v = new Buffer(v);
 	    } else if (typeof v === 'string') {
 	      if (exports.isHexPrefixed(v)) {
-	        v = new Buffer(exports.padToEven(exports.stripHexPrefix(v)), 'hex')
+	        v = new Buffer(exports.padToEven(exports.stripHexPrefix(v)), 'hex');
 	      } else {
-	        v = new Buffer(v)
+	        v = new Buffer(v);
 	      }
 	    } else if (typeof v === 'number') {
-	      v = exports.intToBuffer(v)
+	      v = exports.intToBuffer(v);
 	    } else if (v === null || v === undefined) {
-	      v = new Buffer([])
+	      v = new Buffer([]);
 	    } else if (v.toArray) {
 	      // converts a BN to a Buffer
-	      v = new Buffer(v.toArray())
+	      v = new Buffer(v.toArray());
 	    } else {
-	      throw new Error('invalid type')
+	      throw new Error('invalid type');
 	    }
 	  }
-	  return v
-	}
+	  return v;
+	};
 
 	/**
 	 * Converts a `Number` into a hex `String`
@@ -38126,15 +38819,15 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.intToHex = function (i) {
-	  assert(i % 1 === 0, 'number is not a integer')
-	  assert(i >= 0, 'number must be positive')
-	  var hex = i.toString(16)
+	  assert(i % 1 === 0, 'number is not a integer');
+	  assert(i >= 0, 'number must be positive');
+	  var hex = i.toString(16);
 	  if (hex.length % 2) {
-	    hex = '0' + hex
+	    hex = '0' + hex;
 	  }
 
-	  return '0x' + hex
-	}
+	  return '0x' + hex;
+	};
 
 	/**
 	 * Converts an `Number` to a `Buffer`
@@ -38143,9 +38836,9 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.intToBuffer = function (i) {
-	  var hex = exports.intToHex(i)
-	  return new Buffer(hex.slice(2), 'hex')
-	}
+	  var hex = exports.intToHex(i);
+	  return new Buffer(hex.slice(2), 'hex');
+	};
 
 	/**
 	 * Converts a `Buffer` to a `Number`
@@ -38154,8 +38847,8 @@ var EToken =
 	 * @return {Number}
 	 */
 	exports.bufferToInt = function (buf) {
-	  return parseInt(exports.bufferToHex(buf), 16)
-	}
+	  return parseInt(exports.bufferToHex(buf), 16);
+	};
 
 	/**
 	 * Converts a `Buffer` into a hex `String`
@@ -38164,13 +38857,13 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.bufferToHex = function (buf) {
-	  buf = exports.toBuffer(buf)
+	  buf = exports.toBuffer(buf);
 	  if (buf.length === 0) {
-	    return 0
+	    return 0;
 	  }
 
-	  return '0x' + buf.toString('hex')
-	}
+	  return '0x' + buf.toString('hex');
+	};
 
 	/**
 	 * Interprets a `Buffer` as a signed integer and returns a `BN`. Assumes 256-bit numbers.
@@ -38179,8 +38872,8 @@ var EToken =
 	 * @return {BN}
 	 */
 	exports.fromSigned = function (num) {
-	  return new BN(num).fromTwos(256)
-	}
+	  return new BN(num).fromTwos(256);
+	};
 
 	/**
 	 * Converts a `BN` to an unsigned integer and returns it as a `Buffer`. Assumes 256-bit numbers.
@@ -38189,8 +38882,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.toUnsigned = function (num) {
-	  return new Buffer(num.toTwos(256).toArray())
-	}
+	  return new Buffer(num.toTwos(256).toArray());
+	};
 
 	/**
 	 * Creates SHA-3 hash of the input
@@ -38200,15 +38893,15 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.sha3 = function (a, bytes) {
-	  a = exports.toBuffer(a)
-	  if (!bytes) bytes = 256
+	  a = exports.toBuffer(a);
+	  if (!bytes) bytes = 256;
 
-	  var h = new SHA3(bytes)
+	  var h = new SHA3(bytes);
 	  if (a) {
-	    h.update(a)
+	    h.update(a);
 	  }
-	  return new Buffer(h.digest('hex'), 'hex')
-	}
+	  return new Buffer(h.digest('hex'), 'hex');
+	};
 
 	/**
 	 * Creates SHA256 hash of the input
@@ -38217,9 +38910,9 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.sha256 = function (a) {
-	  a = exports.toBuffer(a)
-	  return createHash('sha256').update(a).digest()
-	}
+	  a = exports.toBuffer(a);
+	  return createHash('sha256').update(a).digest();
+	};
 
 	/**
 	 * Creates RIPEMD160 hash of the input
@@ -38229,14 +38922,14 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.ripemd160 = function (a, padded) {
-	  a = exports.toBuffer(a)
-	  var hash = createHash('rmd160').update(a).digest()
+	  a = exports.toBuffer(a);
+	  var hash = createHash('rmd160').update(a).digest();
 	  if (padded === true) {
-	    return exports.setLength(hash, 32)
+	    return exports.setLength(hash, 32);
 	  } else {
-	    return hash
+	    return hash;
 	  }
-	}
+	};
 
 	/**
 	 * Creates SHA-3 hash of the RLP encoded version of the input
@@ -38245,8 +38938,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.rlphash = function (a) {
-	  return exports.sha3(rlp.encode(a))
-	}
+	  return exports.sha3(rlp.encode(a));
+	};
 
 	/**
 	 * Checks if the private key satisfies the rules of the curve secp256k1.
@@ -38255,8 +38948,8 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isValidPrivate = function (privateKey) {
-	  return secp256k1.privateKeyVerify(privateKey)
-	}
+	  return secp256k1.privateKeyVerify(privateKey);
+	};
 
 	/**
 	 * Checks if the public key satisfies the rules of the curve secp256k1
@@ -38269,15 +38962,15 @@ var EToken =
 	exports.isValidPublic = function (publicKey, sanitize) {
 	  if (publicKey.length === 64) {
 	    // Convert to SEC1 for secp256k1
-	    return secp256k1.publicKeyVerify(Buffer.concat([ new Buffer([4]), publicKey ]))
+	    return secp256k1.publicKeyVerify(Buffer.concat([new Buffer([4]), publicKey]));
 	  }
 
 	  if (!sanitize) {
-	    return false
+	    return false;
 	  }
 
-	  return secp256k1.publicKeyVerify(publicKey)
-	}
+	  return secp256k1.publicKeyVerify(publicKey);
+	};
 
 	/**
 	 * Returns the ethereum address of a given public key.
@@ -38288,14 +38981,14 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.pubToAddress = exports.publicToAddress = function (pubKey, sanitize) {
-	  pubKey = exports.toBuffer(pubKey)
-	  if (sanitize && (pubKey.length !== 64)) {
-	    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1)
+	  pubKey = exports.toBuffer(pubKey);
+	  if (sanitize && pubKey.length !== 64) {
+	    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
 	  }
-	  assert(pubKey.length === 64)
+	  assert(pubKey.length === 64);
 	  // Only take the lower 160bits of the hash
-	  return exports.sha3(pubKey).slice(-20)
-	}
+	  return exports.sha3(pubKey).slice(-20);
+	};
 
 	/**
 	 * Returns the ethereum public key of a given private key
@@ -38304,10 +38997,10 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	var privateToPublic = exports.privateToPublic = function (privateKey) {
-	  privateKey = exports.toBuffer(privateKey)
+	  privateKey = exports.toBuffer(privateKey);
 	  // skip the type flag and use the X, Y points
-	  return secp256k1.publicKeyCreate(privateKey, false).slice(1)
-	}
+	  return secp256k1.publicKeyCreate(privateKey, false).slice(1);
+	};
 
 	/**
 	 * Converts a public key to the Ethereum format.
@@ -38316,12 +39009,12 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.importPublic = function (publicKey) {
-	  publicKey = exports.toBuffer(publicKey)
+	  publicKey = exports.toBuffer(publicKey);
 	  if (publicKey.length !== 64) {
-	    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1)
+	    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1);
 	  }
-	  return publicKey
-	}
+	  return publicKey;
+	};
 
 	/**
 	 * ECDSA sign
@@ -38331,14 +39024,14 @@ var EToken =
 	 * @return {Object}
 	 */
 	exports.ecsign = function (msgHash, privateKey) {
-	  var sig = secp256k1.sign(msgHash, privateKey)
+	  var sig = secp256k1.sign(msgHash, privateKey);
 
-	  var ret = {}
-	  ret.r = sig.signature.slice(0, 32)
-	  ret.s = sig.signature.slice(32, 64)
-	  ret.v = sig.recovery + 27
-	  return ret
-	}
+	  var ret = {};
+	  ret.r = sig.signature.slice(0, 32);
+	  ret.s = sig.signature.slice(32, 64);
+	  ret.v = sig.recovery + 27;
+	  return ret;
+	};
 
 	/**
 	 * ECDSA public key recovery from signature
@@ -38350,14 +39043,14 @@ var EToken =
 	 * @return {Buffer} publicKey
 	 */
 	exports.ecrecover = function (msgHash, v, r, s) {
-	  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64)
-	  var recovery = exports.bufferToInt(v) - 27
+	  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64);
+	  var recovery = exports.bufferToInt(v) - 27;
 	  if (recovery !== 0 && recovery !== 1) {
-	    throw new Error('Invalid signature v value')
+	    throw new Error('Invalid signature v value');
 	  }
-	  var senderPubKey = secp256k1.recover(msgHash, signature, recovery)
-	  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1)
-	}
+	  var senderPubKey = secp256k1.recover(msgHash, signature, recovery);
+	  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1);
+	};
 
 	/**
 	 * Convert signature parameters into the format of `eth_sign` RPC method
@@ -38370,8 +39063,8 @@ var EToken =
 	exports.toRpcSig = function (v, r, s) {
 	  // geth (and the RPC eth_sign method) uses the 65 byte format used by Bitcoin
 	  // FIXME: this might change in the future - https://github.com/ethereum/go-ethereum/issues/2053
-	  return exports.bufferToHex(Buffer.concat([ r, s, exports.toBuffer(v - 27) ]))
-	}
+	  return exports.bufferToHex(Buffer.concat([r, s, exports.toBuffer(v - 27)]));
+	};
 
 	/**
 	 * Convert signature format of the `eth_sign` RPC method to signature parameters
@@ -38380,20 +39073,20 @@ var EToken =
 	 * @return {Object}
 	 */
 	exports.fromRpcSig = function (sig) {
-	  sig = exports.toBuffer(sig)
+	  sig = exports.toBuffer(sig);
 
-	  var v = sig[64]
+	  var v = sig[64];
 	  // support both versions of `eth_sign` responses
 	  if (v < 27) {
-	    v += 27
+	    v += 27;
 	  }
 
 	  return {
 	    v: v,
 	    r: sig.slice(0, 32),
 	    s: sig.slice(32, 64)
-	  }
-	}
+	  };
+	};
 
 	/**
 	 * Returns the ethereum address of a given private key
@@ -38402,8 +39095,8 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.privateToAddress = function (privateKey) {
-	  return exports.publicToAddress(privateToPublic(privateKey))
-	}
+	  return exports.publicToAddress(privateToPublic(privateKey));
+	};
 
 	/**
 	 * Checks if the address is a valid. Accepts checksummed addresses too
@@ -38412,8 +39105,9 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isValidAddress = function (address) {
-	  return /^0x[0-9a-fA-F]{40}$/i.test(address)
-	}
+	  return (/^0x[0-9a-fA-F]{40}$/i.test(address)
+	  );
+	};
 
 	/**
 	 * Returns a checksummed address
@@ -38422,20 +39116,20 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.toChecksumAddress = function (address) {
-	  address = exports.stripHexPrefix(address).toLowerCase()
-	  var hash = exports.sha3(address).toString('hex')
-	  var ret = '0x'
+	  address = exports.stripHexPrefix(address).toLowerCase();
+	  var hash = exports.sha3(address).toString('hex');
+	  var ret = '0x';
 
 	  for (var i = 0; i < address.length; i++) {
 	    if (parseInt(hash[i], 16) >= 8) {
-	      ret += address[i].toUpperCase()
+	      ret += address[i].toUpperCase();
 	    } else {
-	      ret += address[i]
+	      ret += address[i];
 	    }
 	  }
 
-	  return ret
-	}
+	  return ret;
+	};
 
 	/**
 	 * Checks if the address is a valid checksummed address
@@ -38444,8 +39138,8 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isValidChecksumAddress = function (address) {
-	  return exports.isValidAddress(address) && (exports.toChecksumAddress(address) === address)
-	}
+	  return exports.isValidAddress(address) && exports.toChecksumAddress(address) === address;
+	};
 
 	/**
 	 * Generates an address of a newly created contract
@@ -38455,20 +39149,20 @@ var EToken =
 	 * @return {Buffer}
 	 */
 	exports.generateAddress = function (from, nonce) {
-	  from = exports.toBuffer(from)
-	  nonce = new BN(nonce)
+	  from = exports.toBuffer(from);
+	  nonce = new BN(nonce);
 
 	  if (nonce.isZero()) {
 	    // in RLP we want to encode null in the case of zero nonce
 	    // read the RLP documentation for an answer if you dare
-	    nonce = null
+	    nonce = null;
 	  } else {
-	    nonce = new Buffer(nonce.toArray())
+	    nonce = new Buffer(nonce.toArray());
 	  }
 
 	  // Only take the lower 160bits of the hash
-	  return exports.rlphash([from, nonce]).slice(-20)
-	}
+	  return exports.rlphash([from, nonce]).slice(-20);
+	};
 
 	/**
 	 * Returns true if the supplied address belongs to a precompiled account
@@ -38477,9 +39171,9 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isPrecompiled = function (address) {
-	  var a = exports.unpad(address)
-	  return a.length === 1 && a[0] > 0 && a[0] < 5
-	}
+	  var a = exports.unpad(address);
+	  return a.length === 1 && a[0] > 0 && a[0] < 5;
+	};
 
 	/**
 	 * Returns a `Boolean` on whether or not the a `String` starts with "0x"
@@ -38488,8 +39182,8 @@ var EToken =
 	 * @return {Boolean}
 	 */
 	exports.isHexPrefixed = function (str) {
-	  return str.slice(0, 2) === '0x'
-	}
+	  return str.slice(0, 2) === '0x';
+	};
 
 	/**
 	 * Removes "0x" from a given `String`
@@ -38499,10 +39193,10 @@ var EToken =
 	 */
 	exports.stripHexPrefix = function (str) {
 	  if (typeof str !== 'string') {
-	    return str
+	    return str;
 	  }
-	  return exports.isHexPrefixed(str) ? str.slice(2) : str
-	}
+	  return exports.isHexPrefixed(str) ? str.slice(2) : str;
+	};
 
 	/**
 	 * Adds "0x" to a given `String` if it does not already start with "0x"
@@ -38512,11 +39206,11 @@ var EToken =
 	 */
 	exports.addHexPrefix = function (str) {
 	  if (typeof str !== 'string') {
-	    return str
+	    return str;
 	  }
 
-	  return exports.isHexPrefixed(str) ? str : '0x' + str
-	}
+	  return exports.isHexPrefixed(str) ? str : '0x' + str;
+	};
 
 	/**
 	 * Pads a `String` to have an even length
@@ -38525,9 +39219,9 @@ var EToken =
 	 * @return {String}
 	 */
 	exports.padToEven = function (a) {
-	  if (a.length % 2) a = '0' + a
-	  return a
-	}
+	  if (a.length % 2) a = '0' + a;
+	  return a;
+	};
 
 	/**
 	 * Converts a `Buffer` or `Array` to JSON
@@ -38537,15 +39231,15 @@ var EToken =
 	 */
 	exports.baToJSON = function (ba) {
 	  if (Buffer.isBuffer(ba)) {
-	    return '0x' + ba.toString('hex')
+	    return '0x' + ba.toString('hex');
 	  } else if (ba instanceof Array) {
-	    var array = []
+	    var array = [];
 	    for (var i = 0; i < ba.length; i++) {
-	      array.push(exports.baToJSON(ba[i]))
+	      array.push(exports.baToJSON(ba[i]));
 	    }
-	    return array
+	    return array;
 	  }
-	}
+	};
 
 	/**
 	 * Defines properties on a `Object`. It make the assumption that underlying data is binary.
@@ -38559,45 +39253,45 @@ var EToken =
 	 * @param {*} data data to be validated against the definitions
 	 */
 	exports.defineProperties = function (self, fields, data) {
-	  self.raw = []
-	  self._fields = []
+	  self.raw = [];
+	  self._fields = [];
 
 	  // attach the `toJSON`
 	  self.toJSON = function (label) {
 	    if (label) {
-	      var obj = {}
+	      var obj = {};
 	      self._fields.forEach(function (field) {
-	        obj[field] = '0x' + self[field].toString('hex')
-	      })
-	      return obj
+	        obj[field] = '0x' + self[field].toString('hex');
+	      });
+	      return obj;
 	    }
-	    return exports.baToJSON(this.raw)
-	  }
+	    return exports.baToJSON(this.raw);
+	  };
 
-	  self.serialize = function serialize () {
-	    return rlp.encode(self.raw)
-	  }
+	  self.serialize = function serialize() {
+	    return rlp.encode(self.raw);
+	  };
 
 	  fields.forEach(function (field, i) {
-	    self._fields.push(field.name)
-	    function getter () {
-	      return self.raw[i]
+	    self._fields.push(field.name);
+	    function getter() {
+	      return self.raw[i];
 	    }
-	    function setter (v) {
-	      v = exports.toBuffer(v)
+	    function setter(v) {
+	      v = exports.toBuffer(v);
 
 	      if (v.toString('hex') === '00' && !field.allowZero) {
-	        v = new Buffer([])
+	        v = new Buffer([]);
 	      }
 
 	      if (field.allowLess && field.length) {
-	        v = exports.stripZeros(v)
-	        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes')
+	        v = exports.stripZeros(v);
+	        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes');
 	      } else if (!(field.allowZero && v.length === 0) && field.length) {
-	        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length)
+	        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length);
 	      }
 
-	      self.raw[i] = v
+	      self.raw[i] = v;
 	    }
 
 	    Object.defineProperty(self, field.name, {
@@ -38605,10 +39299,10 @@ var EToken =
 	      configurable: true,
 	      get: getter,
 	      set: setter
-	    })
+	    });
 
 	    if (field.default) {
-	      self[field.name] = field.default
+	      self[field.name] = field.default;
 	    }
 
 	    // attach alias
@@ -38618,52 +39312,51 @@ var EToken =
 	        configurable: true,
 	        set: setter,
 	        get: getter
-	      })
+	      });
 	    }
-	  })
+	  });
 
 	  // if the constuctor is passed data
 	  if (data) {
 	    if (typeof data === 'string') {
-	      data = new Buffer(exports.stripHexPrefix(data), 'hex')
+	      data = new Buffer(exports.stripHexPrefix(data), 'hex');
 	    }
 
 	    if (Buffer.isBuffer(data)) {
-	      data = rlp.decode(data)
+	      data = rlp.decode(data);
 	    }
 
 	    if (Array.isArray(data)) {
 	      if (data.length > self._fields.length) {
-	        throw (new Error('wrong number of fields in data'))
+	        throw new Error('wrong number of fields in data');
 	      }
 
 	      // make sure all the items are buffers
 	      data.forEach(function (d, i) {
-	        self[self._fields[i]] = exports.toBuffer(d)
-	      })
-	    } else if (typeof data === 'object') {
+	        self[self._fields[i]] = exports.toBuffer(d);
+	      });
+	    } else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
 	      for (var prop in data) {
 	        if (self._fields.indexOf(prop) !== -1) {
-	          self[prop] = data[prop]
+	          self[prop] = data[prop];
 	        }
 	      }
 	    } else {
-	      throw new Error('invalid data')
+	      throw new Error('invalid data');
 	    }
 	  }
-	}
-
+	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 214 */
+/* 221 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__(188).SHA3Hash
 
 
 /***/ },
-/* 215 */
+/* 222 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -38672,11 +39365,11 @@ var EToken =
 	  value: true
 	});
 
-	var _web3ProviderEngine = __webpack_require__(216);
+	var _web3ProviderEngine = __webpack_require__(223);
 
 	var _web3ProviderEngine2 = _interopRequireDefault(_web3ProviderEngine);
 
-	var _nonceTracker = __webpack_require__(219);
+	var _nonceTracker = __webpack_require__(226);
 
 	var _nonceTracker2 = _interopRequireDefault(_nonceTracker);
 
@@ -38691,17 +39384,17 @@ var EToken =
 	module.exports = exports['default'];
 
 /***/ },
-/* 216 */
+/* 223 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var EventEmitter = __webpack_require__(33).EventEmitter;
+	var EventEmitter = __webpack_require__(34).EventEmitter;
 	var inherits = __webpack_require__(12).inherits;
-	var Stoplight = __webpack_require__(217);
-	var cacheUtils = __webpack_require__(218);
+	var Stoplight = __webpack_require__(224);
+	var cacheUtils = __webpack_require__(225);
 	var createPayload = __webpack_require__(200);
-	var ethUtil = __webpack_require__(213);
+	var ethUtil = __webpack_require__(220);
 	var async = __webpack_require__(205);
 
 	module.exports = Web3ProviderEngine;
@@ -38955,12 +39648,12 @@ var EToken =
 	}
 
 /***/ },
-/* 217 */
+/* 224 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var EventEmitter = __webpack_require__(33).EventEmitter;
+	var EventEmitter = __webpack_require__(34).EventEmitter;
 	var inherits = __webpack_require__(12).inherits;
 
 	module.exports = Stoplight;
@@ -38995,7 +39688,7 @@ var EToken =
 	};
 
 /***/ },
-/* 218 */
+/* 225 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -39142,16 +39835,16 @@ var EToken =
 	}
 
 /***/ },
-/* 219 */
+/* 226 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
 
 	var inherits = __webpack_require__(12).inherits;
 	var Transaction = __webpack_require__(208);
-	var ethUtil = __webpack_require__(213);
+	var ethUtil = __webpack_require__(220);
 	var Subprovider = __webpack_require__(199);
-	var blockTagForPayload = __webpack_require__(218).blockTagForPayload;
+	var blockTagForPayload = __webpack_require__(225).blockTagForPayload;
 
 	module.exports = NonceTrackerSubprovider;
 
@@ -39233,7 +39926,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 220 */
+/* 227 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -39242,11 +39935,11 @@ var EToken =
 	  value: true
 	});
 
-	var _web = __webpack_require__(221);
+	var _web = __webpack_require__(228);
 
 	var _web2 = _interopRequireDefault(_web);
 
-	var _engine = __webpack_require__(215);
+	var _engine = __webpack_require__(222);
 
 	var _engine2 = _interopRequireDefault(_engine);
 
@@ -39259,10 +39952,10 @@ var EToken =
 	module.exports = exports['default'];
 
 /***/ },
-/* 221 */
+/* 228 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Web3 = __webpack_require__(222);
+	var Web3 = __webpack_require__(229);
 
 	// dont override global variable
 	if (typeof window !== 'undefined' && typeof window.Web3 === 'undefined') {
@@ -39273,7 +39966,7 @@ var EToken =
 
 
 /***/ },
-/* 222 */
+/* 229 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -39303,22 +39996,22 @@ var EToken =
 	 * @date 2014
 	 */
 
-	var RequestManager = __webpack_require__(223);
-	var Iban = __webpack_require__(265);
-	var Eth = __webpack_require__(266);
-	var DB = __webpack_require__(295);
-	var Shh = __webpack_require__(296);
-	var Net = __webpack_require__(297);
-	var Personal = __webpack_require__(298);
-	var Settings = __webpack_require__(299);
-	var version = __webpack_require__(300);
-	var utils = __webpack_require__(225);
-	var sha3 = __webpack_require__(227);
-	var extend = __webpack_require__(301);
-	var Batch = __webpack_require__(302);
-	var Property = __webpack_require__(269);
-	var HttpProvider = __webpack_require__(303);
-	var IpcProvider = __webpack_require__(305);
+	var RequestManager = __webpack_require__(230);
+	var Iban = __webpack_require__(272);
+	var Eth = __webpack_require__(273);
+	var DB = __webpack_require__(302);
+	var Shh = __webpack_require__(303);
+	var Net = __webpack_require__(304);
+	var Personal = __webpack_require__(305);
+	var Settings = __webpack_require__(306);
+	var version = __webpack_require__(307);
+	var utils = __webpack_require__(232);
+	var sha3 = __webpack_require__(234);
+	var extend = __webpack_require__(308);
+	var Batch = __webpack_require__(309);
+	var Property = __webpack_require__(276);
+	var HttpProvider = __webpack_require__(310);
+	var IpcProvider = __webpack_require__(312);
 
 
 
@@ -39421,7 +40114,7 @@ var EToken =
 
 
 /***/ },
-/* 223 */
+/* 230 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -39450,10 +40143,10 @@ var EToken =
 	 * @date 2014
 	 */
 
-	var Jsonrpc = __webpack_require__(224);
-	var utils = __webpack_require__(225);
-	var c = __webpack_require__(263);
-	var errors = __webpack_require__(264);
+	var Jsonrpc = __webpack_require__(231);
+	var utils = __webpack_require__(232);
+	var c = __webpack_require__(270);
+	var errors = __webpack_require__(271);
 
 	/**
 	 * It's responsible for passing messages to providers
@@ -39692,7 +40385,7 @@ var EToken =
 
 
 /***/ },
-/* 224 */
+/* 231 */
 /***/ function(module, exports) {
 
 	/*
@@ -39789,7 +40482,7 @@ var EToken =
 
 
 /***/ },
-/* 225 */
+/* 232 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -39828,9 +40521,9 @@ var EToken =
 	 */
 
 
-	var BigNumber = __webpack_require__(226);
-	var sha3 = __webpack_require__(227);
-	var utf8 = __webpack_require__(262);
+	var BigNumber = __webpack_require__(233);
+	var sha3 = __webpack_require__(234);
+	var utf8 = __webpack_require__(269);
 
 	var unitMap = {
 	    'noether':      '0',    
@@ -40392,7 +41085,7 @@ var EToken =
 
 
 /***/ },
-/* 226 */
+/* 233 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/*! bignumber.js v2.0.7 https://github.com/MikeMcl/bignumber.js/LICENCE */
@@ -43081,7 +43774,7 @@ var EToken =
 
 
 /***/ },
-/* 227 */
+/* 234 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -43106,8 +43799,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var CryptoJS = __webpack_require__(228);
-	var sha3 = __webpack_require__(240);
+	var CryptoJS = __webpack_require__(235);
+	var sha3 = __webpack_require__(247);
 
 	module.exports = function (value, options) {
 	    if (options && options.encoding === 'hex') {
@@ -43125,13 +43818,13 @@ var EToken =
 
 
 /***/ },
-/* 228 */
+/* 235 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(230), __webpack_require__(231), __webpack_require__(232), __webpack_require__(233), __webpack_require__(234), __webpack_require__(235), __webpack_require__(236), __webpack_require__(237), __webpack_require__(238), __webpack_require__(239), __webpack_require__(240), __webpack_require__(241), __webpack_require__(242), __webpack_require__(243), __webpack_require__(244), __webpack_require__(245), __webpack_require__(246), __webpack_require__(247), __webpack_require__(248), __webpack_require__(249), __webpack_require__(250), __webpack_require__(251), __webpack_require__(252), __webpack_require__(253), __webpack_require__(254), __webpack_require__(255), __webpack_require__(256), __webpack_require__(257), __webpack_require__(258), __webpack_require__(259), __webpack_require__(260), __webpack_require__(261));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(237), __webpack_require__(238), __webpack_require__(239), __webpack_require__(240), __webpack_require__(241), __webpack_require__(242), __webpack_require__(243), __webpack_require__(244), __webpack_require__(245), __webpack_require__(246), __webpack_require__(247), __webpack_require__(248), __webpack_require__(249), __webpack_require__(250), __webpack_require__(251), __webpack_require__(252), __webpack_require__(253), __webpack_require__(254), __webpack_require__(255), __webpack_require__(256), __webpack_require__(257), __webpack_require__(258), __webpack_require__(259), __webpack_require__(260), __webpack_require__(261), __webpack_require__(262), __webpack_require__(263), __webpack_require__(264), __webpack_require__(265), __webpack_require__(266), __webpack_require__(267), __webpack_require__(268));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -43148,7 +43841,7 @@ var EToken =
 	}));
 
 /***/ },
-/* 229 */
+/* 236 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
@@ -43913,13 +44606,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 230 */
+/* 237 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -44222,13 +44915,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 231 */
+/* 238 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -44303,13 +44996,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 232 */
+/* 239 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -44457,13 +45150,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 233 */
+/* 240 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -44597,13 +45290,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 234 */
+/* 241 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -44870,13 +45563,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 235 */
+/* 242 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -45025,13 +45718,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 236 */
+/* 243 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -45229,13 +45922,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 237 */
+/* 244 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(236));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(243));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -45314,13 +46007,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 238 */
+/* 245 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(230));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(237));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -45642,13 +46335,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 239 */
+/* 246 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(230), __webpack_require__(238));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(237), __webpack_require__(245));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -45730,13 +46423,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 240 */
+/* 247 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(230));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(237));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -46058,13 +46751,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 241 */
+/* 248 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -46330,13 +47023,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 242 */
+/* 249 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -46478,13 +47171,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 243 */
+/* 250 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(235), __webpack_require__(242));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(242), __webpack_require__(249));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -46628,13 +47321,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 244 */
+/* 251 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(235), __webpack_require__(242));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(242), __webpack_require__(249));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -46765,13 +47458,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 245 */
+/* 252 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229));
+			module.exports = exports = factory(__webpack_require__(236));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -47645,13 +48338,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 246 */
+/* 253 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -47728,13 +48421,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 247 */
+/* 254 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -47791,13 +48484,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 248 */
+/* 255 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -47912,13 +48605,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 249 */
+/* 256 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -47971,13 +48664,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 250 */
+/* 257 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48016,13 +48709,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 251 */
+/* 258 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48070,13 +48763,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 252 */
+/* 259 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48119,13 +48812,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 253 */
+/* 260 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48164,13 +48857,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 254 */
+/* 261 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48214,13 +48907,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 255 */
+/* 262 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48249,13 +48942,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 256 */
+/* 263 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48320,13 +49013,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 257 */
+/* 264 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(233), __webpack_require__(234), __webpack_require__(244), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(240), __webpack_require__(241), __webpack_require__(251), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -48557,13 +49250,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 258 */
+/* 265 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(233), __webpack_require__(234), __webpack_require__(244), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(240), __webpack_require__(241), __webpack_require__(251), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -49332,13 +50025,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 259 */
+/* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(233), __webpack_require__(234), __webpack_require__(244), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(240), __webpack_require__(241), __webpack_require__(251), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -49476,13 +50169,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 260 */
+/* 267 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(233), __webpack_require__(234), __webpack_require__(244), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(240), __webpack_require__(241), __webpack_require__(251), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -49673,13 +50366,13 @@ var EToken =
 	}));
 
 /***/ },
-/* 261 */
+/* 268 */
 /***/ function(module, exports, __webpack_require__) {
 
 	;(function (root, factory, undef) {
 		if (true) {
 			// CommonJS
-			module.exports = exports = factory(__webpack_require__(229), __webpack_require__(233), __webpack_require__(234), __webpack_require__(244), __webpack_require__(245));
+			module.exports = exports = factory(__webpack_require__(236), __webpack_require__(240), __webpack_require__(241), __webpack_require__(251), __webpack_require__(252));
 		}
 		else if (typeof define === "function" && define.amd) {
 			// AMD
@@ -49868,7 +50561,7 @@ var EToken =
 	}));
 
 /***/ },
-/* 262 */
+/* 269 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/utf8js v2.1.2 by @mathias */
@@ -50114,10 +50807,10 @@ var EToken =
 
 	}(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(120)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(119)(module), (function() { return this; }())))
 
 /***/ },
-/* 263 */
+/* 270 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -50157,7 +50850,7 @@ var EToken =
 
 
 	/// required to define ETH_BIGNUMBER_ROUNDING_MODE
-	var BigNumber = __webpack_require__(226);
+	var BigNumber = __webpack_require__(233);
 
 	var ETH_UNITS = [
 	    'wei',
@@ -50202,7 +50895,7 @@ var EToken =
 
 
 /***/ },
-/* 264 */
+/* 271 */
 /***/ function(module, exports) {
 
 	/*
@@ -50246,7 +50939,7 @@ var EToken =
 
 
 /***/ },
-/* 265 */
+/* 272 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -50271,7 +50964,7 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var BigNumber = __webpack_require__(226);
+	var BigNumber = __webpack_require__(233);
 
 	var padLeft = function (string, bytes) {
 	    var result = string;
@@ -50479,7 +51172,7 @@ var EToken =
 
 
 /***/ },
-/* 266 */
+/* 273 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -50507,18 +51200,18 @@ var EToken =
 
 	"use strict";
 
-	var formatters = __webpack_require__(267);
-	var utils = __webpack_require__(225);
-	var Method = __webpack_require__(268);
-	var Property = __webpack_require__(269);
-	var c = __webpack_require__(263);
-	var Contract = __webpack_require__(270);
-	var watches = __webpack_require__(286);
-	var Filter = __webpack_require__(285);
-	var IsSyncing = __webpack_require__(289);
-	var namereg = __webpack_require__(290);
-	var Iban = __webpack_require__(265);
-	var transfer = __webpack_require__(293);
+	var formatters = __webpack_require__(274);
+	var utils = __webpack_require__(232);
+	var Method = __webpack_require__(275);
+	var Property = __webpack_require__(276);
+	var c = __webpack_require__(270);
+	var Contract = __webpack_require__(277);
+	var watches = __webpack_require__(293);
+	var Filter = __webpack_require__(292);
+	var IsSyncing = __webpack_require__(296);
+	var namereg = __webpack_require__(297);
+	var Iban = __webpack_require__(272);
+	var transfer = __webpack_require__(300);
 
 	var blockCall = function (args) {
 	    return (utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? "eth_getBlockByHash" : "eth_getBlockByNumber";
@@ -50828,7 +51521,7 @@ var EToken =
 
 
 /***/ },
-/* 267 */
+/* 274 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -50854,9 +51547,9 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var utils = __webpack_require__(225);
-	var config = __webpack_require__(263);
-	var Iban = __webpack_require__(265);
+	var utils = __webpack_require__(232);
+	var config = __webpack_require__(270);
+	var Iban = __webpack_require__(272);
 
 	/**
 	 * Should the format output to a big number
@@ -51133,7 +51826,7 @@ var EToken =
 
 
 /***/ },
-/* 268 */
+/* 275 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -51158,8 +51851,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var utils = __webpack_require__(225);
-	var errors = __webpack_require__(264);
+	var utils = __webpack_require__(232);
+	var errors = __webpack_require__(271);
 
 	var Method = function (options) {
 	    this.name = options.name;
@@ -51304,7 +51997,7 @@ var EToken =
 
 
 /***/ },
-/* 269 */
+/* 276 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -51330,7 +52023,7 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var utils = __webpack_require__(225);
+	var utils = __webpack_require__(232);
 
 	var Property = function (options) {
 	    this.name = options.name;
@@ -51454,7 +52147,7 @@ var EToken =
 
 
 /***/ },
-/* 270 */
+/* 277 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -51479,11 +52172,11 @@ var EToken =
 	 * @date 2014
 	 */
 
-	var utils = __webpack_require__(225);
-	var coder = __webpack_require__(271);
-	var SolidityEvent = __webpack_require__(284);
-	var SolidityFunction = __webpack_require__(287);
-	var AllEvents = __webpack_require__(288);
+	var utils = __webpack_require__(232);
+	var coder = __webpack_require__(278);
+	var SolidityEvent = __webpack_require__(291);
+	var SolidityFunction = __webpack_require__(294);
+	var AllEvents = __webpack_require__(295);
 
 	/**
 	 * Should be called to encode constructor params
@@ -51758,7 +52451,7 @@ var EToken =
 
 
 /***/ },
-/* 271 */
+/* 278 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -51783,17 +52476,17 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var f = __webpack_require__(272);
+	var f = __webpack_require__(279);
 
-	var SolidityTypeAddress = __webpack_require__(274);
-	var SolidityTypeBool = __webpack_require__(276);
-	var SolidityTypeInt = __webpack_require__(277);
-	var SolidityTypeUInt = __webpack_require__(278);
-	var SolidityTypeDynamicBytes = __webpack_require__(279);
-	var SolidityTypeString = __webpack_require__(280);
-	var SolidityTypeReal = __webpack_require__(281);
-	var SolidityTypeUReal = __webpack_require__(282);
-	var SolidityTypeBytes = __webpack_require__(283);
+	var SolidityTypeAddress = __webpack_require__(281);
+	var SolidityTypeBool = __webpack_require__(283);
+	var SolidityTypeInt = __webpack_require__(284);
+	var SolidityTypeUInt = __webpack_require__(285);
+	var SolidityTypeDynamicBytes = __webpack_require__(286);
+	var SolidityTypeString = __webpack_require__(287);
+	var SolidityTypeReal = __webpack_require__(288);
+	var SolidityTypeUReal = __webpack_require__(289);
+	var SolidityTypeBytes = __webpack_require__(290);
 
 	/**
 	 * SolidityCoder prototype should be used to encode/decode solidity params of any type
@@ -52024,7 +52717,7 @@ var EToken =
 
 
 /***/ },
-/* 272 */
+/* 279 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -52049,10 +52742,10 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var BigNumber = __webpack_require__(226);
-	var utils = __webpack_require__(225);
-	var c = __webpack_require__(263);
-	var SolidityParam = __webpack_require__(273);
+	var BigNumber = __webpack_require__(233);
+	var utils = __webpack_require__(232);
+	var c = __webpack_require__(270);
+	var SolidityParam = __webpack_require__(280);
 
 
 	/**
@@ -52280,7 +52973,7 @@ var EToken =
 
 
 /***/ },
-/* 273 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -52305,7 +52998,7 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var utils = __webpack_require__(225);
+	var utils = __webpack_require__(232);
 
 	/**
 	 * SolidityParam object prototype.
@@ -52438,11 +53131,11 @@ var EToken =
 
 
 /***/ },
-/* 274 */
+/* 281 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeAddress is a prootype that represents address type
@@ -52475,11 +53168,11 @@ var EToken =
 
 
 /***/ },
-/* 275 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityParam = __webpack_require__(273);
+	var f = __webpack_require__(279);
+	var SolidityParam = __webpack_require__(280);
 
 	/**
 	 * SolidityType prototype is used to encode/decode solidity params of certain type
@@ -52726,11 +53419,11 @@ var EToken =
 
 
 /***/ },
-/* 276 */
+/* 283 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeBool is a prootype that represents bool type
@@ -52762,11 +53455,11 @@ var EToken =
 
 
 /***/ },
-/* 277 */
+/* 284 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeInt is a prootype that represents int type
@@ -52804,11 +53497,11 @@ var EToken =
 
 
 /***/ },
-/* 278 */
+/* 285 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeUInt is a prootype that represents uint type
@@ -52846,11 +53539,11 @@ var EToken =
 
 
 /***/ },
-/* 279 */
+/* 286 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	var SolidityTypeDynamicBytes = function () {
 	    this._inputFormatter = f.formatInputDynamicBytes;
@@ -52877,11 +53570,11 @@ var EToken =
 
 
 /***/ },
-/* 280 */
+/* 287 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	var SolidityTypeString = function () {
 	    this._inputFormatter = f.formatInputString;
@@ -52908,11 +53601,11 @@ var EToken =
 
 
 /***/ },
-/* 281 */
+/* 288 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeReal is a prootype that represents real type
@@ -52950,11 +53643,11 @@ var EToken =
 
 
 /***/ },
-/* 282 */
+/* 289 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeUReal is a prootype that represents ureal type
@@ -52992,11 +53685,11 @@ var EToken =
 
 
 /***/ },
-/* 283 */
+/* 290 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var f = __webpack_require__(272);
-	var SolidityType = __webpack_require__(275);
+	var f = __webpack_require__(279);
+	var SolidityType = __webpack_require__(282);
 
 	/**
 	 * SolidityTypeBytes is a prootype that represents bytes type
@@ -53036,7 +53729,7 @@ var EToken =
 
 
 /***/ },
-/* 284 */
+/* 291 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -53061,12 +53754,12 @@ var EToken =
 	 * @date 2014
 	 */
 
-	var utils = __webpack_require__(225);
-	var coder = __webpack_require__(271);
-	var formatters = __webpack_require__(267);
-	var sha3 = __webpack_require__(227);
-	var Filter = __webpack_require__(285);
-	var watches = __webpack_require__(286);
+	var utils = __webpack_require__(232);
+	var coder = __webpack_require__(278);
+	var formatters = __webpack_require__(274);
+	var sha3 = __webpack_require__(234);
+	var Filter = __webpack_require__(292);
+	var watches = __webpack_require__(293);
 
 	/**
 	 * This prototype should be used to create event filters
@@ -53250,7 +53943,7 @@ var EToken =
 
 
 /***/ },
-/* 285 */
+/* 292 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -53279,8 +53972,8 @@ var EToken =
 	 * @date 2014
 	 */
 
-	var formatters = __webpack_require__(267);
-	var utils = __webpack_require__(225);
+	var formatters = __webpack_require__(274);
+	var utils = __webpack_require__(232);
 
 	/**
 	* Converts a given topic to a hex string, but also allows null values.
@@ -53486,7 +54179,7 @@ var EToken =
 
 
 /***/ },
-/* 286 */
+/* 293 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -53511,7 +54204,7 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var Method = __webpack_require__(268);
+	var Method = __webpack_require__(275);
 
 	/// @returns an array of objects describing web3.eth.filter api methods
 	var eth = function () {
@@ -53606,7 +54299,7 @@ var EToken =
 
 
 /***/ },
-/* 287 */
+/* 294 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -53631,10 +54324,10 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var coder = __webpack_require__(271);
-	var utils = __webpack_require__(225);
-	var formatters = __webpack_require__(267);
-	var sha3 = __webpack_require__(227);
+	var coder = __webpack_require__(278);
+	var utils = __webpack_require__(232);
+	var formatters = __webpack_require__(274);
+	var sha3 = __webpack_require__(234);
 
 	/**
 	 * This prototype should be used to call/sendTransaction to solidity functions
@@ -53859,7 +54552,7 @@ var EToken =
 
 
 /***/ },
-/* 288 */
+/* 295 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -53884,12 +54577,12 @@ var EToken =
 	 * @date 2014
 	 */
 
-	var sha3 = __webpack_require__(227);
-	var SolidityEvent = __webpack_require__(284);
-	var formatters = __webpack_require__(267);
-	var utils = __webpack_require__(225);
-	var Filter = __webpack_require__(285);
-	var watches = __webpack_require__(286);
+	var sha3 = __webpack_require__(234);
+	var SolidityEvent = __webpack_require__(291);
+	var formatters = __webpack_require__(274);
+	var utils = __webpack_require__(232);
+	var Filter = __webpack_require__(292);
+	var watches = __webpack_require__(293);
 
 	var AllSolidityEvents = function (requestManager, json, address) {
 	    this._requestManager = requestManager;
@@ -53953,7 +54646,7 @@ var EToken =
 
 
 /***/ },
-/* 289 */
+/* 296 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -53978,8 +54671,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var formatters = __webpack_require__(267);
-	var utils = __webpack_require__(225);
+	var formatters = __webpack_require__(274);
+	var utils = __webpack_require__(232);
 
 	var count = 1;
 
@@ -54052,7 +54745,7 @@ var EToken =
 
 
 /***/ },
-/* 290 */
+/* 297 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -54077,8 +54770,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var globalRegistrarAbi = __webpack_require__(291);
-	var icapRegistrarAbi= __webpack_require__(292);
+	var globalRegistrarAbi = __webpack_require__(298);
+	var icapRegistrarAbi= __webpack_require__(299);
 
 	var globalNameregAddress = '0xc6d9d2cd449a754c494264e1809c50e34d64562b';
 	var icapNameregAddress = '0xa1a111bc074c9cfa781f0c38e63bd51c91b8af00';
@@ -54097,7 +54790,7 @@ var EToken =
 
 
 /***/ },
-/* 291 */
+/* 298 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -54356,7 +55049,7 @@ var EToken =
 	];
 
 /***/ },
-/* 292 */
+/* 299 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -54469,7 +55162,7 @@ var EToken =
 	];
 
 /***/ },
-/* 293 */
+/* 300 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -54494,8 +55187,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var Iban = __webpack_require__(265);
-	var exchangeAbi = __webpack_require__(294);
+	var Iban = __webpack_require__(272);
+	var exchangeAbi = __webpack_require__(301);
 
 	/**
 	 * Should be used to make Iban transfer
@@ -54567,7 +55260,7 @@ var EToken =
 
 
 /***/ },
-/* 294 */
+/* 301 */
 /***/ function(module, exports) {
 
 	module.exports = [
@@ -54718,7 +55411,7 @@ var EToken =
 	];
 
 /***/ },
-/* 295 */
+/* 302 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -54743,7 +55436,7 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var Method = __webpack_require__(268);
+	var Method = __webpack_require__(275);
 
 	var DB = function (web3) {
 	    this._requestManager = web3._requestManager;
@@ -54790,7 +55483,7 @@ var EToken =
 
 
 /***/ },
-/* 296 */
+/* 303 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -54815,10 +55508,10 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var Method = __webpack_require__(268);
-	var formatters = __webpack_require__(267);
-	var Filter = __webpack_require__(285);
-	var watches = __webpack_require__(286);
+	var Method = __webpack_require__(275);
+	var formatters = __webpack_require__(274);
+	var Filter = __webpack_require__(292);
+	var watches = __webpack_require__(293);
 
 	var Shh = function (web3) {
 	    this._requestManager = web3._requestManager;
@@ -54882,7 +55575,7 @@ var EToken =
 
 
 /***/ },
-/* 297 */
+/* 304 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -54907,8 +55600,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var utils = __webpack_require__(225);
-	var Property = __webpack_require__(269);
+	var utils = __webpack_require__(232);
+	var Property = __webpack_require__(276);
 
 	var Net = function (web3) {
 	    this._requestManager = web3._requestManager;
@@ -54940,7 +55633,7 @@ var EToken =
 
 
 /***/ },
-/* 298 */
+/* 305 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -54968,8 +55661,8 @@ var EToken =
 
 	"use strict";
 
-	var Method = __webpack_require__(268);
-	var Property = __webpack_require__(269);
+	var Method = __webpack_require__(275);
+	var Property = __webpack_require__(276);
 
 	function Personal(web3) {
 	    this._requestManager = web3._requestManager;
@@ -55022,7 +55715,7 @@ var EToken =
 
 
 /***/ },
-/* 299 */
+/* 306 */
 /***/ function(module, exports) {
 
 	
@@ -55037,7 +55730,7 @@ var EToken =
 
 
 /***/ },
-/* 300 */
+/* 307 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -55045,13 +55738,13 @@ var EToken =
 	};
 
 /***/ },
-/* 301 */
+/* 308 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var formatters = __webpack_require__(267);
-	var utils = __webpack_require__(225);
-	var Method = __webpack_require__(268);
-	var Property = __webpack_require__(269);
+	var formatters = __webpack_require__(274);
+	var utils = __webpack_require__(232);
+	var Method = __webpack_require__(275);
+	var Property = __webpack_require__(276);
 
 	// TODO: refactor, so the input params are not altered.
 	// it's necessary to make same 'extension' work with multiple providers
@@ -55099,7 +55792,7 @@ var EToken =
 
 
 /***/ },
-/* 302 */
+/* 309 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -55124,8 +55817,8 @@ var EToken =
 	 * @date 2015
 	 */
 
-	var Jsonrpc = __webpack_require__(224);
-	var errors = __webpack_require__(264);
+	var Jsonrpc = __webpack_require__(231);
+	var errors = __webpack_require__(271);
 
 	var Batch = function (web3) {
 	    this.requestManager = web3._requestManager;
@@ -55171,7 +55864,7 @@ var EToken =
 
 
 /***/ },
-/* 303 */
+/* 310 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -55200,7 +55893,7 @@ var EToken =
 
 	"use strict";
 
-	var errors = __webpack_require__(264);
+	var errors = __webpack_require__(271);
 
 	// workaround to use httpprovider in different envs
 	var XMLHttpRequest; // jshint ignore: line
@@ -55215,7 +55908,7 @@ var EToken =
 
 	// node
 	} else {
-	    XMLHttpRequest = __webpack_require__(304).XMLHttpRequest; // jshint ignore: line
+	    XMLHttpRequest = __webpack_require__(311).XMLHttpRequest; // jshint ignore: line
 	}
 
 	/**
@@ -55323,7 +56016,7 @@ var EToken =
 
 
 /***/ },
-/* 304 */
+/* 311 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -55338,7 +56031,7 @@ var EToken =
 
 
 /***/ },
-/* 305 */
+/* 312 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -55365,8 +56058,8 @@ var EToken =
 
 	"use strict";
 
-	var utils = __webpack_require__(225);
-	var errors = __webpack_require__(264);
+	var utils = __webpack_require__(232);
+	var errors = __webpack_require__(271);
 
 
 	var IpcProvider = function (path, net) {
@@ -55551,7 +56244,7 @@ var EToken =
 
 
 /***/ },
-/* 306 */
+/* 313 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -55564,7 +56257,7 @@ var EToken =
 
 	var _contractContainerStorageJs2 = _interopRequireDefault(_contractContainerStorageJs);
 
-	var _web = __webpack_require__(220);
+	var _web = __webpack_require__(227);
 
 	var _web2 = _interopRequireDefault(_web);
 
@@ -55578,7 +56271,7 @@ var EToken =
 	module.exports = exports['default'];
 
 /***/ },
-/* 307 */
+/* 314 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
@@ -55590,7 +56283,7 @@ var EToken =
 	exports.publicToAddress = publicToAddress;
 	exports.privateToAddress = privateToAddress;
 
-	var _web = __webpack_require__(220);
+	var _web = __webpack_require__(227);
 
 	var _web2 = _interopRequireDefault(_web);
 

@@ -35,5 +35,5 @@ function publicToAddress(address) {
 }
 
 function privateToAddress(privateKey) {
-    return "0x" + (0, _ethereumjsUtil.privateToAddress)(new Buffer(privateKey, 'hex'), true).toString("hex");
+    return '0x' + (0, _ethereumjsUtil.privateToAddress)(new Buffer(privateKey, 'hex'), true).toString('hex');
 }

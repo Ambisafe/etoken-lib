@@ -20,7 +20,7 @@ module.exports = {
         loaders: [
             {
                 test: /\.js/,
-                exclude: /node_modules\/(?!(ethereumjs-tx|web3-provider-engine)\/).*/,
+                exclude: /node_modules\/(?!(ethereumjs-tx|web3-provider-engine|ethereumjs-util|browserify-sha3|rlp)\/).*/,
                 loader: "babel",
                 query: {
                     presets: ['es2015']
