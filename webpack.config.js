@@ -23,7 +23,8 @@ module.exports = {
                 exclude: /node_modules\/(?!(ethereumjs-tx|web3-provider-engine|ethereumjs-util|browserify-sha3|rlp)\/).*/,
                 loader: "babel",
                 query: {
-                    presets: ['es2015']
+                    presets: ['es2015'],
+                    plugins: ['transform-object-assign'],
                 }
             }
         ]
