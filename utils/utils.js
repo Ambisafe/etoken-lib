@@ -108,7 +108,7 @@ var safeTransaction = function(fun, params, sender, argsObject) {
     log('safeTransaction(contract.method, paramsArray, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  return safeTransactionFunction(fun, params, sender, argsObject)().catch(function() {
+  return safeTransactionFunction(fun, params, sender, argsObject)().catch(function(err) {
     logError(err, $logs, true);
   }).then(function() {
     logFinish($logs);
