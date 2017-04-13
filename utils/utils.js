@@ -3,6 +3,7 @@ var web3 = EToken.web3;
 var eth = web3.eth;
 var address;
 var sender;
+var SIMULATION_BLOCK = window.opts.simulationBlock || 'pending';
 
 var nowSeconds = function(){return (Date.now() / 1000);};
 
@@ -109,7 +110,7 @@ var safeTransaction = function(fun, params, sender, argsObject) {
   }
   return safeTransactionFunction(fun, params, sender, argsObject)().then(function() {
     logFinish($logs);
-  });
+  }).catch(logError);
 };
 
 var safeSend = function(to, value, sender, argsObject) {
@@ -127,7 +128,7 @@ var safeSendAll = function(to, sender, argsObject) {
     log('safeSendAll(toAddress, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  eth.getBalance(sender, 'pending', function(err, balance) {
+  eth.getBalance(sender, SIMULATION_BLOCK, function(err, balance) {
     if (err) {
       throw err;
     }
@@ -155,7 +156,7 @@ var safeTopupFunction = function(to, targetValue, sender, argsObject) {
     return;
   }
   return asyncFunction(function(resolve, reject, testRun) {
-    eth.getBalance(to, 'pending', function(err, balance) {
+    eth.getBalance(to, SIMULATION_BLOCK, function(err, balance) {
       if (err) {
         reject(err);
         return;
@@ -188,7 +189,7 @@ var fastTopupFunction = function(to, targetValue, sender, argsObject) {
   }
   return function(nonce, _testRun) {
     return asyncFunction(function(resolve, reject, testRun) {
-      eth.getBalance(to, 'pending', function(err, balance) {
+      eth.getBalance(to, SIMULATION_BLOCK, function(err, balance) {
         if (err) {
           reject(err);
           return;
@@ -311,9 +312,10 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
             };
             return _repeat;
           };
-          var repeat = repeater(40, fun.call, _params);
+          var retries = (testRun || (argsObject && argsObject.testRun)) ? 1 : 40;
+          var repeat = repeater(retries, fun.call, _params);
           _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
-          _params.push('pending');
+          _params.push(SIMULATION_BLOCK);
           _params.push(function(err, result) {
             var success = typeof result.toNumber === 'function' ? result.toNumber() > 0 : result;
             if (err) {
@@ -323,7 +325,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
                 resolve(estimateGas);
               } else {
                 if (!repeat()) {
-                  reject('Call with gas: ' + gas + ' returned ' + result.toString() + ' 40 times in a row.');
+                  reject('Call with gas: ' + gas + ' returned ' + result.toString() + ' ' + retries + ' times in a row.');
                 }
               }
             }
@@ -477,7 +479,7 @@ var callFunction = function(contract, properties, target) {
           var name = property;
         }
         var callParams = params.slice(0);
-        params.push('pending');
+        params.push(SIMULATION_BLOCK);
         params.push(processResult(name, alias, finished, reject));
         if (contract.call === 'eth_getBalance') {
           contract.apply(this, params);
@@ -540,7 +542,7 @@ var syncFunction = function(fun) {
 
 var getBalance = function(sender) {
   sender = sender || address;
-  eth.getBalance(sender, 'pending', function(err, balance) {
+  eth.getBalance(sender, SIMULATION_BLOCK, function(err, balance) {
     if (err) {
       throw err;
     }
@@ -601,7 +603,7 @@ var waitTransactionEvaluation = function(txHash) {
     if (tx.blockNumber) {
       return true;
     }
-    return getBlock('pending')
+    return getBlock(SIMULATION_BLOCK)
     .then(block => {
       if (block.transactions.indexOf(txHash) >= 0) {
         return true;

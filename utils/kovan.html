@@ -8,7 +8,7 @@
     <h1>KOVAN: Ambisafe Ethereum Utils, KOVAN CHAIN</h1>
     <h4>To begin, do: setPrivateKey('yourPkHere'); in the browser javascript console.</h4>
     <h3>Example usage, test func will return false if there is less than 500000 gas available inside it:</h3>
-    <p>var ambiUtils = web3.eth.contract([{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[],"name":"test","outputs":[{"name":"","type":"bool"}],"type":"function"}]).at("0x75c5751b5eca193c5e38e1128f543b0250e24b0a");</p>
+    <p>var ambiUtils = web3.eth.contract([{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[],"name":"test","outputs":[{"name":"","type":"bool"}],"type":"function"}]).at("0x961e4305ae94709f9e9f1b0c43120cb980f36bef");</p>
     <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true});</p>
     <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true, ignoreCallResponse: true});</p>
     <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true, gas: 1000000});</p>
@@ -34,7 +34,8 @@
     <script>
         window.opts = {
             gethUrl: 'https://kovan.infura.io/',
-            pk: ''
+            pk: '',
+            simulationBlock: 'latest'
         }
     </script>
     <script src='../build/bundle.min.js'></script>
