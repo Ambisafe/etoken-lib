@@ -2,7 +2,7 @@
 
 import AccountStorage from 'contract-container-storage-js';
 import Ambisafe from 'ambisafe-client-javascript';
-import Web3Subprovider from 'web3-provider-engine/subproviders/web3';
+import RpcSubprovider from 'web3-provider-engine/subproviders/rpc';
 import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx';
 import EthTx from 'ethereumjs-tx';
 
@@ -10,7 +10,7 @@ import engine from './engine';
 import web3 from './web3';
 import storage from './storage';
 
-import {waitForTransaction, publicToAddress, privateToAddress} from './helpers';
+import {waitForTransaction, publicToAddress, privateToAddress, ecsign, toBuffer} from './helpers';
 
 var signerPrivateKey,
     signerAddress;
@@ -28,8 +28,9 @@ engine.addProvider(new HookedWalletEthTxSubprovider({
     }
 }));
 
-engine.addProvider(new Web3Subprovider(new web3.providers.HttpProvider(window.opts.gethUrl)));
-
+engine.addProvider(new RpcSubprovider({
+  rpcUrl: window.opts.gethUrl,
+}));
 
 engine.start();
 
@@ -59,7 +60,7 @@ function setPassword(password) {
 
 
 function setPrivateKey(privateKey) {
-    signerPrivateKey = new Buffer(privateKey, "hex");
+    signerPrivateKey = toBuffer(privateKey);
     signerAddress = privateToAddress(signerPrivateKey);
 }
 
@@ -83,6 +84,19 @@ function buildRawTransaction(contract, method) {
     };
 }
 
+function sign(hash, privateKey = undefined) {
+    const privKey = privateKey || signerPrivateKey;
+    if (privKey === undefined) {
+        throw Error('Signing hashes is only possible after setPrivateKey().');
+    }
+    const signature = ecsign(hash, privKey);
+    return {
+        v: signature.v,
+        r: '0x' + signature.r.toString('hex'),
+        s: '0x' + signature.s.toString('hex'),
+    };
+}
+
 module.exports = {
     web3: web3,
     Ambisafe: Ambisafe,
@@ -94,5 +108,6 @@ module.exports = {
     createAccount: createAccount,
     setPassword: setPassword,
     setPrivateKey: setPrivateKey,
-    buildRawTransaction: buildRawTransaction
+    buildRawTransaction: buildRawTransaction,
+    sign: sign,
 };

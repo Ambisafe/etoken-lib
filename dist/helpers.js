@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", {
 exports.waitForTransaction = waitForTransaction;
 exports.publicToAddress = publicToAddress;
 exports.privateToAddress = privateToAddress;
+exports.ecsign = ecsign;
+exports.toBuffer = toBuffer;
 
 var _web = require('./web3');
 
@@ -30,10 +32,18 @@ function waitForTransaction(txHash, callback) {
     });
 }
 
-function publicToAddress(address) {
-    return '0x' + (0, _ethereumjsUtil.pubToAddress)(new Buffer(address, 'hex'), true).toString('hex');
+function publicToAddress(publicKey) {
+    return '0x' + (0, _ethereumjsUtil.pubToAddress)(toBuffer(publicKey), true).toString('hex');
 }
 
 function privateToAddress(privateKey) {
-    return '0x' + (0, _ethereumjsUtil.privateToAddress)(new Buffer(privateKey, 'hex'), true).toString('hex');
+    return '0x' + (0, _ethereumjsUtil.privateToAddress)(toBuffer(privateKey), true).toString('hex');
+}
+
+function ecsign(hash, privateKey) {
+    return (0, _ethereumjsUtil.ecsign)(toBuffer(hash), toBuffer(privateKey));
+}
+
+function toBuffer(input) {
+    return (0, _ethereumjsUtil.toBuffer)((0, _ethereumjsUtil.addHexPrefix)(input));
 }

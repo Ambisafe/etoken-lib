@@ -1,5 +1,5 @@
 import web3 from './web3';
-import {pubToAddress, privateToAddress as privToAddress} from 'ethereumjs-util';
+import {pubToAddress, privateToAddress as privToAddress, ecsign as sign, addHexPrefix, toBuffer as toBuff} from 'ethereumjs-util';
 
 export function waitForTransaction(txHash, callback) {
     let filter = web3.eth.filter('latest').watch(function (err, blockHash) {
@@ -16,10 +16,18 @@ export function waitForTransaction(txHash, callback) {
     });
 }
 
-export function publicToAddress(address) {
-    return '0x' + pubToAddress(new Buffer(address, 'hex'), true).toString('hex');
+export function publicToAddress(publicKey) {
+    return '0x' + pubToAddress(toBuffer(publicKey), true).toString('hex');
 }
 
 export function privateToAddress(privateKey) {
-    return '0x' + privToAddress(new Buffer(privateKey, 'hex'), true).toString('hex');
+    return '0x' + privToAddress(toBuffer(privateKey), true).toString('hex');
+}
+
+export function ecsign(hash, privateKey) {
+    return sign(toBuffer(hash), toBuffer(privateKey));
+}
+
+export function toBuffer(input) {
+    return toBuff(addHexPrefix(input));
 }

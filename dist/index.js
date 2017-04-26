@@ -8,9 +8,9 @@ var _ambisafeClientJavascript = require('ambisafe-client-javascript');
 
 var _ambisafeClientJavascript2 = _interopRequireDefault(_ambisafeClientJavascript);
 
-var _web = require('web3-provider-engine/subproviders/web3');
+var _rpc = require('web3-provider-engine/subproviders/rpc');
 
-var _web2 = _interopRequireDefault(_web);
+var _rpc2 = _interopRequireDefault(_rpc);
 
 var _hookedWalletEthtx = require('web3-provider-engine/subproviders/hooked-wallet-ethtx');
 
@@ -24,9 +24,9 @@ var _engine = require('./engine');
 
 var _engine2 = _interopRequireDefault(_engine);
 
-var _web3 = require('./web3');
+var _web = require('./web3');
 
-var _web4 = _interopRequireDefault(_web3);
+var _web2 = _interopRequireDefault(_web);
 
 var _storage = require('./storage');
 
@@ -53,11 +53,13 @@ _engine2.default.addProvider(new _hookedWalletEthtx2.default({
     }
 }));
 
-_engine2.default.addProvider(new _web2.default(new _web4.default.providers.HttpProvider(window.opts.gethUrl)));
+_engine2.default.addProvider(new _rpc2.default({
+    rpcUrl: window.opts.gethUrl
+}));
 
 _engine2.default.start();
 
-_storage2.default.web3 = _web4.default;
+_storage2.default.web3 = _web2.default;
 
 function createAccount(password, callback) {
     var container = _ambisafeClientJavascript2.default.generateAccount('ETH', password);
@@ -81,7 +83,7 @@ function setPassword(password) {
 }
 
 function setPrivateKey(privateKey) {
-    signerPrivateKey = new Buffer(privateKey, "hex");
+    signerPrivateKey = (0, _helpers.toBuffer)(privateKey);
     signerAddress = (0, _helpers.privateToAddress)(signerPrivateKey);
 }
 
@@ -100,19 +102,34 @@ function buildRawTransaction(contract, method) {
         txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
         txData.to = txData.to || contract.address;
         txData.from = txData.from || signerAddress;
-        txData.nonce = _web4.default.toHex(txData.nonce);
-        txData.gas = _web4.default.toHex(txData.gas || txData.gasLimit);
+        txData.nonce = _web2.default.toHex(txData.nonce);
+        txData.gas = _web2.default.toHex(txData.gas || txData.gasLimit);
         txData.gasLimit = txData.gas;
-        txData.gasPrice = _web4.default.toHex(txData.gasPrice);
-        txData.value = _web4.default.toHex(txData.value || 0);
+        txData.gasPrice = _web2.default.toHex(txData.gasPrice);
+        txData.value = _web2.default.toHex(txData.value || 0);
         var tx = new _ethereumjsTx2.default(txData);
         tx.sign(signerPrivateKey);
         return '0x' + tx.serialize().toString('hex');
     };
 }
 
+function sign(hash) {
+    var privateKey = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+
+    var privKey = privateKey || signerPrivateKey;
+    if (privKey === undefined) {
+        throw Error('Signing hashes is only possible after setPrivateKey().');
+    }
+    var signature = (0, _helpers.ecsign)(hash, privKey);
+    return {
+        v: signature.v,
+        r: '0x' + signature.r.toString('hex'),
+        s: '0x' + signature.s.toString('hex')
+    };
+}
+
 module.exports = {
-    web3: _web4.default,
+    web3: _web2.default,
     Ambisafe: _ambisafeClientJavascript2.default,
     AccountStorage: _contractContainerStorageJs2.default,
     storage: _storage2.default,
@@ -122,5 +139,6 @@ module.exports = {
     createAccount: createAccount,
     setPassword: setPassword,
     setPrivateKey: setPrivateKey,
-    buildRawTransaction: buildRawTransaction
+    buildRawTransaction: buildRawTransaction,
+    sign: sign
 };
