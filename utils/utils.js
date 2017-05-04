@@ -3,7 +3,7 @@ var web3 = EToken.web3;
 var eth = web3.eth;
 var address;
 var sender;
-var SIMULATION_BLOCK = window.opts.simulationBlock || 'pending';
+var SIMULATION_BLOCK = window.opts && window.opts.simulationBlock || 'pending';
 
 var nowSeconds = function(){return (Date.now() / 1000);};
 
@@ -134,8 +134,9 @@ var safeSendAll = function(to, sender, argsObject) {
     if (err) {
       throw err;
     }
-    var gas = argsObject && argsObject.gas || 21000;
-    var gasPrice = argsObject && argsObject.gasPrice || gasPrice;
+    argsObject = argsObject || {};
+    argsObject.gas = web3.toBigNumber(argsObject && argsObject.gas || 21000);
+    argsObject.gasPrice = web3.toBigNumber(argsObject && argsObject.gasPrice || gasPrice);
     var value = balance.sub(gasPrice.mul(gas));
     safeSend(to, value, sender, argsObject);
   });
@@ -425,7 +426,7 @@ var safeTransactions = function(...args) {
   };
   return _safeTransactions(...args)
   .catch(function(err) {
-    logError(err, $logs, true);
+    logError(err.message || err, $logs, true);
     log('<hr/>', $logs);
     throw err;
   });
