@@ -1,3 +1,7 @@
+// Stop blocks polling.
+EToken.web3.currentProvider.stop();
+EToken.web3.currentProvider._ready.go();
+
 var $logs = $('#logs');
 var web3 = EToken.web3;
 var eth = web3.eth;
