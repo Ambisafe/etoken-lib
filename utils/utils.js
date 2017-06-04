@@ -729,3 +729,36 @@ var smartDeployContract = function(args) {
     return contract;
   });
 };
+
+function speedUp(transactions, gasPriceInGWei) {
+  const gasPriceLocal = web3.toWei(gasPriceInGWei, 'gwei');
+  const ethAsync = Promise.promisifyAll(eth);
+  let queue;
+  let nonce;
+  setPrivateKey(prompt('Please enter your private key'));
+  return Promise
+  .map(transactions, txHash => getTransaction(txHash))
+  .then(transactionsDetails => queue = transactionsDetails)
+  .then(() => Promise.promisify(eth.getTransactionCount)(address, 'latest'))
+  .then(startingNonce => nonce = startingNonce)
+  .then(() => Promise.reduce(queue, (nextNonce, txDetails) => {
+    return ethAsync.sendTransactionAsync({
+      to: txDetails.to,
+      from: txDetails.from,
+      gas: txDetails.gas,
+      gasPrice: gasPriceLocal,
+      data: txDetails.input,
+      nonce: nextNonce,
+      value: 0,
+    })
+    .then(txHash => {
+      console.log(txDetails.hash, 'resent with', txHash, 'and nonce', nextNonce);
+      return nextNonce + 1;
+    })
+    .catch(err => {
+      console.log(txDetails.hash, 'failed to be sent');
+      throw err;
+    });
+  }, nonce))
+  .then(() => console.log('Done!') || true);
+}
