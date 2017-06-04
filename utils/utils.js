@@ -730,6 +730,28 @@ var smartDeployContract = function(args) {
   });
 };
 
+function callNode(method, params = []) {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.sendAsync({
+      jsonrpc: '2.0',
+      method: method,
+      id: new Date().getTime(),
+      params: params,
+    }, (err, result) => {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(result.result);
+    });
+  });
+}
+
+function getPendingTransactions(addr, tries = 40) {
+  return callNode('parity_pendingTransactions')
+  .then(pendings => pendings.filter(txDetails => txDetails.from == addr.toLowerCase()))
+  .then(filtered => filtered.length > 0 ? filtered : Promise.delay(500).then(() => getPendingTransactions(addr, tries - 1)));
+}
+
 function speedUp(transactions, gasPriceInGWei) {
   const gasPriceLocal = web3.toWei(gasPriceInGWei, 'gwei');
   const ethAsync = Promise.promisifyAll(eth);
@@ -739,6 +761,7 @@ function speedUp(transactions, gasPriceInGWei) {
   return Promise
   .map(transactions, txHash => getTransaction(txHash))
   .then(transactionsDetails => queue = transactionsDetails)
+  .then(() => console.log('Processing', JSON.stringify(queue)))
   .then(() => Promise.promisify(eth.getTransactionCount)(address, 'latest'))
   .then(startingNonce => nonce = startingNonce)
   .then(() => Promise.reduce(queue, (nextNonce, txDetails) => {
