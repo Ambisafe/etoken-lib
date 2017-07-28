@@ -691,7 +691,12 @@ var smartDeployContract = function(args) {
   }
   let processed = false;
   if (deployedAddress) {
-    return Promise.resolve(eth.contract(abi).at(deployedAddress));
+    const contract = eth.contract(abi).at(deployedAddress);
+    if (name) {
+      window[name] = contract;
+      log(`Deployed contract is accessible by '${name}' global variable.`, $logs);
+    }
+    return Promise.resolve(contract);
   }
   return new Promise((resolve, reject) => {
     eth.contract(abi).new(
