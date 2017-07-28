@@ -667,7 +667,7 @@ var deployContractComplex = function(constructorArgs, bytecode, abi, sender, nam
 
 var smartDeployContract = function(args) {
   if (arguments.length === 0) {
-    log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt, fastRun});', $logs);
+    log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt, fastRun, deployedAddress});', $logs);
     return;
   }
   const constructorArgs = args.constructorArgs || [];
@@ -679,6 +679,7 @@ var smartDeployContract = function(args) {
   const nonce = args.nonce;
   const waitReceipt = args.waitReceipt;
   const fastRun = args.fastRun;
+  const deployedAddress = args.deployedAddress;
   const params = {
     from: sender,
     data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
@@ -689,6 +690,9 @@ var smartDeployContract = function(args) {
     params.nonce = nonce;
   }
   let processed = false;
+  if (deployedAddress) {
+    return Promise.resolve(eth.contract(abi).at(deployedAddress));
+  }
   return new Promise((resolve, reject) => {
     eth.contract(abi).new(
       ...constructorArgs,
