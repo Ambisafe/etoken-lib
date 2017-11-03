@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <title>GETH Ambisafe Ethereum Utils</title>
+</head>
+<body>
+    <h1>Ambisafe Ethereum Utils GETH</h1>
+    <h4>To begin, do: setPrivateKey('yourPkHere'); in the browser javascript console.</h4>
+    <h3>Example usage, test func will return false if there is less than 500000 gas available inside it:</h3>
+    <p>var ambiUtils = web3.eth.contract([{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[],"name":"test","outputs":[{"name":"","type":"bool"}],"type":"function"}]).at("0x75c5751b5eca193c5e38e1128f543b0250e24b0a");</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true, ignoreCallResponse: true});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {testRun: true, gas: 1000000});</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {waitReceipt: true}); // Will fail on checks.</p>
+    <p>safeTransaction(ambiUtils.test, [], sender, {waitReceipt: true, gas: 1000000}); // Submitting real transaction!</p>
+    <p>var tx1 = safeTransactionFunction(ambiUtils.test, [], sender, {gas: 1000000});</p>
+    <p>var tx2 = safeTransactionFunction(ambiUtils.test, [], sender); // Will stop on this one.</p>
+    <p>var tx3 = safeTransactionFunction(ambiUtils.test, [], sender, {ignoreCallResponse: true});</p>
+    <p>safeTransactions([tx1, tx2, tx3], true); // true means testRun for all transactions;</p>
+    <p>safeSend(ambiUtils.address, 1000, sender, {testRun: true}); // Send 100 wei.</p>
+    <p>safeSendAll(ambiUtils.address, sender, {testRun: true}); // Send all you have available, will result in 0 wei on sender.</p>
+    <p>safeTopup(ambiUtils.address, 1488, sender, {testRun: true}); // Send enough for the receiver to have exactly 1488 wei.</p>
+    <pre>fastTopups([ // Will topup to the specified balance.
+  fastTopupFunction('0x1c4a10b09f54c2a2601b71e7644124efefd2cd7b', 20000000000000001, sender),
+  fastTopupFunction('0x4793f63e6e270a78c9533ba2743905beeade40a6', 20000000000000100, sender),
+  fastTopupFunction('0x787f0a7639fd444ae6464e02f29763f06c76232f', 10000000000000000, sender),
+  fastTopupFunction('0x8622c07a3b6496df703ab644698162c3f265a98b', 20000200020000000, sender)
+], 0, true); // 0 is the first unused nonce. Testrun true.</pre>
+
+    <h3>Logs</h3>
+    <div id='logs'>
+    </div>
+    <script>
+        window.opts = {
+            gethUrl: 'http://geth.ambisafe.co',
+            pk: ''
+        }
+    </script>
+    <script src='../build/bundle.min.js'></script>
+    <script src='//code.jquery.com/jquery-2.2.2.min.js'></script>
+    <script src="//cdn.jsdelivr.net/bluebird/3.5.0/bluebird.min.js"></script>
+    <script src='./utils.js'></script>
+    <style>
+        body {
+          font-family: monospace;
+        }
+        p {
+            margin: 2px;
+        }
+        p.success {
+            color: green;
+        }
+        p.error {
+            color: red;
+        }
+        p.warning {
+            color: orangered;
+        }
+        a:visited {
+            color: darkgreen;
+        }
+        a:link {
+            color: darkseagreen;
+        }
+    </style>
+</body>
+</html>
