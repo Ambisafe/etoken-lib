@@ -19,7 +19,7 @@
     "ethereumjs-util": "4.3.0",
     "helpeth": "^0.3.0",
     "web3": "0.15.3",
-    "web3-provider-engine": "Ambisafe/provider-engine.git#forgive-undef-strings"
+    "web3-provider-engine": "8.0.7"
   },
   "devDependencies": {
     "babel-cli": "^6.11.4",
