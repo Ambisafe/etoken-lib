@@ -148,7 +148,7 @@ var EToken =
 	        key: 'setRpcUrl',
 	        value: function setRpcUrl(rpcUrl) {
 	            if (this.rpcSet) {
-	                return;
+	                throw new Error('Rpc url is already set.');
 	            }
 	            this.rpcSet = true;
 	            var that = this;
@@ -193,11 +193,11 @@ var EToken =
 	                txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
 	                txData.to = txData.to || contract.address;
 	                txData.from = txData.from || _this.signerAddress;
-	                txData.nonce = web3.toHex(txData.nonce);
-	                txData.gas = web3.toHex(txData.gas || txData.gasLimit);
+	                txData.nonce = _this.web3.toHex(txData.nonce);
+	                txData.gas = _this.web3.toHex(txData.gas || txData.gasLimit);
 	                txData.gasLimit = txData.gas;
-	                txData.gasPrice = web3.toHex(txData.gasPrice);
-	                txData.value = web3.toHex(txData.value || 0);
+	                txData.gasPrice = _this.web3.toHex(txData.gasPrice);
+	                txData.value = _this.web3.toHex(txData.value || 0);
 	                var tx = new _ethereumjsTx2.default(txData);
 	                tx.sign(_this.signerPrivateKey);
 	                return '0x' + tx.serialize().toString('hex');
@@ -243,23 +243,6 @@ var EToken =
 	EToken.setRpcUrl = etoken.setRpcUrl;
 
 	exports.default = EToken;
-
-	// module.exports = {
-	//     web3: web3,
-	//     Ambisafe: Ambisafe,
-	//     AccountStorage: AccountStorage,
-	//     storage: storage,
-	//     publicToAddress: publicToAddress,
-	//     privateToAddress: privateToAddress,
-	//     waitForTransaction: waitForTransaction,
-	//     createAccount: etoken.createAccount,
-	//     setPassword: etoken.setPassword,
-	//     setPrivateKey: etoken.setPrivateKey,
-	//     buildRawTransaction: etoken.buildRawTransaction,
-	//     sign: etoken.sign,
-	//     setRpcUrl: etoken.setRpcUrl,
-	// };
-
 	module.exports = exports['default'];
 
 /***/ },
@@ -12177,6 +12160,12 @@ var EToken =
 /***/ function(module, exports) {
 
 	module.exports = {
+		"_args": [
+			[
+				"bigi@1.4.1",
+				"/home/oleksii/etoken-lib"
+			]
+		],
 		"_from": "bigi@1.4.1",
 		"_id": "bigi@1.4.1",
 		"_inBundle": false,
@@ -12199,15 +12188,12 @@ var EToken =
 			"/ecurve"
 		],
 		"_resolved": "https://registry.npmjs.org/bigi/-/bigi-1.4.1.tgz",
-		"_shasum": "726e8ab08d1fe1dfb8aa6bb6309bffecf93a21b7",
-		"_spec": "bigi@1.4.1",
-		"_where": "/home/oleksii/etoken-lib/node_modules/ambisafe-client-javascript",
+		"_spec": "1.4.1",
+		"_where": "/home/oleksii/etoken-lib",
 		"bugs": {
 			"url": "https://github.com/cryptocoinjs/bigi/issues"
 		},
-		"bundleDependencies": false,
 		"dependencies": {},
-		"deprecated": false,
 		"description": "Big integers.",
 		"devDependencies": {
 			"coveralls": "^2.11.2",
@@ -22595,21 +22581,27 @@ var EToken =
 /***/ function(module, exports) {
 
 	module.exports = {
-		"_from": "elliptic@^6.2.3",
+		"_args": [
+			[
+				"elliptic@6.4.0",
+				"/home/oleksii/etoken-lib"
+			]
+		],
+		"_from": "elliptic@6.4.0",
 		"_id": "elliptic@6.4.0",
 		"_inBundle": false,
 		"_integrity": "sha1-ysmvh2LIWDYYcAPI3+GT5eLq5d8=",
 		"_location": "/elliptic",
 		"_phantomChildren": {},
 		"_requested": {
-			"type": "range",
+			"type": "version",
 			"registry": true,
-			"raw": "elliptic@^6.2.3",
+			"raw": "elliptic@6.4.0",
 			"name": "elliptic",
 			"escapedName": "elliptic",
-			"rawSpec": "^6.2.3",
+			"rawSpec": "6.4.0",
 			"saveSpec": null,
-			"fetchSpec": "^6.2.3"
+			"fetchSpec": "6.4.0"
 		},
 		"_requiredBy": [
 			"/browserify-sign",
@@ -22617,9 +22609,8 @@ var EToken =
 			"/secp256k1"
 		],
 		"_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.4.0.tgz",
-		"_shasum": "cac9af8762c85836187003c8dfe193e5e2eae5df",
-		"_spec": "elliptic@^6.2.3",
-		"_where": "/home/oleksii/etoken-lib/node_modules/secp256k1",
+		"_spec": "6.4.0",
+		"_where": "/home/oleksii/etoken-lib",
 		"author": {
 			"name": "Fedor Indutny",
 			"email": "fedor@indutny.com"
@@ -22627,7 +22618,6 @@ var EToken =
 		"bugs": {
 			"url": "https://github.com/indutny/elliptic/issues"
 		},
-		"bundleDependencies": false,
 		"dependencies": {
 			"bn.js": "^4.4.0",
 			"brorand": "^1.0.1",
@@ -22637,7 +22627,6 @@ var EToken =
 			"minimalistic-assert": "^1.0.0",
 			"minimalistic-crypto-utils": "^1.0.0"
 		},
-		"deprecated": false,
 		"description": "EC cryptography",
 		"devDependencies": {
 			"brfs": "^1.4.3",

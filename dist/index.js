@@ -79,7 +79,7 @@ var EToken = function () {
         key: 'setRpcUrl',
         value: function setRpcUrl(rpcUrl) {
             if (this.rpcSet) {
-                return;
+                throw new Error('Rpc url is already set.');
             }
             this.rpcSet = true;
             var that = this;
@@ -124,11 +124,11 @@ var EToken = function () {
                 txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
                 txData.to = txData.to || contract.address;
                 txData.from = txData.from || _this.signerAddress;
-                txData.nonce = web3.toHex(txData.nonce);
-                txData.gas = web3.toHex(txData.gas || txData.gasLimit);
+                txData.nonce = _this.web3.toHex(txData.nonce);
+                txData.gas = _this.web3.toHex(txData.gas || txData.gasLimit);
                 txData.gasLimit = txData.gas;
-                txData.gasPrice = web3.toHex(txData.gasPrice);
-                txData.value = web3.toHex(txData.value || 0);
+                txData.gasPrice = _this.web3.toHex(txData.gasPrice);
+                txData.value = _this.web3.toHex(txData.value || 0);
                 var tx = new _ethereumjsTx2.default(txData);
                 tx.sign(_this.signerPrivateKey);
                 return '0x' + tx.serialize().toString('hex');
@@ -174,21 +174,4 @@ EToken.sign = etoken.sign;
 EToken.setRpcUrl = etoken.setRpcUrl;
 
 exports.default = EToken;
-
-// module.exports = {
-//     web3: web3,
-//     Ambisafe: Ambisafe,
-//     AccountStorage: AccountStorage,
-//     storage: storage,
-//     publicToAddress: publicToAddress,
-//     privateToAddress: privateToAddress,
-//     waitForTransaction: waitForTransaction,
-//     createAccount: etoken.createAccount,
-//     setPassword: etoken.setPassword,
-//     setPrivateKey: etoken.setPrivateKey,
-//     buildRawTransaction: etoken.buildRawTransaction,
-//     sign: etoken.sign,
-//     setRpcUrl: etoken.setRpcUrl,
-// };
-
 module.exports = exports['default'];

@@ -38,7 +38,7 @@ class EToken {
 
     setRpcUrl(rpcUrl) {
         if (this.rpcSet) {
-            return;
+            throw new Error('Rpc url is already set.');
         }
         this.rpcSet = true;
         const that = this;
@@ -74,11 +74,11 @@ class EToken {
             txData.data = txData.data || contract[method].getData(...params.slice(0, -1));
             txData.to = txData.to || contract.address;
             txData.from = txData.from || this.signerAddress;
-            txData.nonce = web3.toHex(txData.nonce);
-            txData.gas = web3.toHex(txData.gas || txData.gasLimit);
+            txData.nonce = this.web3.toHex(txData.nonce);
+            txData.gas = this.web3.toHex(txData.gas || txData.gasLimit);
             txData.gasLimit = txData.gas;
-            txData.gasPrice = web3.toHex(txData.gasPrice);
-            txData.value = web3.toHex(txData.value || 0);
+            txData.gasPrice = this.web3.toHex(txData.gasPrice);
+            txData.value = this.web3.toHex(txData.value || 0);
             let tx = new EthTx(txData);
             tx.sign(this.signerPrivateKey);
             return '0x' + tx.serialize().toString('hex');
@@ -118,19 +118,3 @@ EToken.sign = etoken.sign;
 EToken.setRpcUrl = etoken.setRpcUrl;
 
 export default EToken;
-
-// module.exports = {
-//     web3: web3,
-//     Ambisafe: Ambisafe,
-//     AccountStorage: AccountStorage,
-//     storage: storage,
-//     publicToAddress: publicToAddress,
-//     privateToAddress: privateToAddress,
-//     waitForTransaction: waitForTransaction,
-//     createAccount: etoken.createAccount,
-//     setPassword: etoken.setPassword,
-//     setPrivateKey: etoken.setPrivateKey,
-//     buildRawTransaction: etoken.buildRawTransaction,
-//     sign: etoken.sign,
-//     setRpcUrl: etoken.setRpcUrl,
-// };
