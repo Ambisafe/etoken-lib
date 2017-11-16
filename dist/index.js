@@ -1,12 +1,34 @@
 'use strict';
 
-var _contractContainerStorageJs = require('contract-container-storage-js');
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
-var _contractContainerStorageJs2 = _interopRequireDefault(_contractContainerStorageJs);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _ambisafeClientJavascript = require('ambisafe-client-javascript');
 
 var _ambisafeClientJavascript2 = _interopRequireDefault(_ambisafeClientJavascript);
+
+var _ethereumjsTx = require('ethereumjs-tx');
+
+var _ethereumjsTx2 = _interopRequireDefault(_ethereumjsTx);
+
+var _web = require('web3');
+
+var _web2 = _interopRequireDefault(_web);
+
+var _web3ProviderEngine = require('web3-provider-engine');
+
+var _web3ProviderEngine2 = _interopRequireDefault(_web3ProviderEngine);
+
+var _nonceTracker = require('web3-provider-engine/subproviders/nonce-tracker');
+
+var _nonceTracker2 = _interopRequireDefault(_nonceTracker);
+
+var _filters = require('web3-provider-engine/subproviders/filters');
+
+var _filters2 = _interopRequireDefault(_filters);
 
 var _rpc = require('web3-provider-engine/subproviders/rpc');
 
@@ -16,129 +38,157 @@ var _hookedWalletEthtx = require('web3-provider-engine/subproviders/hooked-walle
 
 var _hookedWalletEthtx2 = _interopRequireDefault(_hookedWalletEthtx);
 
-var _ethereumjsTx = require('ethereumjs-tx');
-
-var _ethereumjsTx2 = _interopRequireDefault(_ethereumjsTx);
-
-var _engine = require('./engine');
-
-var _engine2 = _interopRequireDefault(_engine);
-
-var _web = require('./web3');
-
-var _web2 = _interopRequireDefault(_web);
-
-var _storage = require('./storage');
-
-var _storage2 = _interopRequireDefault(_storage);
-
 var _helpers = require('./helpers');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-var signerPrivateKey, signerAddress;
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-_engine2.default.addProvider(new _hookedWalletEthtx2.default({
-    getPrivateKey: function getPrivateKey(address, callback) {
-        if (address.toLowerCase() == signerAddress.toLowerCase()) {
-            callback(null, signerPrivateKey);
-        } else {
-            _storage2.default.getPrivateKey(address, callback);
+var EToken = function () {
+    function EToken() {
+        var rpcUrl = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+
+        _classCallCheck(this, EToken);
+
+        this.engine = new _web3ProviderEngine2.default();
+        this.web3 = new _web2.default(this.engine);
+        this.engine.addProvider(new _filters2.default());
+        this.engine.addProvider(new _nonceTracker2.default());
+        this.Ambisafe = _ambisafeClientJavascript2.default;
+        this.publicToAddress = _helpers.publicToAddress;
+        this.privateToAddress = _helpers.privateToAddress;
+        this.waitForTransaction = _helpers.waitForTransaction;
+        this.setPrivateKey = this.setPrivateKey.bind(this);
+        this.setRpcUrl = this.setRpcUrl.bind(this);
+        this.buildRawTransaction = this.buildRawTransaction.bind(this);
+        this.sign = this.sign.bind(this);
+        if (rpcUrl) {
+            this.setRpcUrl(rpcUrl);
         }
-    },
-    getAccounts: function getAccounts(callback) {
-        callback(null, [signerAddress.toLowerCase()]);
     }
-}));
 
-_engine2.default.addProvider(new _rpc2.default({
-    rpcUrl: window.opts.gethUrl
-}));
-
-_engine2.default.start();
-
-_storage2.default.web3 = _web2.default;
-
-function createAccount(password, callback) {
-    var container = _ambisafeClientJavascript2.default.generateAccount('ETH', password);
-    var serializedContainer = container.getContainer();
-    var address = (0, _helpers.publicToAddress)(container.get('public_key'), true);
-    if (!signerAddress) {
-        throw Error('You must specify private key first');
-    }
-    _storage2.default.accountSaverAddress = signerAddress;
-    _storage2.default.addAccount(address, serializedContainer, function (err, result) {
-        if (err) {
-            callback(err);
-        } else {
-            callback(null, { address: address, transactionHash: result });
+    _createClass(EToken, [{
+        key: 'setPrivateKey',
+        value: function setPrivateKey(privateKey) {
+            this.signerPrivateKey = (0, _helpers.toBuffer)(privateKey);
+            this.signerAddress = (0, _helpers.privateToAddress)(this.signerPrivateKey);
         }
-    });
-}
+    }, {
+        key: 'setRpcUrl',
+        value: function setRpcUrl(rpcUrl) {
+            if (this.rpcSet) {
+                return;
+            }
+            this.rpcSet = true;
+            var that = this;
+            var getPrivateKey = function getPrivateKey(address, callback) {
+                if (address.toLowerCase() == that.signerAddress.toLowerCase()) {
+                    callback(null, that.signerPrivateKey);
+                } else {
+                    callback(new Error('Unknown address ' + address));
+                }
+            };
+            var getAccounts = function getAccounts(callback) {
+                callback(null, [that.signerAddress.toLowerCase()]);
+            };
 
-function setPassword(password) {
-    _storage2.default.password = password;
-}
+            this.engine.addProvider(new _hookedWalletEthtx2.default({
+                getPrivateKey: getPrivateKey,
+                getAccounts: getAccounts
+            }));
 
-function setPrivateKey(privateKey) {
-    signerPrivateKey = (0, _helpers.toBuffer)(privateKey);
-    signerAddress = (0, _helpers.privateToAddress)(signerPrivateKey);
-}
+            this.engine.addProvider(new _rpc2.default({
+                rpcUrl: rpcUrl
+            }));
 
-function buildRawTransaction(contract, method) {
-    return function () {
-        var _contract$method;
-
-        for (var _len = arguments.length, params = Array(_len), _key = 0; _key < _len; _key++) {
-            params[_key] = arguments[_key];
+            this.engine.start();
         }
+    }, {
+        key: 'buildRawTransaction',
+        value: function buildRawTransaction(contract, method) {
+            var _this = this;
 
-        if (signerPrivateKey === undefined) {
-            throw Error('Building transaction is only possible after setPrivateKey().');
+            return function () {
+                var _contract$method;
+
+                for (var _len = arguments.length, params = Array(_len), _key = 0; _key < _len; _key++) {
+                    params[_key] = arguments[_key];
+                }
+
+                if (_this.signerPrivateKey === undefined) {
+                    throw Error('Building transaction is only possible after setPrivateKey().');
+                }
+                var txData = params.slice(-1)[0];
+                txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
+                txData.to = txData.to || contract.address;
+                txData.from = txData.from || _this.signerAddress;
+                txData.nonce = web3.toHex(txData.nonce);
+                txData.gas = web3.toHex(txData.gas || txData.gasLimit);
+                txData.gasLimit = txData.gas;
+                txData.gasPrice = web3.toHex(txData.gasPrice);
+                txData.value = web3.toHex(txData.value || 0);
+                var tx = new _ethereumjsTx2.default(txData);
+                tx.sign(_this.signerPrivateKey);
+                return '0x' + tx.serialize().toString('hex');
+            }.bind(this);
         }
-        var txData = params.slice(-1)[0];
-        txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
-        txData.to = txData.to || contract.address;
-        txData.from = txData.from || signerAddress;
-        txData.nonce = _web2.default.toHex(txData.nonce);
-        txData.gas = _web2.default.toHex(txData.gas || txData.gasLimit);
-        txData.gasLimit = txData.gas;
-        txData.gasPrice = _web2.default.toHex(txData.gasPrice);
-        txData.value = _web2.default.toHex(txData.value || 0);
-        var tx = new _ethereumjsTx2.default(txData);
-        tx.sign(signerPrivateKey);
-        return '0x' + tx.serialize().toString('hex');
-    };
+    }, {
+        key: 'sign',
+        value: function sign(hash) {
+            var privateKey = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+
+            var privKey = privateKey || this.signerPrivateKey;
+            if (privKey === undefined) {
+                throw Error('Signing hashes is only possible after setPrivateKey().');
+            }
+            var signature = (0, _helpers.ecsign)(hash, privKey);
+            return {
+                v: signature.v,
+                r: '0x' + signature.r.toString('hex'),
+                s: '0x' + signature.s.toString('hex')
+            };
+        }
+    }]);
+
+    return EToken;
+}();
+
+var etoken = new EToken();
+if (window && window.opts && window.opts.gethUrl) {
+    etoken.setRpcUrl(window.opts.gethUrl);
+}
+if (window && window.opts && window.opts.pk) {
+    etoken.setPrivateKey(window.opts.pk);
 }
 
-function sign(hash) {
-    var privateKey = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+EToken.web3 = etoken.web3;
+EToken.Ambisafe = _ambisafeClientJavascript2.default;
+EToken.publicToAddress = _helpers.publicToAddress;
+EToken.privateToAddress = _helpers.privateToAddress;
+EToken.waitForTransaction = _helpers.waitForTransaction;
+EToken.setPrivateKey = etoken.setPrivateKey;
+EToken.buildRawTransaction = etoken.buildRawTransaction;
+EToken.sign = etoken.sign;
+EToken.setRpcUrl = etoken.setRpcUrl;
 
-    var privKey = privateKey || signerPrivateKey;
-    if (privKey === undefined) {
-        throw Error('Signing hashes is only possible after setPrivateKey().');
-    }
-    var signature = (0, _helpers.ecsign)(hash, privKey);
-    return {
-        v: signature.v,
-        r: '0x' + signature.r.toString('hex'),
-        s: '0x' + signature.s.toString('hex')
-    };
-}
+exports.default = EToken;
 
-module.exports = {
-    web3: _web2.default,
-    Ambisafe: _ambisafeClientJavascript2.default,
-    AccountStorage: _contractContainerStorageJs2.default,
-    storage: _storage2.default,
-    publicToAddress: _helpers.publicToAddress,
-    privateToAddress: _helpers.privateToAddress,
-    waitForTransaction: _helpers.waitForTransaction,
-    createAccount: createAccount,
-    setPassword: setPassword,
-    setPrivateKey: setPrivateKey,
-    buildRawTransaction: buildRawTransaction,
-    sign: sign
-};
+// module.exports = {
+//     web3: web3,
+//     Ambisafe: Ambisafe,
+//     AccountStorage: AccountStorage,
+//     storage: storage,
+//     publicToAddress: publicToAddress,
+//     privateToAddress: privateToAddress,
+//     waitForTransaction: waitForTransaction,
+//     createAccount: etoken.createAccount,
+//     setPassword: etoken.setPassword,
+//     setPrivateKey: etoken.setPrivateKey,
+//     buildRawTransaction: etoken.buildRawTransaction,
+//     sign: etoken.sign,
+//     setRpcUrl: etoken.setRpcUrl,
+// };
+
+module.exports = exports['default'];

@@ -1,113 +1,136 @@
 'use strict';
 
-import AccountStorage from 'contract-container-storage-js';
 import Ambisafe from 'ambisafe-client-javascript';
-import RpcSubprovider from 'web3-provider-engine/subproviders/rpc';
-import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx';
 import EthTx from 'ethereumjs-tx';
 
-import engine from './engine';
-import web3 from './web3';
-import storage from './storage';
+import Web3 from 'web3';
+import Web3ProviderEngine from 'web3-provider-engine';
+import NonceTrackerSubprovider from 'web3-provider-engine/subproviders/nonce-tracker';
+import FilterSubprovider from 'web3-provider-engine/subproviders/filters';
+import RpcSubprovider from 'web3-provider-engine/subproviders/rpc';
+import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx';
 
 import {waitForTransaction, publicToAddress, privateToAddress, ecsign, toBuffer} from './helpers';
 
-var signerPrivateKey,
-    signerAddress;
-
-engine.addProvider(new HookedWalletEthTxSubprovider({
-    getPrivateKey: function (address, callback) {
-        if (address.toLowerCase() == signerAddress.toLowerCase()) {
-            callback(null, signerPrivateKey);
-        } else {
-            storage.getPrivateKey(address, callback);
+class EToken {
+    constructor(rpcUrl = null) {
+        this.engine = new Web3ProviderEngine();
+        this.web3 = new Web3(this.engine);
+        this.engine.addProvider(new FilterSubprovider());
+        this.engine.addProvider(new NonceTrackerSubprovider());
+        this.Ambisafe = Ambisafe;
+        this.publicToAddress = publicToAddress;
+        this.privateToAddress = privateToAddress;
+        this.waitForTransaction = waitForTransaction;
+        this.setPrivateKey = this.setPrivateKey.bind(this);
+        this.setRpcUrl = this.setRpcUrl.bind(this);
+        this.buildRawTransaction = this.buildRawTransaction.bind(this);
+        this.sign = this.sign.bind(this);
+        if (rpcUrl) {
+            this.setRpcUrl(rpcUrl);
         }
-    },
-    getAccounts: function (callback) {
-        callback(null, [signerAddress.toLowerCase()]);
     }
-}));
 
-engine.addProvider(new RpcSubprovider({
-  rpcUrl: window.opts.gethUrl,
-}));
-
-engine.start();
-
-storage.web3 = web3;
-
-function createAccount(password, callback) {
-    var container = Ambisafe.generateAccount('ETH', password);
-    var serializedContainer = container.getContainer();
-    var address = publicToAddress(container.get('public_key'), true);
-    if (!signerAddress) {
-        throw Error('You must specify private key first');
+    setPrivateKey(privateKey) {
+        this.signerPrivateKey = toBuffer(privateKey);
+        this.signerAddress = privateToAddress(this.signerPrivateKey);
     }
-    storage.accountSaverAddress = signerAddress;
-    storage.addAccount(address, serializedContainer, (err, result) => {
-        if (err) {
-            callback(err);
-        } else {
-            callback(null, {address: address, transactionHash: result})
+
+    setRpcUrl(rpcUrl) {
+        if (this.rpcSet) {
+            return;
         }
-    });
-}
+        this.rpcSet = true;
+        const that = this;
+        const getPrivateKey = (address, callback) => {
+            if (address.toLowerCase() == that.signerAddress.toLowerCase()) {
+                callback(null, that.signerPrivateKey);
+            } else {
+                callback(new Error('Unknown address ' + address));
+            }
+        };
+        const getAccounts = callback => {
+            callback(null, [that.signerAddress.toLowerCase()]);
+        };
 
+        this.engine.addProvider(new HookedWalletEthTxSubprovider({
+            getPrivateKey: getPrivateKey,
+            getAccounts: getAccounts,
+        }));
 
-function setPassword(password) {
-    storage.password = password;
-}
+        this.engine.addProvider(new RpcSubprovider({
+          rpcUrl: rpcUrl,
+        }));
 
-
-function setPrivateKey(privateKey) {
-    signerPrivateKey = toBuffer(privateKey);
-    signerAddress = privateToAddress(signerPrivateKey);
-}
-
-function buildRawTransaction(contract, method) {
-    return (...params) => {
-        if (signerPrivateKey === undefined) {
-            throw Error('Building transaction is only possible after setPrivateKey().');
-        }
-        let txData = params.slice(-1)[0];
-        txData.data = txData.data || contract[method].getData(...params.slice(0, -1));
-        txData.to = txData.to || contract.address;
-        txData.from = txData.from || signerAddress;
-        txData.nonce = web3.toHex(txData.nonce);
-        txData.gas = web3.toHex(txData.gas || txData.gasLimit);
-        txData.gasLimit = txData.gas;
-        txData.gasPrice = web3.toHex(txData.gasPrice);
-        txData.value = web3.toHex(txData.value || 0);
-        let tx = new EthTx(txData);
-        tx.sign(signerPrivateKey);
-        return '0x' + tx.serialize().toString('hex');
-    };
-}
-
-function sign(hash, privateKey = undefined) {
-    const privKey = privateKey || signerPrivateKey;
-    if (privKey === undefined) {
-        throw Error('Signing hashes is only possible after setPrivateKey().');
+        this.engine.start();
     }
-    const signature = ecsign(hash, privKey);
-    return {
-        v: signature.v,
-        r: '0x' + signature.r.toString('hex'),
-        s: '0x' + signature.s.toString('hex'),
-    };
+
+    buildRawTransaction(contract, method) {
+        return ((...params) => {
+            if (this.signerPrivateKey === undefined) {
+                throw Error('Building transaction is only possible after setPrivateKey().');
+            }
+            let txData = params.slice(-1)[0];
+            txData.data = txData.data || contract[method].getData(...params.slice(0, -1));
+            txData.to = txData.to || contract.address;
+            txData.from = txData.from || this.signerAddress;
+            txData.nonce = web3.toHex(txData.nonce);
+            txData.gas = web3.toHex(txData.gas || txData.gasLimit);
+            txData.gasLimit = txData.gas;
+            txData.gasPrice = web3.toHex(txData.gasPrice);
+            txData.value = web3.toHex(txData.value || 0);
+            let tx = new EthTx(txData);
+            tx.sign(this.signerPrivateKey);
+            return '0x' + tx.serialize().toString('hex');
+        }).bind(this);
+    }
+
+    sign(hash, privateKey = undefined) {
+        const privKey = privateKey || this.signerPrivateKey;
+        if (privKey === undefined) {
+            throw Error('Signing hashes is only possible after setPrivateKey().');
+        }
+        const signature = ecsign(hash, privKey);
+        return {
+            v: signature.v,
+            r: '0x' + signature.r.toString('hex'),
+            s: '0x' + signature.s.toString('hex'),
+        };
+    }
 }
 
-module.exports = {
-    web3: web3,
-    Ambisafe: Ambisafe,
-    AccountStorage: AccountStorage,
-    storage: storage,
-    publicToAddress: publicToAddress,
-    privateToAddress: privateToAddress,
-    waitForTransaction: waitForTransaction,
-    createAccount: createAccount,
-    setPassword: setPassword,
-    setPrivateKey: setPrivateKey,
-    buildRawTransaction: buildRawTransaction,
-    sign: sign,
-};
+const etoken = new EToken();
+if (window && window.opts && window.opts.gethUrl) {
+    etoken.setRpcUrl(window.opts.gethUrl);
+}
+if (window && window.opts && window.opts.pk) {
+    etoken.setPrivateKey(window.opts.pk);
+}
+
+EToken.web3 = etoken.web3;
+EToken.Ambisafe = Ambisafe;
+EToken.publicToAddress = publicToAddress;
+EToken.privateToAddress = privateToAddress;
+EToken.waitForTransaction = waitForTransaction;
+EToken.setPrivateKey = etoken.setPrivateKey;
+EToken.buildRawTransaction = etoken.buildRawTransaction;
+EToken.sign = etoken.sign;
+EToken.setRpcUrl = etoken.setRpcUrl;
+
+export default EToken;
+
+// module.exports = {
+//     web3: web3,
+//     Ambisafe: Ambisafe,
+//     AccountStorage: AccountStorage,
+//     storage: storage,
+//     publicToAddress: publicToAddress,
+//     privateToAddress: privateToAddress,
+//     waitForTransaction: waitForTransaction,
+//     createAccount: etoken.createAccount,
+//     setPassword: etoken.setPassword,
+//     setPrivateKey: etoken.setPrivateKey,
+//     buildRawTransaction: etoken.buildRawTransaction,
+//     sign: etoken.sign,
+//     setRpcUrl: etoken.setRpcUrl,
+// };
