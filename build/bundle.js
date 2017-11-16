@@ -225,10 +225,10 @@ var EToken =
 	}();
 
 	var etoken = new EToken();
-	if (window && window.opts && window.opts.gethUrl) {
+	if (typeof window !== 'undefined' && window.opts && window.opts.gethUrl) {
 	    etoken.setRpcUrl(window.opts.gethUrl);
 	}
-	if (window && window.opts && window.opts.pk) {
+	if (typeof window !== 'undefined' && window.opts && window.opts.pk) {
 	    etoken.setPrivateKey(window.opts.pk);
 	}
 
