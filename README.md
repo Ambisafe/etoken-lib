@@ -1,18 +1,19 @@
 # EToken lib
-## Run demo
+## NodeJS
 
-Run web server at 9000 port from this dir. 
-
-Python
-
-    $ python -m SimpleHttpServer 9000
+    npm install -s etoken-lib
     
-PHP
+    const EToken = require('etoken-lib');
+    const eToken = new EToken('http://localhost:8545'); // Ethereum node RPC url.
+    eToken.setPrivateKey(privateKeyToSignransactions);
+    // eToken.web3 is now ready to send transactions.
+    
+## Browser
 
-    $ php -S localhost:9000
-
-Open [http://localhost:9000/demo/](http://localhost:9000/demo/) in browser.
-
-Put private key to window.opts.
-
-Create account. Then get this account.
+    <script src='../build/bundle.min.js'></script>
+    <script>
+        const EToken = require('etoken-lib');
+        const eToken = new EToken('http://localhost:8545'); // Ethereum node RPC url.
+        eToken.setPrivateKey(privateKeyToSignransactions);
+        // eToken.web3 is now ready to send transactions.
+    </script>
