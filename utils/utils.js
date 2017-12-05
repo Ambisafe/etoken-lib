@@ -5,6 +5,7 @@ EToken.web3.currentProvider._ready.go();
 var $logs = $('#logs');
 var web3 = EToken.web3;
 var eth = web3.eth;
+var ethAsync = Promise.promisifyAll(eth);
 var address;
 var sender;
 var SIMULATION_BLOCK = window.opts && window.opts.simulationBlock || 'pending';
@@ -17,46 +18,90 @@ var cb = function(err,ok){if (err) {console.log(err);} else {console.log(ok);}};
 var cbval = function(err,ok){if (err) {console.log(err);} else {console.log(ok.valueOf());}};
 
 var setPrivateKey = function(pk) {
-    EToken.setPrivateKey(pk);
-    address = EToken.privateToAddress(('0x' + pk).slice(-64));
-    sender = address;
-    log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
+  EToken.setPrivateKey(pk);
+  address = EToken.privateToAddress(('0x' + pk).slice(-64));
+  sender = address;
+  log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
 };
+
+var setGasPriceInGWei = function(gasPriceInGWei) {
+  gasPrice = web3.toBigNumber(gasPriceInGWei).mul(1000000000);
+  getGasPrice();
+}
+
+var getGasPrice = function() {
+  log('GasPrice is ' + gasPrice.div(1000000000).toFixed() + ' gwei.');
+  return gasPrice;
+}
+
+var help = function() {
+  log('Here is the list of functions you can use:', $logs);
+  log('setPrivateKey(privateKey);', $logs);
+  log('getBalance([address]);', $logs);
+  log('getGasPrice();', $logs);
+  log('setGasPriceInGWei(gasPriceInGWei);', $logs);
+  log('safeTransaction(contract.method, paramsArray, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+  log('safeSend(toAddress, valueInWei, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+  log('safeSendAll(toAddress, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+  log('safeTopup(toAddress, targetValueInWei, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+  log('fastTopup(toAddress, targetValueInWei, sender, nonce[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
+  log('fastTopups(fastTopupFunctionArray, startingNonce[, testRun]);', $logs);
+  log('safeTransactions(safeFunctionsArray[, testRun[, fastRun]]);', $logs);
+  log('call(contract, {name: methodName, params: methodCallParamsArray, alias: toStore}Array, savingObjReference);', $logs);
+  log('assertCallFunction(contract, propertyNameOrObject, expectedValue, testRun); To be used as part of safeTransactions().', $logs);
+  log('asyncFunction(function(testRun) {}, testRun); To be used as part of safeTransactions().', $logs);
+  log('syncFunction(function(testRun) {}); To be used as part of safeTransactions().', $logs);
+  log('deployContractComplex(constructorArgs, byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
+  log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt, fastRun, deployedAddress});', $logs);
+  log('callNode(method, params = []);', $logs);
+  log('getPendingTransactions(address, tries = 40);', $logs);
+  log('speedUp(transactionHashes, gasPriceInGWei);', $logs);
+  log('getFutureTransactions(address, tries = 40);', $logs);
+  log('getAllFutureTransactionsByAddress(address, lastMinedNonce, lastSentNonce);', $logs);
+  log('getAllFutureTransactionsByAddressProbabalistic(address, tries = 4);', $logs);
+  log('rewrite(rawTransactions, gasPriceInGWei);', $logs);
+  log('readAndRewrite(transactionHashes, gasPriceInGWei);', $logs);
+  log('propagate(transactionHashes);', $logs);
+  log('sumTxCost(transactionHashes);', $logs);
+  log('makeRequest(method, url);', $logs);
+  log('', $logs);
+  log('Some additional help available if you call the function without parameters.', $logs);
+}
 
 var _log = function(message, logger) {
   logger.prepend(message);
 }
 
 var log = function(message, logger) {
-    console.log(message);
-    if (logger) {
-        _log('<p>' + message + '</p>', logger);
-    }
+  console.log(message);
+  if (logger) {
+    _log('<p>' + message + '</p>', logger);
+  }
 };
 
 var logError = function(message, logger, dontThrow) {
-    if (logger) {
-        _log('<p class="error">' + message + '</p>', logger);
-    }
-    if (dontThrow) {
-      return;
-    }
-    throw message;
+  if (logger) {
+    _log('<p class="error">' + message + '</p>', logger);
+  }
+  if (dontThrow) {
+    return;
+  }
+  throw message;
 };
 
 var logWarning = function(message, logger) {
-    if (logger) {
-        _log('<p class="warning">' + message + '</p>', logger);
-    }
-    console.log('Warning: ' + message);
+  if (logger) {
+    _log('<p class="warning">' + message + '</p>', logger);
+  }
+  console.log('Warning: ' + message);
 };
 
 var logSuccess = function(gas, result, params, logger) {
-    if (logger) {
-        var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '" target="_blank">' + result + '</a>' : result;
-        _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params : '') + '</p>', logger);
-    }
-    console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params : ''));
+  if (logger) {
+    var txHash = result.length === 66 ? '<a href="http://etherscan.io/tx/' + result + '" target="_blank">' + result + '</a>' : result;
+    _log('<p class="success">Success! Gas used: ' + gas + ' result: ' + txHash + (params ? ' params: ' + params : '') + '</p>', logger);
+  }
+  console.log('Success! Gas used: ' + gas + ' result: ' + result + (params ? ' params: ' + params : ''));
 };
 
 var logWaiting = function(logger) {
@@ -114,7 +159,7 @@ var safeTransaction = function(fun, params, sender, argsObject) {
   }
   return safeTransactionFunction(fun, params, sender, argsObject)().catch(function(err) {
     logError(err, $logs, true);
-  }).then(function() {
+  }).tap(function() {
     logFinish($logs);
   });
 };
@@ -124,7 +169,7 @@ var safeSend = function(to, value, sender, argsObject) {
     log('safeSend(toAddress, valueInWei, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  safeSendFunction(to, value, sender, argsObject)().then(function() {
+  return safeSendFunction(to, value, sender, argsObject)().tap(function() {
     logFinish($logs);
   });
 };
@@ -134,15 +179,13 @@ var safeSendAll = function(to, sender, argsObject) {
     log('safeSendAll(toAddress, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  eth.getBalance(sender, SIMULATION_BLOCK, function(err, balance) {
-    if (err) {
-      throw err;
-    }
+  return ethAsync.getBalanceAsync(sender, SIMULATION_BLOCK)
+  .then(balance => {
     argsObject = argsObject || {};
     argsObject.gas = web3.toBigNumber(argsObject && argsObject.gas || 21000);
     argsObject.gasPrice = web3.toBigNumber(argsObject && argsObject.gasPrice || gasPrice);
-    var value = balance.sub(gasPrice.mul(gas));
-    safeSend(to, value, sender, argsObject);
+    var value = balance.sub(argsObject.gasPrice.mul(argsObject.gas));
+    return safeSend(to, value, sender, argsObject);
   });
 };
 
@@ -151,7 +194,7 @@ var safeTopup = function(to, targetValue, sender, argsObject) {
     log('safeTopup(toAddress, targetValueInWei, sender[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  safeTopupFunction(to, targetValue, sender, argsObject)().then(function() {
+  return safeTopupFunction(to, targetValue, sender, argsObject)().tap(function() {
     log('Topup to ' + to + ' finished.', $logs);
     logFinish($logs);
   });
@@ -163,19 +206,17 @@ var safeTopupFunction = function(to, targetValue, sender, argsObject) {
     return;
   }
   return asyncFunction(function(resolve, reject, testRun) {
-    eth.getBalance(to, SIMULATION_BLOCK, function(err, balance) {
-      if (err) {
-        reject(err);
-        return;
-      }
+    ethAsync.getBalanceAsync(to, SIMULATION_BLOCK)
+    .then(balance => {
       var value = web3.toBigNumber(targetValue).sub(balance);
       if (value.lte(0)) {
         log("Skipping: balance of " + to + " is " + web3.fromWei(balance, 'ether') + " ETH and it is more or equal to target value of " + web3.fromWei(targetValue, 'ether') + " ETH.", $logs);
-        resolve(0);
-        return;
+        return 0;
       }
-      safeSendFunction(to, value, sender, argsObject)(testRun).then(resolve).catch(reject);
-    });
+      return safeSendFunction(to, value, sender, argsObject)(testRun);
+    })
+    .then(resolve)
+    .catch(reject);
   });
 };
 
@@ -184,7 +225,7 @@ var fastTopup = function(to, targetValue, sender, nonce, argsObject) {
     log('fastTopup(toAddress, targetValueInWei, sender, nonce[, {testRun: true, ignoreCallResponse: true, waitReceipt: true, transactionObjParams}]);', $logs);
     return;
   }
-  fastTopupFunction(to, targetValue, sender, argsObject)(nonce).then(function(nonce) {
+  return fastTopupFunction(to, targetValue, sender, argsObject)(nonce).tap(function(nonce) {
     log('Topup to ' + to + ' finished. Next nonce: ' + nonce, $logs);
   });
 };
@@ -196,26 +237,22 @@ var fastTopupFunction = function(to, targetValue, sender, argsObject) {
   }
   return function(nonce, _testRun) {
     return asyncFunction(function(resolve, reject, testRun) {
-      eth.getBalance(to, SIMULATION_BLOCK, function(err, balance) {
-        if (err) {
-          reject(err);
-          return;
-        }
+      ethAsync.getBalanceAsync(to, SIMULATION_BLOCK)
+      .then(balance => {
         var value = web3.toBigNumber(targetValue).sub(balance);
         if (value.lte(0)) {
           log("Skipping: balance of " + to + " is " + web3.fromWei(balance, 'ether') + " ETH and it is more or equal to target value of " + web3.fromWei(targetValue, 'ether') + " ETH.", $logs);
-          resolve(nonce);
-          return;
+          return nonce;
         }
-        resolve(nonce+1);
         if (argsObject) {
           argsObject.nonce = nonce;
         } else {
           argsObject = {nonce: nonce};
         }
-        safeSendFunction(to, value, sender, argsObject)(testRun).catch(function(error) {
-          throw error;
+        safeSendFunction(to, value, sender, argsObject)(testRun).catch(error => {
+          console.error(to, value, error);
         });
+        return nonce+1;
       });
     })(_testRun);
   };
@@ -233,9 +270,7 @@ var fastTopups = function(txFunctions, nonce, testRun) {
     }, 2000);
     return true;
   }
-  txFunctions.shift()(nonce, testRun).then(function(nextNonce){
-    fastTopups(txFunctions, nextNonce, testRun);
-  });
+  return txFunctions.shift()(nonce, testRun).then(nextNonce => fastTopups(txFunctions, nextNonce, testRun));
 };
 
 var safeSendFunction = function(to, value, sender, argsObject) {
@@ -303,7 +338,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
       return new Promise(function(resolve, reject) {
         var _params = params.slice(0);
         if (estimateGas > gas) {
-          reject('Estimate gas is too big: ' + estimateGas);
+          reject(new Error('Estimate gas is too big: ' + estimateGas));
         } else if (typeof fun.call === "string" || fastRun || (argsObject && argsObject.ignoreCallResponse)) {
           // simple eth.sendTransaction
           resolve(estimateGas);
@@ -332,7 +367,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
                 resolve(estimateGas);
               } else {
                 if (!repeat()) {
-                  reject('Call with gas: ' + gas + ' returned ' + result.toString() + ' ' + retries + ' times in a row.');
+                  reject(new Error('Call with gas: ' + gas + ' returned ' + result.toString() + ' ' + retries + ' times in a row.'));
                 }
               }
             }
@@ -441,7 +476,7 @@ var call = function(contract, properties, target) {
     log('call(contract, {name: methodName, params: methodCallParamsArray, alias: toStore}Array, savingObjReference);', $logs);
     return;
   }
-  callFunction(contract, properties, target)().then(function() {
+  return callFunction(contract, properties, target)().tap(function() {
     logFinish($logs);
   });
 }
@@ -454,7 +489,7 @@ var callFunction = function(contract, properties, target) {
   var processResult = function(property, alias, done, reject) {
     return function(error, result) {
       if (error) {
-        reject("Error while calling property '" + property + "' with message: " + error);
+        reject(new Error("Error while calling property '" + property + "' with message: " + error));
       } else {
         target[alias] = result;
         done();
@@ -472,7 +507,7 @@ var callFunction = function(contract, properties, target) {
         }
       };
       if (propertiesCount === 0) {
-        reject("Properties array cannot be empty.");
+        reject(new Error('Properties array cannot be empty.'));
         return;
       }
       properties.forEach(function(property) {
@@ -513,7 +548,7 @@ var assertCallFunction = function(contract, propertyNameOrObject, expectedValue,
         if (_testRun) {
           resolve();
         }
-        reject(propertyName + ' is expected to be: "' + expectedValue + '" actual: "' + callObj[propertyName] + '"');
+        reject(new Error(propertyName + ' is expected to be: "' + expectedValue + '" actual: "' + callObj[propertyName] + '"'));
         return;
       }
       resolve();
@@ -549,59 +584,32 @@ var syncFunction = function(fun) {
 
 var getBalance = function(sender) {
   sender = sender || address;
-  eth.getBalance(sender, SIMULATION_BLOCK, function(err, balance) {
-    if (err) {
-      throw err;
-    }
+  return ethAsync.getBalanceAsync(sender, SIMULATION_BLOCK)
+  .tap(balance => {
     log(sender + ' address balance is ' + web3.fromWei(balance, 'ether').toString() + ' ETH', $logs);
   });
 };
 
 var getTransaction = function(txHash, tries = 40) {
-  return new Promise((resolve, reject) => {
-    try {
-      if (tries === 0) {
-        return reject(new Error(`Transaction ${txHash} not found.`));
-      }
-      eth.getTransaction(txHash, (e, tx) => {
-        if (e) {
-          return reject(e);
-        }
-        resolve(tx);
-      });
-    } catch(err) {
-      reject(err);
-    }
-  }).then(tx => {
+  if (tries === 0) {
+    return Promise.reject(new Error(`Transaction ${txHash} not found.`));
+  }
+  return ethAsync.getTransactionAsync(txHash)
+  .then(tx => {
     if (tx) {
       return tx;
     }
     return delay(500)
-    .then(() => {
-      return getTransaction(txHash, tries - 1);
-    });
-  });
+    .then(() => getTransaction(txHash, tries - 1));
+  })
 };
 
 var delay = function(msec) {
-  return new Promise((resolve, reject) => {
-    setTimeout(resolve, msec);
-  });
+  return Promise.delay(msec);
 };
 
 var getBlock = function(block) {
-  return new Promise((resolve, reject) => {
-    try {
-      eth.getBlock(block || 'latest', (e, result) => {
-        if (e) {
-          return reject(e);
-        }
-        resolve(result);
-      });
-    } catch(err) {
-      reject(err);
-    }
-  });
+  return ethAsync.getBlockAsync(block || 'latest');
 };
 
 var waitTransactionEvaluation = function(txHash) {
@@ -625,13 +633,7 @@ var deployContractAsync = function(...args) {
 };
 
 var deployContractComplexAsync = function(constructorArgs, bytecode, abi, sender, name, gas, nonce) {
-  return new Promise((resolve, reject) => {
-    try {
-      deployContractComplex(constructorArgs, bytecode, abi, sender, name, resolve, gas, nonce);
-    } catch(e) {
-      reject(e);
-    }
-  });
+  return deployContractComplex(constructorArgs, bytecode, abi, sender, name, resolve, gas, nonce);
 };
 
 var deployContract = function(...args) {
@@ -639,7 +641,7 @@ var deployContract = function(...args) {
     log('deployContract(byteCodeString, abiArray, sender[, globalNameToAssign, callback(contract), gas, nonce]);', $logs);
     return;
   }
-  deployContractComplex([], ...args);
+  return deployContractComplex([], ...args);
 };
 
 var deployContractComplex = function(constructorArgs, bytecode, abi, sender, name, callback, gas, nonce) {
@@ -649,7 +651,7 @@ var deployContractComplex = function(constructorArgs, bytecode, abi, sender, nam
   }
   callback = typeof name === 'function' ? name : callback;
   name = typeof name !== 'function' ? name : false;
-  smartDeployContract({
+  return smartDeployContract({
     constructorArgs,
     bytecode,
     abi,
@@ -740,6 +742,10 @@ var smartDeployContract = function(args) {
 };
 
 function callNode(method, params = []) {
+  if (arguments.length === 0) {
+    log('callNode(method, params = []);', $logs);
+    return;
+  }
   return new Promise((resolve, reject) => {
     web3.currentProvider.sendAsync({
       jsonrpc: '2.0',
@@ -756,12 +762,23 @@ function callNode(method, params = []) {
 }
 
 function getPendingTransactions(addr, tries = 40) {
+  if (arguments.length === 0) {
+    log('getPendingTransactions(address, tries = 40);', $logs);
+    return;
+  }
   return callNode('parity_pendingTransactions')
   .then(pendings => pendings.filter(txDetails => txDetails.from == addr.toLowerCase()))
   .then(filtered => filtered.length > 0 ? filtered : Promise.delay(500).then(() => getPendingTransactions(addr, tries - 1)));
 }
 
 function speedUp(transactions, gasPriceInGWei) {
+  if (arguments.length === 0) {
+    log('speedUp(transactionHashes, gasPriceInGWei);', $logs);
+    log('Resend all the specified transactions with specified (usually increased) gas price.', $logs);
+    log('Attention: reorders address\'s transactions by pushing specified ones to the beginning of the queue.', $logs);
+    log('Consider using readAndRewrite() instead.', $logs);
+    return;
+  }
   const gasPriceLocal = web3.toWei(gasPriceInGWei, 'gwei');
   const ethAsync = Promise.promisifyAll(eth);
   let queue;
@@ -771,7 +788,7 @@ function speedUp(transactions, gasPriceInGWei) {
   .map(transactions, txHash => getTransaction(txHash))
   .then(transactionsDetails => queue = transactionsDetails)
   .then(() => console.log('Processing', JSON.stringify(queue)))
-  .then(() => Promise.promisify(eth.getTransactionCount)(address, 'latest'))
+  .then(() => ethAsync.getTransactionCountAsync(address, 'latest'))
   .then(startingNonce => nonce = startingNonce)
   .then(() => Promise.reduce(queue, (nextNonce, txDetails) => {
     return ethAsync.sendTransactionAsync({
@@ -793,4 +810,201 @@ function speedUp(transactions, gasPriceInGWei) {
     });
   }, nonce))
   .then(() => console.log('Done!') || true);
+}
+
+function getFutureTransactions(addr, tries = 40) {
+  if (arguments.length === 0) {
+    log('getFutureTransactions(address, tries = 40);', $logs);
+    log('Retries till find atleast 1 tx.', $logs);
+    return;
+  }
+  return callNode('parity_futureTransactions')
+  .then(pendings => pendings.filter(txDetails => txDetails.from == addr.toLowerCase()))
+  .then(filtered => filtered.length > 0 ? filtered : Promise.delay(500).then(() => getFutureTransactions(addr, tries - 1)));
+}
+
+function getAllFutureTransactionsByAddress(addr, lastMinedNonce, lastSentNonce) {
+  if (arguments.length === 0) {
+    log('getAllFutureTransactionsByAddress(address, lastMinedNonce, lastSentNonce);', $logs);
+    log('Retries till find atleast lastSentNonce-lastMinedNonce transactions.', $logs);
+    return;
+  }
+  var uniques = function(list, idFunc) {
+    var uni = {};
+    return list.filter(el => uni[idFunc(el)] ? false : uni[idFunc(el)] = true);
+  };
+  var getFuture = function(accum = []) {
+    return getFutureTransactions(addr, 4)
+    .then(txs => uniques(accum.concat(txs), el => el.nonce))
+    .then(total => (total.length <= lastSentNonce - lastMinedNonce) ? console.log('Try more', total.length) || getFuture(total) : total);
+  };
+  return getFuture()
+  .then(total => total.sort((a, b) => web3.toDecimal(a.nonce) - web3.toDecimal(b.nonce)));
+}
+
+function getAllFutureTransactionsByAddressProbabalistic(addr, tries = 4) {
+  if (arguments.length === 0) {
+    log('getAllFutureTransactionsByAddressProbabalistic(address, tries = 4);', $logs);
+    log('Calls getFutureTransactions(address, 4) for tries number of times and returns all the unique results.', $logs);
+    return;
+  }
+  var trial = 0;
+  var uniques = function(list, idFunc) {
+    var uni = {};
+    return list.filter(el => uni[idFunc(el)] ? false : uni[idFunc(el)] = true);
+  };
+  var getFuture = function(accum = []) {
+    return getFutureTransactions(addr, 4)
+    .then(txs => uniques(accum.concat(txs), el => el.nonce))
+    .then(total => (trial++ <= tries) ? getFuture(total) : total);
+  };
+  return getFuture()
+  .then(total => total.sort((a, b) => web3.toDecimal(a.nonce) - web3.toDecimal(b.nonce)))
+  .tap(console.log);
+}
+
+function rewrite(transactions, gasPriceInGWei) {
+  if (arguments.length === 0) {
+    log('rewrite(rawTransactions, gasPriceInGWei);', $logs);
+    log('Resend all the raw transactions changing only the gas price.', $logs);
+    log('No side effects.', $logs);
+    return;
+  }
+  const gasPriceLocal = web3.toWei(gasPriceInGWei, 'gwei');
+  const result = [];
+  setPrivateKey(prompt('Please enter your private key'));
+  return Promise.each(transactions, txDetails => {
+    return ethAsync.sendTransactionAsync({
+      to: txDetails.to,
+      from: txDetails.from,
+      gas: txDetails.gas,
+      gasPrice: gasPriceLocal,
+      data: txDetails.input,
+      nonce: txDetails.nonce,
+      value: txDetails.value,
+    })
+    .then(txHash => {
+      console.log(txDetails.hash, 'resent with', txHash);
+      result.push([txDetails.hash, txHash])
+      return true;
+    })
+    .catch(err => {
+      if (err.message.includes('nonce') || err.message.includes('imported')) {
+        return true;
+      }
+      console.log(txDetails.hash, 'failed to be sent');
+      // throw err;
+    });
+  })
+  .then(() => console.log(result) || result);
+}
+
+function readAndRewrite(transactionHashes, gasPriceInGWei) {
+  if (arguments.length === 0) {
+    log('readAndRewrite(transactionHashes, gasPriceInGWei);', $logs);
+    log('Gets transactions by hashes and resend them changing only the gas price.', $logs);
+    log('No side effects.', $logs);
+    return;
+  }
+  const gasPriceLocal = web3.toWei(gasPriceInGWei, 'gwei');
+  const result = [];
+  setPrivateKey(prompt('Please enter your private key'));
+  return Promise.map(transactionHashes, txHash => getTransaction(txHash, 10), {concurrency: 20})
+  .each(txDetails => {
+    return ethAsync.sendTransactionAsync({
+      to: txDetails.to,
+      from: txDetails.from,
+      gas: txDetails.gas,
+      gasPrice: gasPriceLocal,
+      data: txDetails.input,
+      nonce: txDetails.nonce,
+      value: txDetails.value,
+    })
+    .then(txHash => {
+      console.log(txDetails.hash, 'resent with', txHash);
+      result.push([txDetails.hash, txHash])
+      return true;
+    })
+    .catch(err => {
+      if (err.message.includes('nonce') || err.message.includes('imported')) {
+        return true;
+      }
+      console.log(txDetails.hash, 'failed to be sent', err.message || err);
+      // throw err;
+    });
+  })
+  .then(() => console.log(result) || result);
+}
+
+function propagate(transactionHashes) {
+  if (arguments.length === 0) {
+    log('propagate(transactionHashes);', $logs);
+    log('Gets transactions by hashes and resends them for better propagation.', $logs);
+    log('No side effects.', $logs);
+    return;
+  }
+  return Promise.map(transactionHashes, tx => getTransaction(tx, 5).catch(() => 'Skip'))
+  .then(txs => txs.filter(el => el != 'Skip'))
+  .map(tx => ethAsync.sendRawTransactionAsync(tx.raw).catch(err => err.message.includes('imported') ? true : console.log(err)));
+}
+
+function sumTxCost(transactions) {
+  if (arguments.length === 0) {
+    log('sumTxCost(transactionHashes);', $logs);
+    log('Get total ETH spent for specified transactions. Returns BigNumber.', $logs);
+    return;
+  }
+  const retry = (fun, ...params) => {
+    return fun(...params).catch(err => {
+      console.log('Retrying');
+      return Promise.delay(100).then(() => retry(fun, ...params));
+    });
+  };
+  const ethAsync = Promise.promisifyAll(eth);
+  let sum = web3.toBigNumber(0);
+  return Promise.map(
+    transactions,
+    txHash => retry(ethAsync.getTransactionAsync, txHash)
+      .then(tx => retry(ethAsync.getTransactionReceiptAsync, txHash)
+        .then(receipt => sum = sum.add(web3.toBigNumber(tx.gasPrice).mul(receipt.gasUsed)))
+      ),
+    {concurrency: 100}
+  )
+  .then(() => console.log(web3.fromWei(sum).toFixed() + ' ETH') || sum);
+}
+
+function makeRequest(method, url) {
+  if (arguments.length === 0) {
+    log('makeRequest(method, url);', $logs);
+    log('Promisified and simplified AJAX request.', $logs);
+    return;
+  }
+  return new Promise(function (resolve, reject) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, url);
+      xhr.onload = function () {
+        if (this.status >= 200 && this.status < 300) {
+          resolve(xhr.response);
+        } else {
+          reject({
+            status: this.status,
+            statusText: xhr.statusText
+          });
+        }
+      };
+      xhr.onerror = function () {
+        reject({
+          status: this.status,
+          statusText: xhr.statusText
+        });
+      };
+      xhr.send();
+    } catch(e) {
+      reject({
+        status: 0,
+        statusText: e && e.message ? e.message : e
+      });
+    }
+  });
 }
