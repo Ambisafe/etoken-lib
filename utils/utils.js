@@ -81,14 +81,15 @@ var log = function(message, logger) {
   }
 };
 
-var logError = function(message, logger, dontThrow) {
+var logError = function(error, logger, dontThrow) {
   if (logger) {
-    _log('<p class="error">' + message + '</p>', logger);
+    _log('<p class="error">' + error.message || error + '</p>', logger);
   }
   if (dontThrow) {
+    console.error(error.message || error);
     return;
   }
-  throw message;
+  throw error;
 };
 
 var logWarning = function(message, logger) {
@@ -467,7 +468,7 @@ var safeTransactions = function(...args) {
   };
   return _safeTransactions(...args)
   .catch(function(err) {
-    logError(err.message || err, $logs, true);
+    logError(err, $logs, true);
     log('<hr/>', $logs);
     throw err;
   });
