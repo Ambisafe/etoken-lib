@@ -61,7 +61,9 @@ var help = function() {
   log('getAllFutureTransactionsByAddressProbabalistic(address, tries = 4);', $logs);
   log('rewrite(rawTransactions, gasPriceInGWei);', $logs);
   log('readAndRewrite(transactionHashes, gasPriceInGWei);', $logs);
-  log('propagate(transactionHashes);', $logs);
+  log('propagate(transactionHashes[, skipNotFound = true, concurrency = 50]);', $logs);
+  log('getTransactions(transactionHashes[, skipNotFound = false, concurrency = 50]);', $logs);
+  log('propagateRaws(rawTransactions[, concurrency = 50]);', $logs);
   log('sumTxCost(transactionHashes);', $logs);
   log('makeRequest(method, url);', $logs);
   log('', $logs);
@@ -936,16 +938,50 @@ function readAndRewrite(transactionHashes, gasPriceInGWei) {
   .then(() => console.log(result) || result);
 }
 
-function propagate(transactionHashes) {
+function propagate(transactionHashes, skipNotFound = true, concurrency = 50) {
   if (arguments.length === 0) {
-    log('propagate(transactionHashes);', $logs);
+    log('propagate(transactionHashes[, skipNotFound = true, concurrency = 50]);', $logs);
     log('Gets transactions by hashes and resends them for better propagation.', $logs);
+    log('Returns promise that resolves to a list of raw transactions.', $logs);
     log('No side effects.', $logs);
     return;
   }
-  return Promise.map(transactionHashes, tx => getTransaction(tx, 5).catch(() => 'Skip'))
+  return getTransactions(transactionHashes, skipNotFound, concurrency)
+  .map(tx => tx.raw)
+  .then(raws => propagateRaws(raws, concurrency));
+}
+
+function getTransactions(transactionHashes, skipNotFound = false, concurrency = 50) {
+  if (arguments.length === 0) {
+    log('getTransactions(transactionHashes[, skipNotFound = false, concurrency = 50]);', $logs);
+    log('Gets transactions by hashes.', $logs);
+    log('Returns promise that resolves to a list of transaction objects.', $logs);
+    log('No side effects.', $logs);
+    return;
+  }
+  return Promise.map(transactionHashes, tx =>
+    getTransaction(tx, 5)
+    .catch(err => skipNotFound ? 'Skip' : Promise.reject(err))
+  )
   .then(txs => txs.filter(el => el != 'Skip'))
-  .map(tx => ethAsync.sendRawTransactionAsync(tx.raw).catch(err => err.message.includes('imported') ? true : console.log(err)));
+  .tap(console.log);
+}
+
+function propagateRaws(rawTransactions, concurrency = 50) {
+  if (arguments.length === 0) {
+    log('propagateRaws(rawTransactions[, concurrency = 50]);', $logs);
+    log('Resends raw transactions for better propagation.', $logs);
+    log('Returns promise that resolves to input rawTransactions.', $logs);
+    log('No side effects.', $logs);
+    return;
+  }
+  return Promise.map(rawTransactions, raw =>
+    ethAsync.sendRawTransactionAsync(raw)
+    .catch(err => err.message.includes('imported') ? true : console.log(err)),
+    {concurrency}
+  )
+  .then(() => rawTransactions)
+  .tap(() => console.log(rawTransactions.length, 'transactions propagated.'));
 }
 
 function sumTxCost(transactions) {
