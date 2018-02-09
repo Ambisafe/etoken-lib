@@ -83,10 +83,10 @@ var log = function(message, logger) {
 
 var logError = function(error, logger, dontThrow) {
   if (logger) {
-    _log('<p class="error">' + error.message || error + '</p>', logger);
+    _log(`<p class="error">${error.message || error} ${error.data}</p>`, logger);
   }
   if (dontThrow) {
-    console.error(error.message || error);
+    console.error(error.message || error, error.data);
     return;
   }
   throw error;
@@ -320,8 +320,15 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
     return new Promise(function(resolve, reject) {
       var _params = params.slice(0);
       _params.push(merge({from: sender, gas: Math.max(3000000, gas), gasPrice: gasPrice}, argsObject));
+      _params.push(SIMULATION_BLOCK);
       _params.push(function(err, result) {
         if (err) {
+          if (err.toString().toLowerCase().includes('execution error')) {
+            if (fastRun) {
+              resolve(gas);
+              return;
+            }
+          }
           if (err.toString().startsWith('Error: no contract code at given address')) {
             gas = argsObject && argsObject.gas || 21000;
             resolve(gas);
@@ -469,7 +476,7 @@ var safeTransactions = function(...args) {
   return _safeTransactions(...args)
   .catch(function(err) {
     logError(err, $logs, true);
-    log('<hr/>', $logs);
+    logFinish($logs);
     throw err;
   });
 };
@@ -722,6 +729,7 @@ var smartDeployContract = function(args) {
           if (processed) {
             return;
           }
+          log(`Contract deployment transaction: ${contract.transactionHash}.`, $logs);
           processed = true;
           getTransaction(contract.transactionHash)
           .then(tx => {
@@ -738,9 +746,11 @@ var smartDeployContract = function(args) {
   }).then(contract => {
     if (name) {
       window[name] = contract;
-      log(`Deployed contract is accessible by '${name}' global variable.`, $logs);
+      log(`Deployed contract is accessible by '${name}' global variable. Contract address: ${contract.address}`, $logs);
     }
     return contract;
+  }).catch(function(err) {
+    logError(err, $logs, false);
   });
 };
 
