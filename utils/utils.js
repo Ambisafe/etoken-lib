@@ -18,7 +18,11 @@ var cb = function(err,ok){if (err) {console.log(err);} else {console.log(ok);}};
 var cbval = function(err,ok){if (err) {console.log(err);} else {console.log(ok.valueOf());}};
 
 var setPrivateKey = function(pk) {
-  EToken.setPrivateKey(pk);
+  if (pk === undefined) {
+    EToken.setPrivateKey(prompt());
+  } else {
+    EToken.setPrivateKey(pk);
+  }
   address = EToken.privateToAddress(('0x' + pk).slice(-64));
   sender = address;
   log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
@@ -66,6 +70,8 @@ var help = function() {
   log('propagateRaws(rawTransactions[, concurrency = 50]);', $logs);
   log('sumTxCost(transactionHashes);', $logs);
   log('makeRequest(method, url);', $logs);
+  log('getEthplorerInfo(address, apiKey = freekey);', $logs);
+  log('getEthplorerInfos(addresses, concurrency = 1, apiKey = freekey);', $logs);
   log('', $logs);
   log('Some additional help available if you call the function without parameters.', $logs);
 }
@@ -1054,4 +1060,84 @@ function makeRequest(method, url) {
       });
     }
   });
+}
+
+function retry(fun, delay, ...params) {
+  if (arguments.length === 0) {
+    log('retry(fun, delay, ...params);', $logs);
+    log('Retry promise returning function (fun) till it is resolved.', $logs);
+    return;
+  }
+  return fun(...params).catch(err => {
+    console.log('Retrying');
+    return Promise.delay(delay).then(() => retry(fun, delay, ...params));
+  });
+};
+
+function jQueryRequest(...params) {
+  if (arguments.length === 0) {
+    log('jQueryRequest(...params);', $logs);
+    log('Promisified version of $.ajax().', $logs);
+    return;
+  }
+  return new Promise((resolve, reject) => {
+    const query = $.ajax(...params);
+    query.then((...results) => resolve(results));
+    query.fail(fail => reject(fail));
+  });
+}
+
+function stringifyNumbers(json) {
+  if (arguments.length === 0) {
+    log('stringifyNumbers(json);', $logs);
+    log('Wrap all numbers in double quotes inside of the JSON to not lose precision.', $logs);
+    return;
+  }
+  return json.replace(/":([\d.e+-]+)/g, '":"$1"');
+}
+
+async function getEthplorerInfo(address, apiKey = 'freekey') {
+  if (arguments.length === 0) {
+    log('getEthplorerInfo(address, apiKey = freekey);', $logs);
+    log('Get info about all the address token balances and their value in USD.', $logs);
+    return;
+  }
+  const response = await retry(jQueryRequest, 5000, {url: `https://api.ethplorer.io/getAddressInfo/${address}?apiKey=${apiKey}`}).then(([_1, _2, res]) => res.responseText);
+  const info = JSON.parse(stringifyNumbers(response));
+  info.tokens = info.tokens || [];
+  for (let token of info.tokens) {
+    token.balanceHuman = web3.toBigNumber(token.balance).div(web3.toBigNumber(10).pow(token.tokenInfo.decimals));
+    token.value = web3.toBigNumber(0);
+    if (token.tokenInfo.price) {
+      token.value = token.balanceHuman.mul(token.tokenInfo.price.rate);
+    }
+  }
+  info.totalValue = info.tokens.reduce((prev, next) => prev.add(next.value.gt(0) && next.tokenInfo.price.currency == 'USD' ? next.value : 0), web3.toBigNumber(0));
+  return info;
+}
+
+async function getEthplorerInfos(addresses, concurrency = 1, apiKey = 'freekey') {
+  if (arguments.length === 0) {
+    log('getEthplorerInfos(addresses, concurrency = 1, apiKey = freekey);', $logs);
+    log('Get infos about all the addresses token balances and their values in USD. Only increase concurrency if using personal apiKey.', $logs);
+    return;
+  }
+  const results = await Promise.map(addresses, address => getEthplorerInfo(address, apiKey), {concurrency});
+  const totals = {};
+  for (let result of results) {
+    for (let token of result.tokens) {
+      const tokenAddress = token.tokenInfo.address;
+      log(`Address ${result.address} has ${token.balanceHuman.toFixed()} ${token.tokenInfo.name} which is ${token.value.toFormat(2)} USD`, $logs);
+      totals[tokenAddress] = totals[tokenAddress] || { sumTokens: web3.toBigNumber(0), sumValue: web3.toBigNumber(0), name: token.tokenInfo.name || '_unknown' };
+      totals[tokenAddress].sumTokens = totals[tokenAddress].sumTokens.add(token.balanceHuman);
+      totals[tokenAddress].sumValue = totals[tokenAddress].sumValue.add(token.value);
+    }
+  }
+  let totalValue = web3.toBigNumber(0);
+  for (let token in totals) {
+    log(`Total of ${totals[token].sumTokens.toFixed()} ${totals[token].name} which is ${totals[token].sumValue.toFormat(2)} USD`, $logs);
+    totalValue = totalValue.add(totals[token].sumValue);
+  }
+  log(`Total value is ${totalValue.toFormat(2)} USD`, $logs);
+  return totals;
 }
