@@ -3,6 +3,7 @@ EToken.web3.currentProvider.stop();
 EToken.web3.currentProvider._ready.go();
 
 var $logs = $('#logs');
+$logs.css('word-wrap', 'break-word');
 var web3 = EToken.web3;
 var eth = web3.eth;
 var ethAsync = Promise.promisifyAll(eth);
@@ -89,7 +90,7 @@ var log = function(message, logger) {
 
 var logError = function(error, logger, dontThrow) {
   if (logger) {
-    _log(`<p class="error">${error.message || error} ${error.data}</p>`, logger);
+    _log(`<p class="error">${error.message || error} ${error.data || ''}</p>`, logger);
   }
   if (dontThrow) {
     console.error(error.message || error, error.data);
@@ -1140,4 +1141,33 @@ async function getEthplorerInfos(addresses, concurrency = 1, apiKey = 'freekey')
   }
   log(`Total value is ${totalValue.toFormat(2)} USD`, $logs);
   return totals;
+}
+
+function buildMultiTransferData(receiverAndAmount) {
+  logFinish($logs);
+  const unsafeMultiplexor = eth.contract([{"constant":false,"inputs":[{"name":"_address","type":"address[]"},{"name":"_amount","type":"uint256[]"}],"name":"multiTransfer","outputs":[{"name":"","type":"bool"}],"payable":true,"stateMutability":"payable","type":"function"}])
+  .at('0x4eC4142B862C798b3056F5cc32ab25803828C823');
+  if (!(receiverAndAmount instanceof Array)) {
+    logError(`Input is not an array.`, $logs, true);
+    return false;
+  }
+  const receivers = [];
+  const amounts = [];
+  let totalAmount = web3.toBigNumber(0);
+  receiverAndAmount.forEach(([receiver, amount]) => {
+    if (!web3.isAddress(receiver)) {
+      logError(`${receiver} is not a correct address.`, $logs, false);
+    }
+    const amountWei = web3.toBigNumber(web3.toWei(amount));
+    receivers.push(receiver);
+    amounts.push(amountWei);
+    totalAmount = totalAmount.add(amountWei);
+    log(`${receiver} ${web3.fromWei(amountWei).toFixed()} ETH`, $logs);
+  });
+  const data = unsafeMultiplexor.multiTransfer.getData(receivers, amounts);
+  log(`Additional data: ${data}`, $logs);
+  log(`Amount: ${web3.fromWei(totalAmount).toFixed()}`, $logs);
+  log(`To: ${unsafeMultiplexor.address}`, $logs);
+  logFinish($logs);
+  return true;
 }
