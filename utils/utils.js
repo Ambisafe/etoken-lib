@@ -35,7 +35,7 @@ var setGasPriceInGWei = function(gasPriceInGWei) {
 }
 
 var getGasPrice = function() {
-  log('GasPrice is ' + gasPrice.div(1000000000).toFixed() + ' gwei.');
+  log('GasPrice is ' + gasPrice.div(1000000000).toFixed() + ' gwei.', $logs);
   return gasPrice;
 }
 
@@ -684,6 +684,19 @@ var deployContractComplex = function(constructorArgs, bytecode, abi, sender, nam
   });
 };
 
+function waitForReceipt(txHash) {
+  return retry(
+    async () => {
+      const result = await eth.getTransactionReceiptAsync(txHash);
+      if (not(result) || not(result.blockNumber)) {
+        throw new Error('Not mined yet');
+      }
+      return result;
+    },
+    4000
+  );
+}
+
 var smartDeployContract = function(args) {
   if (arguments.length === 0) {
     log('smartDeployContract({constructorArgs, bytecode, abi, sender, name, gas, nonce, waitReceipt, fastRun, deployedAddress});', $logs);
@@ -1170,4 +1183,57 @@ function buildMultiTransferData(receiverAndAmount) {
   log(`To: ${unsafeMultiplexor.address}`, $logs);
   logFinish($logs);
   return true;
+}
+
+function separateList(pairsList, devidedListSize = 199, ignoreCheckSum = false) {
+  pairsList.forEach(([address, amount]) => {
+    if (!web3.isAddress(ignoreCheckSum ? address.toLowerCase() : address)) {
+      throw new Error(`Address ${address} is invalid or checksum is invalid.`);
+    }
+    web3.toBigNumber(amount); // Will fail if something is wrong with the amount.
+  });
+  let j = -1;
+  const allData = {};
+  allData.addresses = [];
+  allData.amounts = [];
+  const addressList = [];
+  const amountList = [];
+  for (let i = 0; i < pairsList.length; i++) {
+    addressList[i] = pairsList[i][0];
+    amountList[i] = pairsList[i][1];
+  }
+  for (let i = 0; i < pairsList.length; i++) {
+    if (i % devidedListSize == 0) {
+      allData.addresses.push([]);
+      allData.amounts.push([]);
+      j++;
+    }
+    allData.addresses[j].push(addressList[i]);
+    allData.amounts[j].push(amountList[i]);
+  }
+  return allData;
+}
+
+function preparePayoutListingRaws(nonce, payoutContract, listingPairs, baseUnit = 0, batchSize = 199, gas = 5500000) {
+  const multiplier = web3.toBigNumber(10).pow(baseUnit);
+  const preparedPairs = listingPairs.map(pair => [pair[0], multiplier.mul(pair[1]).floor().toFixed()]);
+  const listingData = separateList(preparedPairs, batchSize);
+  const raws = [];
+  const builder = EToken.buildRawTransaction(payoutContract, 'setUsersList');
+
+  for (let i = 0; i < listingData.addresses.length; i++) {
+    raws.push(builder(listingData.addresses[i], listingData.amounts[i], {from: address, gas: 5500000, nonce: nonce + i, gasPrice, value: 0}));
+  }
+  return raws;
+}
+
+function preparePayoutDistributionRaws(nonce, payoutContract, listingPairs) {
+  const listingData = separateList(listingPairs, 30);
+  const raws = [];
+  const builder = EToken.buildRawTransaction(payoutContract, 'distribute');
+
+  for (let i = 0; i < listingData.addresses.length; i++) {
+    raws.push(builder(listingData.addresses[i], {from: address, gas: 5000000, nonce: nonce + i, gasPrice, value: 0}));
+  }
+  return raws;
 }
