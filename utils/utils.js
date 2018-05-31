@@ -1185,7 +1185,7 @@ function buildMultiTransferData(receiverAndAmount) {
   return true;
 }
 
-function separateList(pairsList, devidedListSize = 199, ignoreCheckSum = false) {
+function pairsIntoBatches(pairsList, devidedListSize = 199, ignoreCheckSum = false) {
   pairsList.forEach(([address, amount]) => {
     if (!web3.isAddress(ignoreCheckSum ? address.toLowerCase() : address)) {
       throw new Error(`Address ${address} is invalid or checksum is invalid.`);
@@ -1217,7 +1217,7 @@ function separateList(pairsList, devidedListSize = 199, ignoreCheckSum = false) 
 function preparePayoutListingRaws(nonce, payoutContract, listingPairs, baseUnit = 0, batchSize = 199, gas = 5500000) {
   const multiplier = web3.toBigNumber(10).pow(baseUnit);
   const preparedPairs = listingPairs.map(pair => [pair[0], multiplier.mul(pair[1]).floor().toFixed()]);
-  const listingData = separateList(preparedPairs, batchSize);
+  const listingData = pairsIntoBatches(preparedPairs, batchSize);
   const raws = [];
   const builder = EToken.buildRawTransaction(payoutContract, 'setUsersList');
 
@@ -1228,7 +1228,7 @@ function preparePayoutListingRaws(nonce, payoutContract, listingPairs, baseUnit 
 }
 
 function preparePayoutDistributionRaws(nonce, payoutContract, listingPairs) {
-  const listingData = separateList(listingPairs, 30);
+  const listingData = pairsIntoBatches(listingPairs, 30);
   const raws = [];
   const builder = EToken.buildRawTransaction(payoutContract, 'distribute');
 
@@ -1236,4 +1236,12 @@ function preparePayoutDistributionRaws(nonce, payoutContract, listingPairs) {
     raws.push(builder(listingData.addresses[i], {from: address, gas: 5000000, nonce: nonce + i, gasPrice, value: 0}));
   }
   return raws;
+}
+
+function stripHexPrefix(hex) {
+  return hex.startsWith('0x') ? hex.slice(2) : hex;
+}
+
+function getCloneDeploymentData(prototypeAddress) {
+  return `0x602d600081600a8239f358368180378080368173${stripHexPrefix(prototypeAddress)}5af43d91908282803e602b57fd5bf3`;
 }
