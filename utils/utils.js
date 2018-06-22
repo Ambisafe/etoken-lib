@@ -352,6 +352,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
         fun.estimateGas.apply(this, _params);
       }
     }).then(function(estimateGas) {
+      return estimateGas;
       return new Promise(function(resolve, reject) {
         var _params = params.slice(0);
         if (estimateGas > gas) {
