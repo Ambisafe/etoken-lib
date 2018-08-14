@@ -6,7 +6,7 @@
 </head>
 <body>
     <h1>Ambisafe Ethereum Utils</h1>
-    <h4>To begin, do: setPrivateKey('yourPkHere'); in the browser javascript console.</h4>
+    <h4>To begin, do: setRpcUrl('ethereumRpcUrlHere'); setPrivateKey('yourPkHere'); in the browser javascript console.</h4>
     <h3>Also try help();</h3>
     <h3>Example usage, test func will return false if there is less than 500000 gas available inside it:</h3>
     <p>var ambiUtils = web3.eth.contract([{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[],"name":"test","outputs":[{"name":"","type":"bool"}],"type":"function"}]).at("0x75c5751b5eca193c5e38e1128f543b0250e24b0a");</p>
@@ -32,12 +32,6 @@
     <h3>Logs</h3>
     <div id='logs'>
     </div>
-    <script>
-        window.opts = {
-            gethUrl: 'http://9t1f4yor7v5t521m4ra9xh24ggd2q4-node.ambisafe.co',
-            pk: ''
-        }
-    </script>
     <script src='../build/bundle.min.js'></script>
     <script src='//code.jquery.com/jquery-2.2.2.min.js'></script>
     <script src="//cdn.jsdelivr.net/bluebird/3.5.0/bluebird.min.js"></script>

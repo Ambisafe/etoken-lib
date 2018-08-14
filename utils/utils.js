@@ -1,12 +1,18 @@
-// Stop blocks polling.
-EToken.web3.currentProvider.stop();
-EToken.web3.currentProvider._ready.go();
+window.onload = function() {
+  if (window.opts && window.opts.gethUrl) {
+    return;
+  }
+  const match = window.location.href.match(/\?(https?.+)$/);
+  if (match) {
+    setRpcUrl(match[1]);
+  }
+};
 
 var $logs = $('#logs');
 $logs.css('word-wrap', 'break-word');
 var web3 = EToken.web3;
-var eth = web3.eth;
-var ethAsync = Promise.promisifyAll(eth);
+var eth;
+var ethAsync;
 var address;
 var sender;
 var SIMULATION_BLOCK = window.opts && window.opts.simulationBlock || 'pending';
@@ -20,7 +26,7 @@ var cbval = function(err,ok){if (err) {console.log(err);} else {console.log(ok.v
 
 var setPrivateKey = function(pk) {
   if (pk === undefined) {
-    EToken.setPrivateKey(prompt());
+    EToken.setPrivateKey(prompt('Enter your private key in here:'));
   } else {
     EToken.setPrivateKey(pk);
   }
@@ -28,6 +34,19 @@ var setPrivateKey = function(pk) {
   sender = address;
   log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
 };
+
+const setRpcUrl = function(url) {
+  if (url === undefined) {
+    EToken.setRpcUrl(prompt('Enter your Ethereum node RPC URL in here:'));
+  } else {
+    EToken.setRpcUrl(url);
+  }
+  // Stop blocks polling.
+  EToken.web3.currentProvider.stop();
+  EToken.web3.currentProvider._ready.go();
+  eth = web3.eth;
+  ethAsync = Promise.promisifyAll(eth);
+}
 
 var setGasPriceInGWei = function(gasPriceInGWei) {
   gasPrice = web3.toBigNumber(gasPriceInGWei).mul(1000000000);
@@ -41,6 +60,7 @@ var getGasPrice = function() {
 
 var help = function() {
   log('Here is the list of functions you can use:', $logs);
+  log('setRpcUrl(rpcUrl);', $logs);
   log('setPrivateKey(privateKey);', $logs);
   log('getBalance([address]);', $logs);
   log('getGasPrice();', $logs);
