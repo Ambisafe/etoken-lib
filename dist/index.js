@@ -38,6 +38,10 @@ var _hookedWalletEthtx = require('web3-provider-engine/subproviders/hooked-walle
 
 var _hookedWalletEthtx2 = _interopRequireDefault(_hookedWalletEthtx);
 
+var _logRaws = require('./logRaws');
+
+var _logRaws2 = _interopRequireDefault(_logRaws);
+
 var _helpers = require('./helpers');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -77,7 +81,9 @@ var EToken = function () {
         }
     }, {
         key: 'setRpcUrl',
-        value: function setRpcUrl(rpcUrl) {
+        value: function setRpcUrl(rpcUrl, rawsLogger) {
+            var doNotSend = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
             if (this.rpcSet) {
                 throw new Error('Rpc url is already set.');
             }
@@ -98,6 +104,10 @@ var EToken = function () {
                 getPrivateKey: getPrivateKey,
                 getAccounts: getAccounts
             }));
+
+            if (rawsLogger) {
+                this.engine.addProvider(new _logRaws2.default(this.web3.sha3, rawsLogger, doNotSend));
+            }
 
             this.engine.addProvider(new _rpc2.default({
                 rpcUrl: rpcUrl

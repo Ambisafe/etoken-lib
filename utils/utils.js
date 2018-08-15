@@ -35,11 +35,11 @@ var setPrivateKey = function(pk) {
   log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
 };
 
-const setRpcUrl = function(url) {
+const setRpcUrl = function(url, logger, doNotSend = false) {
   if (url === undefined) {
     EToken.setRpcUrl(prompt('Enter your Ethereum node RPC URL in here:'));
   } else {
-    EToken.setRpcUrl(url);
+    EToken.setRpcUrl(url, logger, doNotSend);
   }
   // Stop blocks polling.
   EToken.web3.currentProvider.stop();

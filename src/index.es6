@@ -9,6 +9,7 @@ import NonceTrackerSubprovider from 'web3-provider-engine/subproviders/nonce-tra
 import FilterSubprovider from 'web3-provider-engine/subproviders/filters';
 import RpcSubprovider from 'web3-provider-engine/subproviders/rpc';
 import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hooked-wallet-ethtx';
+import LogRawsSubprovider from './logRaws';
 
 import {waitForTransaction, publicToAddress, privateToAddress, ecsign, toBuffer} from './helpers';
 
@@ -36,7 +37,7 @@ class EToken {
         this.signerAddress = privateToAddress(this.signerPrivateKey);
     }
 
-    setRpcUrl(rpcUrl) {
+    setRpcUrl(rpcUrl, rawsLogger, doNotSend = false) {
         if (this.rpcSet) {
             throw new Error('Rpc url is already set.');
         }
@@ -58,8 +59,12 @@ class EToken {
             getAccounts: getAccounts,
         }));
 
+        if (rawsLogger) {
+            this.engine.addProvider(new LogRawsSubprovider(this.web3.sha3, rawsLogger, doNotSend));
+        }
+
         this.engine.addProvider(new RpcSubprovider({
-          rpcUrl: rpcUrl,
+            rpcUrl: rpcUrl,
         }));
 
         this.engine.start();

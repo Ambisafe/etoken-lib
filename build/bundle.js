@@ -93,7 +93,11 @@ var EToken =
 
 	var _hookedWalletEthtx2 = _interopRequireDefault(_hookedWalletEthtx);
 
-	var _helpers = __webpack_require__(335);
+	var _logRaws = __webpack_require__(335);
+
+	var _logRaws2 = _interopRequireDefault(_logRaws);
+
+	var _helpers = __webpack_require__(336);
 
 	function _interopRequireDefault(obj) {
 	    return obj && obj.__esModule ? obj : { default: obj };
@@ -146,7 +150,9 @@ var EToken =
 	        }
 	    }, {
 	        key: 'setRpcUrl',
-	        value: function setRpcUrl(rpcUrl) {
+	        value: function setRpcUrl(rpcUrl, rawsLogger) {
+	            var doNotSend = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
 	            if (this.rpcSet) {
 	                throw new Error('Rpc url is already set.');
 	            }
@@ -167,6 +173,10 @@ var EToken =
 	                getPrivateKey: getPrivateKey,
 	                getAccounts: getAccounts
 	            }));
+
+	            if (rawsLogger) {
+	                this.engine.addProvider(new _logRaws2.default(this.web3.sha3, rawsLogger, doNotSend));
+	            }
 
 	            this.engine.addProvider(new _rpc2.default({
 	                rpcUrl: rpcUrl
@@ -57838,6 +57848,69 @@ var EToken =
 
 /***/ },
 /* 335 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () {
+	    function defineProperties(target, props) {
+	        for (var i = 0; i < props.length; i++) {
+	            var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+	        }
+	    }return function (Constructor, protoProps, staticProps) {
+	        if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+	    };
+	}();
+
+	function _classCallCheck(instance, Constructor) {
+	    if (!(instance instanceof Constructor)) {
+	        throw new TypeError("Cannot call a class as a function");
+	    }
+	}
+
+	var LogRawsSubprovider = function () {
+	    function LogRawsSubprovider(sha3, logger) {
+	        var doNotSend = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+	        _classCallCheck(this, LogRawsSubprovider);
+
+	        this.logger = logger;
+	        this.doNotSend = doNotSend;
+	        this.sha3 = sha3;
+	    }
+
+	    _createClass(LogRawsSubprovider, [{
+	        key: 'setEngine',
+	        value: function setEngine() {
+	            // ignore.
+	        }
+	    }, {
+	        key: 'handleRequest',
+	        value: function handleRequest(payload, next, end) {
+	            if (payload.method === 'eth_sendRawTransaction') {
+	                var hash = '0x' + this.sha3(payload.params[0], { encoding: 'hex' });
+	                this.logger(payload.params[0], hash);
+	                if (this.doNotSend) {
+	                    end(null, hash);
+	                    return;
+	                }
+	            }
+	            next();
+	        }
+	    }]);
+
+	    return LogRawsSubprovider;
+	}();
+
+	exports.default = LogRawsSubprovider;
+	module.exports = exports['default'];
+
+/***/ },
+/* 336 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -57851,11 +57924,11 @@ var EToken =
 	exports.ecsign = ecsign;
 	exports.toBuffer = toBuffer;
 
-	var _web = __webpack_require__(336);
+	var _web = __webpack_require__(337);
 
 	var _web2 = _interopRequireDefault(_web);
 
-	var _ethereumjsUtil = __webpack_require__(338);
+	var _ethereumjsUtil = __webpack_require__(339);
 
 	function _interopRequireDefault(obj) {
 	    return obj && obj.__esModule ? obj : { default: obj };
@@ -57893,7 +57966,7 @@ var EToken =
 	}
 
 /***/ },
-/* 336 */
+/* 337 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -57906,7 +57979,7 @@ var EToken =
 
 	var _web2 = _interopRequireDefault(_web);
 
-	var _engine = __webpack_require__(337);
+	var _engine = __webpack_require__(338);
 
 	var _engine2 = _interopRequireDefault(_engine);
 
@@ -57919,7 +57992,7 @@ var EToken =
 	module.exports = exports['default'];
 
 /***/ },
-/* 337 */
+/* 338 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -57952,14 +58025,14 @@ var EToken =
 	module.exports = exports['default'];
 
 /***/ },
-/* 338 */
+/* 339 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-	var SHA3 = __webpack_require__(339);
+	var SHA3 = __webpack_require__(340);
 	var secp256k1 = __webpack_require__(212);
 	var assert = __webpack_require__(9);
 	var rlp = __webpack_require__(219);
@@ -58593,7 +58666,7 @@ var EToken =
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3).Buffer))
 
 /***/ },
-/* 339 */
+/* 340 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__(317).SHA3Hash
