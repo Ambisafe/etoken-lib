@@ -1262,6 +1262,64 @@ function stripHexPrefix(hex) {
   return hex.startsWith('0x') ? hex.slice(2) : hex;
 }
 
+function addHexPrefix(hex) {
+  return '0x' + stripHexPrefix(hex);
+}
+
+function isHex(str) {
+  if (typeof str !== 'string') {
+    return false;
+  }
+  return !!str.match(/^0x[0-9a-f]*$/i);
+}
+
+function sha3(...args) {
+  let str = '';
+  for (const arg of args) {
+    const hex = (isHex(arg) ? arg : web3.toHex(arg)).substr(2);
+    str += hex.length % 2 !== 0 ? `0${hex}` : hex;
+  }
+  console.log(str);
+  return '0x' + web3.sha3(str, {encoding: 'hex'}).slice(-64);
+}
+
+function bytes32(stringOrNumber) {
+  const zeros = '000000000000000000000000000000000000000000000000000000000000000';
+  if (typeof stringOrNumber === 'string') {
+    return (web3.toHex(stringOrNumber) + zeros).substr(0, 66);
+  }
+  const hexNumber = stringOrNumber.toString(16);
+  return addHexPrefix((zeros + hexNumber).substring(hexNumber.length - 1));
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+  return true;
+}
+
+function buildForwardOnBehalf(to, value, data, userContractAddress, nonce, msgSender, privateKey) {
+  assert(web3.isAddress(to), `to '${to}' is not an address.`);
+  const parsedTo = addHexPrefix(to);
+  assert(web3.isAddress(userContractAddress), `userContractAddress '${userContractAddress}' is not an address.`);
+  const parsedUserContractAddress = addHexPrefix(userContractAddress);
+  assert(web3.isAddress(msgSender), `msgSender '${msgSender}' is not an address.`);
+  const parsedMsgSender = addHexPrefix(msgSender);
+  const parsedValue = web3.toBigNumber(value);
+  assert(parsedValue.decimalPlaces() === 0, `value ${value} should be an integer.`);
+  const parsedData = addHexPrefix(data);
+  assert(isHex(parsedData), `data ${data} should be a hex.`);
+  const parsedNonce = web3.toBigNumber(nonce);
+  assert(parsedNonce.decimalPlaces() === 0, `nonce ${nonce} should be an integer.`);
+  const hash = sha3(parsedTo, bytes32(parsedValue), parsedData, parsedUserContractAddress, bytes32(parsedNonce), parsedMsgSender);
+  const parsedPrivateKey = privateKey || prompt(`Enter user contract's owner private key:`);
+  const {v, r, s} = EToken.sign(hash, parsedPrivateKey);
+  log(`forwardOnBehalf('${parsedTo}', '${value}', '${parsedData}', '${nonce}', ${v}, '${r}', '${s}');`, $logs);
+  const userContract = eth.contract([{"constant":false,"inputs":[{"name":"_destination","type":"address"},{"name":"_value","type":"uint256"},{"name":"_data","type":"bytes"},{"name":"_nonce","type":"uint256"},{"name":"_v","type":"uint8"},{"name":"_r","type":"bytes32"},{"name":"_s","type":"bytes32"}],"name":"forwardOnBehalf","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]).at('0x0');
+  return userContract.forwardOnBehalf.getData(parsedTo, value, parsedData, nonce, v, r, s);
+}
+
 function getCloneDeploymentData(prototypeAddress) {
   return `0x602d600081600a8239f358368180378080368173${stripHexPrefix(prototypeAddress)}5af43d91908282803e602b57fd5bf3`;
 }
