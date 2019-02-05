@@ -347,7 +347,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
     return new Promise(function(resolve, reject) {
       var _params = params.slice(0);
       _params.push(merge({from: sender, gas: Math.max(3000000, gas), gasPrice: gasPrice}, argsObject));
-      _params.push(SIMULATION_BLOCK);
+      // _params.push(SIMULATION_BLOCK); // https://github.com/ethereum/go-ethereum/issues/2586
       _params.push(function(err, result) {
         if (err) {
           if (err.toString().toLowerCase().includes('execution error')) {
