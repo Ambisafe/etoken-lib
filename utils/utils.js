@@ -15,7 +15,7 @@ var eth;
 var ethAsync;
 var address;
 var sender;
-var SIMULATION_BLOCK = window.opts && window.opts.simulationBlock || 'pending';
+var SIMULATION_BLOCK = window.opts && window.opts.simulationBlock || 'latest';
 
 var nowSeconds = function(){return (Date.now() / 1000);};
 
@@ -396,10 +396,10 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
           _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
           _params.push(SIMULATION_BLOCK);
           _params.push(function(err, result) {
-            var success = typeof result.toNumber === 'function' ? result.toNumber() > 0 : result;
             if (err) {
               reject(err);
             } else {
+              var success = typeof result.toNumber === 'function' ? result.toNumber() > 0 : result;
               if (success) {
                 resolve(estimateGas);
               } else {
@@ -1322,4 +1322,12 @@ function buildForwardOnBehalf(to, value, data, userContractAddress, nonce, msgSe
 
 function getCloneDeploymentData(prototypeAddress) {
   return `0x602d600081600a8239f358368180378080368173${stripHexPrefix(prototypeAddress)}5af43d91908282803e602b57fd5bf3`;
+}
+
+async function transferTokenBalance(tokenAddress, to, params = undefined) {
+  const token = Promise.promisifyAll(eth.contract([{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"supply","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]).at(tokenAddress));
+  assert(web3.isAddress(to), `To ${to} is not an address.`);
+  const balance = await token.balanceOfAsync(address);
+  assert(balance.gt(0), 'Token balance is 0');
+  return safeTransaction(token.transfer, [to, balance], address, params);
 }
