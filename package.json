@@ -1,9 +1,12 @@
 {
   "name": "etoken-lib",
-  "version": "0.14.0",
+  "version": "0.16.0",
   "description": "Ambisafe Etoken Lib",
   "main": "dist/index.js",
-  "repository": "https://bitbucket.org/ambisafe/etoken-lib",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Ambisafe/etoken-lib.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "babel src --out-dir dist && webpack --config webpack.config.js",
@@ -16,7 +19,7 @@
     "crypto": "0.0.3",
     "ethereumjs-tx": "1.3.3",
     "ethereumjs-util": "4.3.0",
-    "web3": "0.15.3",
+    "web3": "0.20.6",
     "web3-provider-engine": "8.0.7"
   },
   "devDependencies": {

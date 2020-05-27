@@ -12,6 +12,7 @@ import HookedWalletEthTxSubprovider from 'web3-provider-engine/subproviders/hook
 import LogRawsSubprovider from './logRaws';
 
 import {waitForTransaction, publicToAddress, privateToAddress, ecsign, toBuffer} from './helpers';
+import * as ethUtil from 'ethereumjs-util';
 
 class EToken {
     constructor(rpcUrl = null) {
@@ -121,5 +122,6 @@ EToken.setPrivateKey = etoken.setPrivateKey;
 EToken.buildRawTransaction = etoken.buildRawTransaction;
 EToken.sign = etoken.sign;
 EToken.setRpcUrl = etoken.setRpcUrl;
+EToken.ethUtil = ethUtil;
 
 export default EToken;

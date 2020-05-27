@@ -44,6 +44,12 @@ var _logRaws2 = _interopRequireDefault(_logRaws);
 
 var _helpers = require('./helpers');
 
+var _ethereumjsUtil = require('ethereumjs-util');
+
+var ethUtil = _interopRequireWildcard(_ethereumjsUtil);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
@@ -182,6 +188,7 @@ EToken.setPrivateKey = etoken.setPrivateKey;
 EToken.buildRawTransaction = etoken.buildRawTransaction;
 EToken.sign = etoken.sign;
 EToken.setRpcUrl = etoken.setRpcUrl;
+EToken.ethUtil = ethUtil;
 
 exports.default = EToken;
 module.exports = exports['default'];
