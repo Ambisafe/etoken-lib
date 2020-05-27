@@ -1331,3 +1331,51 @@ async function transferTokenBalance(tokenAddress, to, params = undefined) {
   assert(balance.gt(0), 'Token balance is 0');
   return safeTransaction(token.transfer, [to, balance], address, params);
 }
+
+function parseRaw(raw) {
+  const decoded = EToken.ethUtil.rlp.decode(raw);
+  const value = decoded[4].length === 0 ? web3.toBigNumber(0) : web3.toBigNumber('0x' + decoded[4].toString('hex'));
+  const data = decoded[5].length === 0 ? '0x' : '0x' + decoded[5].toString('hex');
+  const from = '0x' + EToken.ethUtil.publicToAddress(EToken.ethUtil.ecrecover(EToken.ethUtil.rlphash([decoded[0], decoded[1], decoded[2], decoded[3], decoded[4], decoded[5]]), decoded[6], decoded[7], decoded[8])).toString('hex');
+  return {
+    from,
+    nonce: web3.toDecimal('0x' + decoded[0].toString('hex')),
+    gasPrice: web3.toDecimal('0x' + decoded[1].toString('hex')),
+    gas: web3.toDecimal('0x' + decoded[2].toString('hex')),
+    to: '0x' + decoded[3].toString('hex'),
+    value,
+    data,
+    hash: web3.sha3(raw, {encoding: 'hex'})
+  };
+}
+
+function rewriteRaws(raws, gasPriceInGWei) {
+  const gasPriceLocal = web3.toWei(gasPriceInGWei, 'gwei');
+  const result = [];
+  const parsedRaws = raws.map(parseRaw);
+  setPrivateKey(prompt('Please enter your private key'));
+  return Promise.each(parsedRaws, txDetails => {
+    return ethAsync.sendTransactionAsync({
+      to: txDetails.to,
+      from: txDetails.from,
+      gas: txDetails.gas,
+      gasPrice: gasPriceLocal,
+      data: txDetails.data,
+      nonce: txDetails.nonce,
+      value: txDetails.value,
+    })
+    .then(txHash => {
+      console.log(txDetails.hash, 'resent with', txHash);
+      result.push([txDetails.hash, txHash])
+      return true;
+    })
+    .catch(err => {
+      if (err.message.includes('nonce') || err.message.includes('imported')) {
+        return true;
+      }
+      console.log(txDetails.hash, 'failed to be sent', err.message || err);
+      // throw err;
+    });
+  })
+  .then(() => console.log(result) || result);
+}
