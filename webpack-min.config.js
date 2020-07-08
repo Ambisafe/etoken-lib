@@ -21,11 +21,11 @@ module.exports = {
         loaders: [
             {
                 test: /\.js/,
-                exclude: /node_modules\/(?!(ethereumjs-tx|web3-provider-engine|ethereumjs-util|browserify-sha3|rlp)\/).*/,
-                loader: "babel",
+                exclude: /node_modules\/(?!(ethereumjs-tx|web3-provider-engine|ethereumjs-util|browserify-sha3|rlp|eth-block-tracker|eth-json-rpc-filters|json-rpc-engine)\/).*/,
+                loader: "babel-loader",
                 query: {
-                    presets: ['es2015'],
-                    plugins: ['transform-object-assign'],
+                    presets: [['@babel/preset-env', { 'targets': 'chrome > 50' }]],
+                    plugins: ['@babel/plugin-transform-object-assign'],
                 }
             }
         ]
@@ -36,6 +36,6 @@ module.exports = {
     plugins: [
       new webpack.optimize.DedupePlugin(),
       new webpack.optimize.OccurenceOrderPlugin(),
-      new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
+      // new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
     ]
 };

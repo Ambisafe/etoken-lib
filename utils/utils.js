@@ -8,6 +8,8 @@ window.onload = function() {
   }
 };
 
+EToken = EToken.default;
+
 var $logs = $('#logs');
 $logs.css('word-wrap', 'break-word');
 var web3 = EToken.web3;
