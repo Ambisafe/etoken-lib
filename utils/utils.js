@@ -469,10 +469,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
           };
           return waitReceipt(result[0]);
         }
-        if (fastRun) {
-          return resolve([false, result[1]]);
-        }
-        return waitTransactionEvaluation(result[0]).then(() => resolve([false, result[1]])).catch(reject);
+        return resolve([false, result[1]]);
       });
     }).then(function(results) {
       if (results[0]) {
@@ -651,20 +648,9 @@ var getBlock = function(block) {
   return ethAsync.getBlockAsync(block || 'latest');
 };
 
+// Should not be used.
 var waitTransactionEvaluation = function(txHash) {
-  return getTransaction(txHash)
-  .then(tx => {
-    if (tx.blockNumber) {
-      return true;
-    }
-    return getBlock(SIMULATION_BLOCK)
-    .then(block => {
-      if (block.transactions.indexOf(txHash) >= 0) {
-        return true;
-      }
-      return delay(500).then(() => waitTransactionEvaluation(txHash));
-    });
-  })
+  return Promise.resolve(true);
 };
 
 var deployContractAsync = function(...args) {
@@ -776,11 +762,7 @@ var smartDeployContract = function(args) {
           getTransaction(contract.transactionHash)
           .then(tx => {
             const result = eth.contract(abi).at(tx.creates);
-            if (fastRun) {
-              return result;
-            }
-            return waitTransactionEvaluation(contract.transactionHash)
-            .then(() => result);
+            return result;
           }).then(resolve).catch(reject);
         }
       }
