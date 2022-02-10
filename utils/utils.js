@@ -17,6 +17,7 @@ var eth;
 var ethAsync;
 var address;
 var sender;
+var chainId;
 var SIMULATION_BLOCK = window.opts && window.opts.simulationBlock || 'latest';
 
 var nowSeconds = function(){return (Date.now() / 1000);};
@@ -37,7 +38,7 @@ var setPrivateKey = function(pk) {
   log('Your address(global variable `address` or `sender`) to send transactions: ' + address, $logs);
 };
 
-const setRpcUrl = function(url, logger, doNotSend = false) {
+const setRpcUrl = async function(url, logger, doNotSend = false) {
   if (url === undefined) {
     EToken.setRpcUrl(prompt('Enter your Ethereum node RPC URL in here:'));
   } else {
@@ -48,6 +49,7 @@ const setRpcUrl = function(url, logger, doNotSend = false) {
   EToken.web3.currentProvider._ready.go();
   eth = web3.eth;
   ethAsync = Promise.promisifyAll(eth);
+  chainId = parseInt(await Promise.promisify(web3.version.getNetwork)());
 }
 
 var setGasPriceInGWei = function(gasPriceInGWei) {
@@ -322,7 +324,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
     return;
   }
   var merge = function(base, args) {
-    var target = ['nonce', 'value', 'gasPrice', 'to', 'data'];
+    var target = ['nonce', 'value', 'gasPrice', 'to', 'data', 'chainId'];
     if (args) {
       while(target.length > 0) {
         var arg = target.pop();
@@ -348,7 +350,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
     processFunctionParams(params);
     return new Promise(function(resolve, reject) {
       var _params = params.slice(0);
-      _params.push(merge({from: sender, gas: Math.max(3000000, gas), gasPrice: gasPrice}, argsObject));
+      _params.push(merge({from: sender, gas: Math.max(3000000, gas), gasPrice: gasPrice, chainId}, argsObject));
       // _params.push(SIMULATION_BLOCK); // https://github.com/ethereum/go-ethereum/issues/2586
       _params.push(function(err, result) {
         if (err) {
@@ -395,7 +397,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
           };
           var retries = (testRun || (argsObject && argsObject.testRun)) ? 1 : 40;
           var repeat = repeater(retries, fun.call, _params);
-          _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
+          _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice, chainId}, argsObject));
           _params.push(SIMULATION_BLOCK);
           _params.push(function(err, result) {
             if (err) {
@@ -417,7 +419,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
     }).then(function(estimateGas) {
       return new Promise(function(resolve, reject) {
         var _params = params.slice(0);
-        _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
+        _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice, chainId}, argsObject));
         _params.push(function(err, result) {
           if (err) {
             reject(err);
@@ -725,6 +727,7 @@ var smartDeployContract = function(args) {
     data: bytecode[1] === 'x' ? bytecode : '0x' + bytecode,
     gas: gas || 3900000, // leave some space for other transactions
     gasPrice: gasPrice,
+    chainId,
   };
   if (nonce !== undefined) {
     params.nonce = nonce;
@@ -836,6 +839,7 @@ function speedUp(transactions, gasPriceInGWei) {
       data: txDetails.input,
       nonce: nextNonce,
       value: 0,
+      chainId,
     })
     .then(txHash => {
       console.log(txDetails.hash, 'resent with', txHash, 'and nonce', nextNonce);
@@ -919,6 +923,7 @@ function rewrite(transactions, gasPriceInGWei) {
       data: txDetails.input,
       nonce: txDetails.nonce,
       value: txDetails.value,
+      chainId,
     })
     .then(txHash => {
       console.log(txDetails.hash, 'resent with', txHash);
@@ -956,6 +961,7 @@ function readAndRewrite(transactionHashes, gasPriceInGWei) {
       data: txDetails.input,
       nonce: txDetails.nonce,
       value: txDetails.value,
+      chainId,
     })
     .then(txHash => {
       console.log(txDetails.hash, 'resent with', txHash);
@@ -1347,6 +1353,7 @@ function rewriteRaws(raws, gasPriceInGWei) {
       data: txDetails.data,
       nonce: txDetails.nonce,
       value: txDetails.value,
+      chainId,
     })
     .then(txHash => {
       console.log(txDetails.hash, 'resent with', txHash);
