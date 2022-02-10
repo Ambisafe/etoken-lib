@@ -223,6 +223,7 @@ var EToken =
 	    this.setRpcUrl = this.setRpcUrl.bind(this);
 	    this.buildRawTransaction = this.buildRawTransaction.bind(this);
 	    this.sign = this.sign.bind(this);
+	    this.chainId = 1;
 
 	    if (rpcUrl) {
 	      this.setRpcUrl(rpcUrl);
@@ -238,6 +239,8 @@ var EToken =
 	  }, {
 	    key: "setRpcUrl",
 	    value: function setRpcUrl(rpcUrl, rawsLogger) {
+	      var _this = this;
+
 	      var doNotSend = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
 	      if (this.rpcSet) {
@@ -272,16 +275,19 @@ var EToken =
 	        rpcUrl: rpcUrl
 	      }));
 	      this.engine.start();
+	      this.web3.version.getNetwork(function (err, res) {
+	        _this.chainId = parseInt(res);
+	      });
 	    }
 	  }, {
 	    key: "buildRawTransaction",
 	    value: function buildRawTransaction(contract, method) {
-	      var _this = this;
+	      var _this2 = this;
 
 	      return function () {
 	        var _contract$method;
 
-	        if (_this.signerPrivateKey === undefined) {
+	        if (_this2.signerPrivateKey === undefined) {
 	          throw Error('Building transaction is only possible after setPrivateKey().');
 	        }
 
@@ -292,14 +298,15 @@ var EToken =
 	        var txData = params.slice(-1)[0];
 	        txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
 	        txData.to = txData.to || contract.address;
-	        txData.from = txData.from || _this.signerAddress;
-	        txData.nonce = _this.web3.toHex(txData.nonce);
-	        txData.gas = _this.web3.toHex(txData.gas || txData.gasLimit);
+	        txData.from = txData.from || _this2.signerAddress;
+	        txData.nonce = _this2.web3.toHex(txData.nonce);
+	        txData.gas = _this2.web3.toHex(txData.gas || txData.gasLimit);
 	        txData.gasLimit = txData.gas;
-	        txData.gasPrice = _this.web3.toHex(txData.gasPrice);
-	        txData.value = _this.web3.toHex(txData.value || 0);
+	        txData.gasPrice = _this2.web3.toHex(txData.gasPrice);
+	        txData.value = _this2.web3.toHex(txData.value || 0);
+	        txData.chainId = _this2.web3.toHex(txData.chainId || _this2.chainId);
 	        var tx = new _ethereumjsTx.default(txData);
-	        tx.sign(_this.signerPrivateKey);
+	        tx.sign(_this2.signerPrivateKey);
 	        return '0x' + tx.serialize().toString('hex');
 	      }.bind(this);
 	    }
@@ -15145,46 +15152,9 @@ var EToken =
 /***/ function(module, exports) {
 
 	module.exports = {
-		"_from": "bigi@1.4.1",
-		"_id": "bigi@1.4.1",
-		"_inBundle": false,
-		"_integrity": "sha1-cm6KsI0f4d+4qmu2MJv/7Pk6Ibc=",
-		"_location": "/bigi",
-		"_phantomChildren": {},
-		"_requested": {
-			"type": "version",
-			"registry": true,
-			"raw": "bigi@1.4.1",
-			"name": "bigi",
-			"escapedName": "bigi",
-			"rawSpec": "1.4.1",
-			"saveSpec": null,
-			"fetchSpec": "1.4.1"
-		},
-		"_requiredBy": [
-			"/ambisafe-client-javascript",
-			"/bitcoinjs-lib",
-			"/ecurve"
-		],
-		"_resolved": "https://registry.npmjs.org/bigi/-/bigi-1.4.1.tgz",
-		"_shasum": "726e8ab08d1fe1dfb8aa6bb6309bffecf93a21b7",
-		"_spec": "bigi@1.4.1",
-		"_where": "/home/oleksii/etoken-lib/node_modules/ambisafe-client-javascript",
-		"bugs": {
-			"url": "https://github.com/cryptocoinjs/bigi/issues"
-		},
-		"bundleDependencies": false,
-		"dependencies": {},
-		"deprecated": false,
+		"name": "bigi",
+		"version": "1.4.1",
 		"description": "Big integers.",
-		"devDependencies": {
-			"coveralls": "^2.11.2",
-			"istanbul": "^0.3.5",
-			"jshint": "^2.5.1",
-			"mocha": "^2.1.0",
-			"mochify": "^2.1.0"
-		},
-		"homepage": "https://github.com/cryptocoinjs/bigi#readme",
 		"keywords": [
 			"cryptography",
 			"math",
@@ -15202,20 +15172,27 @@ var EToken =
 			"decimal",
 			"float"
 		],
-		"main": "./lib/index.js",
-		"name": "bigi",
+		"devDependencies": {
+			"coveralls": "^2.11.2",
+			"istanbul": "^0.3.5",
+			"jshint": "^2.5.1",
+			"mocha": "^2.1.0",
+			"mochify": "^2.1.0"
+		},
 		"repository": {
-			"url": "git+https://github.com/cryptocoinjs/bigi.git",
+			"url": "https://github.com/cryptocoinjs/bigi",
 			"type": "git"
 		},
+		"main": "./lib/index.js",
 		"scripts": {
-			"browser-test": "mochify --wd -R spec",
-			"coverage": "istanbul cover ./node_modules/.bin/_mocha -- --reporter list test/*.js",
-			"coveralls": "npm run-script coverage && node ./node_modules/.bin/coveralls < coverage/lcov.info",
-			"jshint": "jshint --config jshint.json lib/*.js ; true",
-			"test": "_mocha -- test/*.js",
-			"unit": "mocha"
+			"browser-test": "./node_modules/.bin/mochify --wd -R spec",
+			"test": "./node_modules/.bin/_mocha -- test/*.js",
+			"jshint": "./node_modules/.bin/jshint --config jshint.json lib/*.js ; true",
+			"unit": "./node_modules/.bin/mocha",
+			"coverage": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --reporter list test/*.js",
+			"coveralls": "npm run-script coverage && node ./node_modules/.bin/coveralls < coverage/lcov.info"
 		},
+		"dependencies": {},
 		"testling": {
 			"files": "test/*.js",
 			"harness": "mocha",
@@ -15227,8 +15204,7 @@ var EToken =
 				"iphone/6.0..latest",
 				"android-browser/4.2..latest"
 			]
-		},
-		"version": "1.4.1"
+		}
 	};
 
 /***/ },
@@ -26335,59 +26311,37 @@ var EToken =
 /***/ function(module, exports) {
 
 	module.exports = {
-		"_from": "elliptic@^6.5.2",
-		"_id": "elliptic@6.5.3",
-		"_inBundle": false,
-		"_integrity": "sha512-IMqzv5wNQf+E6aHeIqATs0tOLeOTwj1QKbRcS3jBbYkl5oLAserA8yJTT7/VyHUYG91PRmPyeQDObKLPpeS4dw==",
-		"_location": "/elliptic",
-		"_phantomChildren": {},
-		"_requested": {
-			"type": "range",
-			"registry": true,
-			"raw": "elliptic@^6.5.2",
-			"name": "elliptic",
-			"escapedName": "elliptic",
-			"rawSpec": "^6.5.2",
-			"saveSpec": null,
-			"fetchSpec": "^6.5.2"
-		},
-		"_requiredBy": [
-			"/eth-json-rpc-middleware/ethereumjs-util",
-			"/eth-sig-util/ethereumjs-util",
-			"/ethereumjs-abi/ethereumjs-util",
-			"/ethereumjs-account/ethereumjs-util",
-			"/ethereumjs-block/ethereumjs-util",
-			"/ethereumjs-tx/ethereumjs-util",
-			"/ethereumjs-util/secp256k1",
-			"/ethereumjs-vm/ethereumjs-block/ethereumjs-util",
-			"/ethereumjs-vm/ethereumjs-util",
-			"/merkle-patricia-tree/ethereumjs-util",
-			"/secp256k1",
-			"/web3-provider-engine/ethereumjs-util"
+		"name": "elliptic",
+		"version": "6.5.3",
+		"description": "EC cryptography",
+		"main": "lib/elliptic.js",
+		"files": [
+			"lib"
 		],
-		"_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.5.3.tgz",
-		"_shasum": "cb59eb2efdaf73a0bd78ccd7015a62ad6e0f93d6",
-		"_spec": "elliptic@^6.5.2",
-		"_where": "/home/oleksii/etoken-lib/node_modules/ethereumjs-tx/node_modules/ethereumjs-util",
-		"author": {
-			"name": "Fedor Indutny",
-			"email": "fedor@indutny.com"
+		"scripts": {
+			"jscs": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
+			"jshint": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
+			"lint": "npm run jscs && npm run jshint",
+			"unit": "istanbul test _mocha --reporter=spec test/index.js",
+			"test": "npm run lint && npm run unit",
+			"version": "grunt dist && git add dist/"
 		},
+		"repository": {
+			"type": "git",
+			"url": "git@github.com:indutny/elliptic"
+		},
+		"keywords": [
+			"EC",
+			"Elliptic",
+			"curve",
+			"Cryptography"
+		],
+		"author": "Fedor Indutny <fedor@indutny.com>",
+		"license": "MIT",
 		"bugs": {
 			"url": "https://github.com/indutny/elliptic/issues"
 		},
-		"bundleDependencies": false,
-		"dependencies": {
-			"bn.js": "^4.4.0",
-			"brorand": "^1.0.1",
-			"hash.js": "^1.0.0",
-			"hmac-drbg": "^1.0.0",
-			"inherits": "^2.0.1",
-			"minimalistic-assert": "^1.0.0",
-			"minimalistic-crypto-utils": "^1.0.0"
-		},
-		"deprecated": false,
-		"description": "EC cryptography",
+		"homepage": "https://github.com/indutny/elliptic",
 		"devDependencies": {
 			"brfs": "^1.4.3",
 			"coveralls": "^3.0.8",
@@ -26404,32 +26358,15 @@ var EToken =
 			"jshint": "^2.10.3",
 			"mocha": "^6.2.2"
 		},
-		"files": [
-			"lib"
-		],
-		"homepage": "https://github.com/indutny/elliptic",
-		"keywords": [
-			"EC",
-			"Elliptic",
-			"curve",
-			"Cryptography"
-		],
-		"license": "MIT",
-		"main": "lib/elliptic.js",
-		"name": "elliptic",
-		"repository": {
-			"type": "git",
-			"url": "git+ssh://git@github.com/indutny/elliptic.git"
-		},
-		"scripts": {
-			"jscs": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
-			"jshint": "jscs benchmarks/*.js lib/*.js lib/**/*.js lib/**/**/*.js test/index.js",
-			"lint": "npm run jscs && npm run jshint",
-			"test": "npm run lint && npm run unit",
-			"unit": "istanbul test _mocha --reporter=spec test/index.js",
-			"version": "grunt dist && git add dist/"
-		},
-		"version": "6.5.3"
+		"dependencies": {
+			"bn.js": "^4.4.0",
+			"brorand": "^1.0.1",
+			"hash.js": "^1.0.0",
+			"hmac-drbg": "^1.0.0",
+			"inherits": "^2.0.1",
+			"minimalistic-assert": "^1.0.0",
+			"minimalistic-crypto-utils": "^1.0.0"
+		}
 	};
 
 /***/ },
