@@ -71,6 +71,7 @@ var EToken = /*#__PURE__*/function () {
     this.setRpcUrl = this.setRpcUrl.bind(this);
     this.buildRawTransaction = this.buildRawTransaction.bind(this);
     this.sign = this.sign.bind(this);
+    this.chainId = 1;
 
     if (rpcUrl) {
       this.setRpcUrl(rpcUrl);
@@ -86,6 +87,8 @@ var EToken = /*#__PURE__*/function () {
   }, {
     key: "setRpcUrl",
     value: function setRpcUrl(rpcUrl, rawsLogger) {
+      var _this = this;
+
       var doNotSend = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
       if (this.rpcSet) {
@@ -120,16 +123,19 @@ var EToken = /*#__PURE__*/function () {
         rpcUrl: rpcUrl
       }));
       this.engine.start();
+      this.web3.version.getNetwork(function (err, res) {
+        _this.chainId = parseInt(res);
+      });
     }
   }, {
     key: "buildRawTransaction",
     value: function buildRawTransaction(contract, method) {
-      var _this = this;
+      var _this2 = this;
 
       return function () {
         var _contract$method;
 
-        if (_this.signerPrivateKey === undefined) {
+        if (_this2.signerPrivateKey === undefined) {
           throw Error('Building transaction is only possible after setPrivateKey().');
         }
 
@@ -140,14 +146,15 @@ var EToken = /*#__PURE__*/function () {
         var txData = params.slice(-1)[0];
         txData.data = txData.data || (_contract$method = contract[method]).getData.apply(_contract$method, _toConsumableArray(params.slice(0, -1)));
         txData.to = txData.to || contract.address;
-        txData.from = txData.from || _this.signerAddress;
-        txData.nonce = _this.web3.toHex(txData.nonce);
-        txData.gas = _this.web3.toHex(txData.gas || txData.gasLimit);
+        txData.from = txData.from || _this2.signerAddress;
+        txData.nonce = _this2.web3.toHex(txData.nonce);
+        txData.gas = _this2.web3.toHex(txData.gas || txData.gasLimit);
         txData.gasLimit = txData.gas;
-        txData.gasPrice = _this.web3.toHex(txData.gasPrice);
-        txData.value = _this.web3.toHex(txData.value || 0);
+        txData.gasPrice = _this2.web3.toHex(txData.gasPrice);
+        txData.value = _this2.web3.toHex(txData.value || 0);
+        txData.chainId = _this2.web3.toHex(txData.chainId || _this2.chainId);
         var tx = new _ethereumjsTx.default(txData);
-        tx.sign(_this.signerPrivateKey);
+        tx.sign(_this2.signerPrivateKey);
         return '0x' + tx.serialize().toString('hex');
       }.bind(this);
     }

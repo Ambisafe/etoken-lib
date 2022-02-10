@@ -28,6 +28,7 @@ class EToken {
         this.setRpcUrl = this.setRpcUrl.bind(this);
         this.buildRawTransaction = this.buildRawTransaction.bind(this);
         this.sign = this.sign.bind(this);
+        this.chainId = 1;
         if (rpcUrl) {
             this.setRpcUrl(rpcUrl);
         }
@@ -69,6 +70,9 @@ class EToken {
         }));
 
         this.engine.start();
+        this.web3.version.getNetwork((err, res) => {
+            this.chainId = parseInt(res);
+        });
     }
 
     buildRawTransaction(contract, method) {
@@ -85,6 +89,7 @@ class EToken {
             txData.gasLimit = txData.gas;
             txData.gasPrice = this.web3.toHex(txData.gasPrice);
             txData.value = this.web3.toHex(txData.value || 0);
+            txData.chainId = this.web3.toHex(txData.chainId || this.chainId);
             let tx = new EthTx(txData);
             tx.sign(this.signerPrivateKey);
             return '0x' + tx.serialize().toString('hex');
