@@ -397,7 +397,7 @@ var safeTransactionFunction = function(fun, params, sender, argsObject) {
           };
           var retries = (testRun || (argsObject && argsObject.testRun)) ? 1 : 40;
           var repeat = repeater(retries, fun.call, _params);
-          _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice, chainId}, argsObject));
+          _params.push(merge({from: sender, gas: gas, gasPrice: gasPrice}, argsObject));
           _params.push(SIMULATION_BLOCK);
           _params.push(function(err, result) {
             if (err) {
