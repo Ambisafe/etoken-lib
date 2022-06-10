@@ -1326,7 +1326,16 @@ function parseRaw(raw) {
   const decoded = EToken.ethUtil.rlp.decode(raw);
   const value = decoded[4].length === 0 ? web3.toBigNumber(0) : web3.toBigNumber('0x' + decoded[4].toString('hex'));
   const data = decoded[5].length === 0 ? '0x' : '0x' + decoded[5].toString('hex');
-  const from = '0x' + EToken.ethUtil.publicToAddress(EToken.ethUtil.ecrecover(EToken.ethUtil.rlphash([decoded[0], decoded[1], decoded[2], decoded[3], decoded[4], decoded[5]]), decoded[6], decoded[7], decoded[8])).toString('hex');
+  let chainId = undefined;
+  let v = parseInt(decoded[6].toString('hex'), 16);
+  let from;
+  if (v > 30) {
+    chainId = ((v - 35) - ((v - 35) % 2)) / 2;
+    v = ((v - 35) % 2) + 27;
+    from = '0x' + EToken.ethUtil.publicToAddress(EToken.ethUtil.ecrecover(EToken.ethUtil.rlphash([decoded[0], decoded[1], decoded[2], decoded[3], decoded[4], decoded[5], EToken.ethUtil.toBuffer(chainId), EToken.ethUtil.toBuffer(), EToken.ethUtil.toBuffer()]), EToken.ethUtil.toBuffer(v), decoded[7], decoded[8])).toString('hex');
+  } else {
+    from = '0x' + EToken.ethUtil.publicToAddress(EToken.ethUtil.ecrecover(EToken.ethUtil.rlphash([decoded[0], decoded[1], decoded[2], decoded[3], decoded[4], decoded[5]]), decoded[6], decoded[7], decoded[8])).toString('hex');
+  }
   return {
     from,
     nonce: web3.toDecimal('0x' + decoded[0].toString('hex')),
@@ -1335,6 +1344,7 @@ function parseRaw(raw) {
     to: '0x' + decoded[3].toString('hex'),
     value,
     data,
+    chainId,
     hash: web3.sha3(raw, {encoding: 'hex'})
   };
 }
