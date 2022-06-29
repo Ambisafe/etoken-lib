@@ -698,7 +698,7 @@ function waitForReceipt(txHash) {
   return retry(
     async () => {
       const result = await eth.getTransactionReceiptAsync(txHash);
-      if (not(result) || not(result.blockNumber)) {
+      if (!result || !result.blockNumber) {
         throw new Error('Not mined yet');
       }
       return result;
