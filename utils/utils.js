@@ -1338,7 +1338,7 @@ function parseRaw(raw) {
   }
   return {
     from,
-    nonce: web3.toDecimal('0x' + decoded[0].toString('hex')),
+    nonce: web3.toDecimal('0x' + (decoded[0].toString('hex') || '00')),
     gasPrice: web3.toDecimal('0x' + decoded[1].toString('hex')),
     gas: web3.toDecimal('0x' + decoded[2].toString('hex')),
     to: '0x' + decoded[3].toString('hex'),
